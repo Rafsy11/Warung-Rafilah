@@ -47,7 +47,7 @@ class EmailService {
      * Send email verification link
      */
     public function sendVerificationEmail($user_id, $email, $username, $token) {
-        $verification_link = "http://{$_SERVER['HTTP_HOST']}/tes_web/verify-email.php?token=" . urlencode($token);
+        $verification_link = getBaseUrl() . "/verify-email.php?token=" . urlencode($token);
         
         $subject = "Verifikasi Email - Toko Rafilah";
         
@@ -90,7 +90,7 @@ class EmailService {
      * Send password reset link
      */
     public function sendPasswordResetEmail($user_id, $email, $username, $token) {
-        $reset_link = "http://{$_SERVER['HTTP_HOST']}/tes_web/reset-password.php?token=" . urlencode($token);
+        $reset_link = getBaseUrl() . "/reset-password.php?token=" . urlencode($token);
         
         $subject = "Reset Password - Toko Rafilah";
         

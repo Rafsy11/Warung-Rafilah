@@ -1,94 +1,78 @@
-<h2>📊 Dashboard</h2>
+<?php
+$stmt = $conn->prepare("SELECT COALESCE(SUM(stok * harga_beli), 0) AS total FROM produk");
+$stmt->execute();
+$inventory_value = (float) (($stmt->get_result()->fetch_assoc()['total'] ?? 0));
 
-<!-- Stats Cards Container -->
-<div id="dashboard-stats" class="stat-cards"></div>
+$stmt = $conn->prepare("SELECT COALESCE(SUM(jumlah), 0) AS total FROM pemasukkan");
+$stmt->execute();
+$income_total = (float) (($stmt->get_result()->fetch_assoc()['total'] ?? 0));
 
-<!-- Top Products Container -->
-<div id="dashboard-products" class="dashboard-section">
-    <h3>🏆 Produk Stok Terbanyak</h3>
-    <div id="products-table"></div>
-</div>
+$stmt = $conn->prepare("SELECT COALESCE(SUM(jumlah), 0) AS total FROM pengeluaran");
+$stmt->execute();
+$expense_total = (float) (($stmt->get_result()->fetch_assoc()['total'] ?? 0));
 
-<!-- Transactions Container -->
-<div id="dashboard-transactions" class="dashboard-section">
-    <h3>📋 Transaksi Terbaru</h3>
+$stmt = $conn->prepare("SELECT COUNT(*) AS total FROM produk WHERE stok <= 5");
+$stmt->execute();
+$low_stock_count = (int) (($stmt->get_result()->fetch_assoc()['total'] ?? 0));
+?>
+
+<h2>Dashboard</h2>
+<p class="page-lead">
+    Ringkasan singkat kondisi toko hari ini.
+</p>
+
+<section class="dashboard-card">
+    <div class="section-heading">
+        <div>
+            <span class="section-eyebrow">Ringkasan</span>
+            <h3>Info inti</h3>
+        </div>
+        <p>Fokus ke angka yang paling penting dulu.</p>
+    </div>
+    <div id="dashboard-stats" class="stat-cards"></div>
+</section>
+
+<section class="dashboard-card">
+    <div class="section-heading">
+        <div>
+            <span class="section-eyebrow">Aktivitas</span>
+            <h3>Transaksi terbaru</h3>
+        </div>
+        <p>Catatan terbaru yang masuk ke sistem.</p>
+    </div>
     <div id="transactions-table"></div>
-</div>
+</section>
 
 <script>
-// Dashboard data - embedded from database
 window.dashboardData = {
     stats: {
-        stok_value: <?php 
-            $stmt = $conn->prepare("SELECT COALESCE(SUM(stok * harga_beli), 0) as total FROM produk");
-            $stmt->execute();
-            $result = $stmt->get_result();
-            echo (float)($result->fetch_assoc()['total'] ?? 0);
-        ?>,
-        pemasukkan: <?php 
-            $stmt = $conn->prepare("SELECT COALESCE(SUM(jumlah), 0) as total FROM pemasukkan");
-            $stmt->execute();
-            $result = $stmt->get_result();
-            echo (float)($result->fetch_assoc()['total'] ?? 0);
-        ?>,
-        pengeluaran: <?php 
-            $stmt = $conn->prepare("SELECT COALESCE(SUM(jumlah), 0) as total FROM pengeluaran");
-            $stmt->execute();
-            $result = $stmt->get_result();
-            echo (float)($result->fetch_assoc()['total'] ?? 0);
-        ?>
+        stok_value: <?php echo $inventory_value; ?>,
+        pemasukkan: <?php echo $income_total; ?>,
+        pengeluaran: <?php echo $expense_total; ?>,
+        low_stock: <?php echo $low_stock_count; ?>
     },
-    products: [
-        <?php
-        $stmt = $conn->prepare("SELECT nama, stok, harga_jual FROM produk ORDER BY stok DESC LIMIT 5");
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $first = true;
-        while ($row = $result->fetch_assoc()):
-            if (!$first) echo ",\n";
-            echo "            { nama: " . json_encode(sanitizeInput($row['nama'])) . ", stok: " . intval($row['stok']) . ", harga_jual: " . floatval($row['harga_jual']) . " }";
-            $first = false;
-        endwhile;
-        ?>
-    ],
     transactions: [
         <?php
         $stmt = $conn->prepare("
-            (SELECT 'Pemasukkan' as type, deskripsi, jumlah, tanggal FROM pemasukkan)
+            (SELECT 'Pemasukkan' AS type, deskripsi, jumlah, tanggal FROM pemasukkan)
             UNION ALL
-            (SELECT 'Pengeluaran' as type, deskripsi, jumlah, tanggal FROM pengeluaran)
+            (SELECT 'Pengeluaran' AS type, deskripsi, jumlah, tanggal FROM pengeluaran)
             ORDER BY tanggal DESC
-            LIMIT 10
+            LIMIT 6
         ");
         $stmt->execute();
         $result = $stmt->get_result();
         $first = true;
+
         while ($row = $result->fetch_assoc()):
-            if (!$first) echo ",\n";
+            if (!$first) {
+                echo ",\n";
+            }
+
             echo "            { type: " . json_encode($row['type']) . ", deskripsi: " . json_encode(sanitizeInput($row['deskripsi'])) . ", jumlah: " . floatval($row['jumlah']) . ", tanggal: " . json_encode($row['tanggal']) . " }";
             $first = false;
         endwhile;
         ?>
     ]
 };
-
-// Initialize dashboard
-function initDashboardNow() {
-    if (typeof dashboardRender !== 'undefined') {
-        dashboardRender.renderStats(window.dashboardData.stats);
-        dashboardRender.renderProducts(window.dashboardData.products);
-        dashboardRender.renderTransactions(window.dashboardData.transactions);
-    } else {
-        setTimeout(initDashboardNow, 100);
-    }
-}
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initDashboardNow);
-} else {
-    initDashboardNow();
-}
-
-// Re-render on theme change
-document.addEventListener('themeChanged', initDashboardNow);
 </script>

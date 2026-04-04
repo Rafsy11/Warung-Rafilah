@@ -5,11 +5,90 @@ ini_set('display_errors', 0); // Don't display errors as HTML (breaks JSON)
 ini_set('log_errors', 1);
 ini_set('error_log', dirname(__FILE__) . '/error.log');
 
+if (!function_exists('loadEnvFile')) {
+    function loadEnvFile($path) {
+        if (!is_file($path) || !is_readable($path)) {
+            return;
+        }
+
+        $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        if ($lines === false) {
+            return;
+        }
+
+        foreach ($lines as $line) {
+            $trimmed = trim($line);
+
+            if ($trimmed === '' || strpos($trimmed, '#') === 0 || strpos($trimmed, '=') === false) {
+                continue;
+            }
+
+            [$name, $value] = explode('=', $trimmed, 2);
+            $name = trim($name);
+            $value = trim($value);
+
+            if ($name === '') {
+                continue;
+            }
+
+            $value = trim($value, "\"'");
+
+            if (getenv($name) === false) {
+                putenv($name . '=' . $value);
+                $_ENV[$name] = $value;
+                $_SERVER[$name] = $value;
+            }
+        }
+    }
+}
+
+if (!function_exists('envValue')) {
+    function envValue($key, $default = null) {
+        $value = getenv($key);
+
+        if ($value === false || $value === '') {
+            return $default;
+        }
+
+        return $value;
+    }
+}
+
+if (!function_exists('envFlag')) {
+    function envFlag($key, $default = false) {
+        $value = envValue($key, $default ? 'true' : 'false');
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN);
+    }
+}
+
+loadEnvFile(__DIR__ . '/.env');
+
 // ============== CONFIG ==============
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_NAME', 'toko_rafilah');
+define('DB_HOST', envValue('DB_HOST', 'localhost'));
+define('DB_PORT', (int) envValue('DB_PORT', '3306'));
+define('DB_USER', envValue('DB_USER', 'root'));
+define('DB_PASS', envValue('DB_PASSWORD', envValue('DB_PASS', '')));
+define('DB_NAME', envValue('DB_NAME', 'toko_rafilah'));
+define('DB_AUTO_CREATE', envFlag('DB_AUTO_CREATE', in_array(DB_HOST, ['localhost', '127.0.0.1'], true)));
+define('APP_BASE_URL', rtrim(envValue('APP_BASE_URL', ''), '/'));
+
+if (!function_exists('getBaseUrl')) {
+    function getBaseUrl() {
+        if (APP_BASE_URL !== '') {
+            return APP_BASE_URL;
+        }
+
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $basePath = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
+
+        if ($basePath === '' || $basePath === '.') {
+            return $scheme . '://' . $host;
+        }
+
+        return $scheme . '://' . $host . $basePath;
+    }
+}
 
 // ============== DATABASE CLASS ==============
 class Database {
@@ -28,15 +107,20 @@ class Database {
     }
 
     private function connect() {
-        $this->conn = new mysqli(DB_HOST, DB_USER, DB_PASS);
+        $databaseName = DB_AUTO_CREATE ? null : DB_NAME;
+        $this->conn = new mysqli(DB_HOST, DB_USER, DB_PASS, $databaseName, DB_PORT);
         
         if ($this->conn->connect_error) {
             throw new Exception("Connection failed: " . $this->conn->connect_error);
         }
 
-        // Create database
-        $this->conn->query("CREATE DATABASE IF NOT EXISTS " . DB_NAME);
-        $this->conn->select_db(DB_NAME);
+        if (DB_AUTO_CREATE) {
+            $this->conn->query("CREATE DATABASE IF NOT EXISTS " . DB_NAME);
+            $this->conn->select_db(DB_NAME);
+        } elseif (!$this->conn->select_db(DB_NAME)) {
+            throw new Exception("Database selection failed: " . $this->conn->error);
+        }
+
         $this->conn->set_charset("utf8mb4");
         
         $this->initializeTables();

@@ -3,272 +3,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Toko Rafilah - Login & Sign Up</title>
+    <meta name="theme-color" content="#2563eb">
+    <title>Masuk | Rafilah Storeboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #7c3aed;
+            --tertiary: #a855f7;
+            --surface: rgba(247, 248, 255, 0.94);
+            --surface-soft: rgba(255, 255, 255, 0.78);
+            --text-main: #1f2933;
+            --text-muted: #64748b;
+            --border: rgba(79, 92, 160, 0.14);
+            --shadow: 0 24px 60px rgba(15, 23, 32, 0.2);
+        }
+
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
         }
 
         body {
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            position: relative;
-            overflow: hidden;
+            font-family: "Space Grotesk", sans-serif;
+            color: var(--text-main);
+            background:
+                radial-gradient(circle at top left, rgba(168, 85, 247, 0.24), transparent 30%),
+                radial-gradient(circle at bottom right, rgba(37, 99, 235, 0.18), transparent 32%),
+                linear-gradient(140deg, #0b1028 0%, #1b2d69 48%, #7c3aed 100%);
+            padding: 24px;
+            display: grid;
+            place-items: center;
         }
 
-        /* Animated background elements */
+        body::before,
+        body::after {
+            content: "";
+            position: fixed;
+            width: 300px;
+            height: 300px;
+            border-radius: 999px;
+            filter: blur(40px);
+            pointer-events: none;
+        }
+
         body::before {
-            content: '';
-            position: absolute;
-            width: 400px;
-            height: 400px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            top: -200px;
-            left: -200px;
-            animation: float 20s infinite ease-in-out;
+            top: -80px;
+            right: -60px;
+            background: rgba(124, 58, 237, 0.24);
         }
 
         body::after {
-            content: '';
-            position: absolute;
-            width: 300px;
-            height: 300px;
-            background: rgba(245, 87, 108, 0.1);
-            border-radius: 50%;
-            bottom: -150px;
-            right: -150px;
-            animation: float 25s infinite ease-in-out reverse;
+            left: -70px;
+            bottom: -100px;
+            background: rgba(37, 99, 235, 0.22);
         }
 
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(30px); }
-        }
-
-        .container {
+        .auth-shell {
             position: relative;
-            z-index: 10;
-            width: 100%;
-            max-width: 900px;
-        }
-
-        .wrapper {
+            z-index: 1;
+            width: min(1180px, 100%);
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0;
-            border-radius: 20px;
+            grid-template-columns: minmax(320px, 1.05fr) minmax(320px, 0.95fr);
+            border-radius: 32px;
             overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            min-height: 600px;
-            background: white;
+            box-shadow: var(--shadow);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
         }
 
-        .welcome-section {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 60px 40px;
+        .brand-side {
+            padding: 52px 46px;
+            background:
+                linear-gradient(160deg, rgba(9, 15, 38, 0.94), rgba(26, 22, 64, 0.9)),
+                radial-gradient(circle at top left, rgba(139, 92, 246, 0.2), transparent 30%);
+            color: #f7fbff;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: start;
+            justify-content: space-between;
+            gap: 32px;
         }
 
-        .welcome-section h1 {
-            font-size: 2.5em;
-            margin-bottom: 20px;
+        .brand-eyebrow,
+        .panel-label {
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            font-size: 0.74rem;
             font-weight: 700;
-            line-height: 1.2;
         }
 
-        .welcome-section p {
-            font-size: 1.1em;
-            opacity: 0.9;
-            margin-bottom: 30px;
-            line-height: 1.6;
+        .brand-eyebrow {
+            color: rgba(196, 181, 253, 0.96);
+            margin-bottom: 16px;
         }
 
-        .feature-list {
-            list-style: none;
+        .brand-title {
+            font-family: "Fraunces", serif;
+            font-size: clamp(2.5rem, 5vw, 4.5rem);
+            line-height: 0.98;
+            margin-bottom: 18px;
         }
 
-        .feature-list li {
-            font-size: 0.95em;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
+        .brand-copy {
+            max-width: 24ch;
+            color: rgba(236, 244, 251, 0.8);
+            font-size: 1rem;
         }
 
-        .feature-list li::before {
-            content: '✓';
-            font-size: 1.3em;
-            font-weight: 700;
-            color: #f093fb;
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
         }
 
-        .auth-section {
-            padding: 60px 40px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
+        .feature-card {
+            padding: 18px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 40px;
-            border-bottom: 2px solid #f0f4ff;
-            padding-bottom: 15px;
-        }
-
-        .tab-btn {
-            background: none;
-            border: none;
-            font-size: 1em;
-            font-weight: 600;
-            color: #9ca3af;
-            cursor: pointer;
-            padding: 8px 0;
-            position: relative;
-            transition: color 0.3s ease;
-            font-family: 'Poppins', sans-serif;
-        }
-
-        .tab-btn:hover {
-            color: #667eea;
-        }
-
-        .tab-btn.active {
-            color: #667eea;
-        }
-
-        .tab-btn.active::after {
-            content: '';
-            position: absolute;
-            bottom: -17px;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
+        .feature-card strong {
             display: block;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .checkbox-label {
-            display: flex;
-            align-items: center;
-            font-size: 0.9em;
-            cursor: pointer;
-            user-select: none;
-            margin-bottom: 0;
-        }
-
-        .checkbox-label input[type="checkbox"] {
-            width: auto;
-            margin-right: 8px;
-            cursor: pointer;
-            accent-color: #667eea;
-        }
-
-        .checkbox-label span {
-            color: #6b7280;
-        }
-
-        label {
-            display: block;
-            font-size: 0.9em;
-            font-weight: 600;
-            color: #374151;
             margin-bottom: 8px;
+            font-size: 1rem;
         }
 
-        input {
-            width: 100%;
-            padding: 12px 14px;
-            border: 1.5px solid #e5e7eb;
-            border-radius: 10px;
-            font-size: 0.95em;
-            font-family: 'Poppins', sans-serif;
-            transition: all 0.3s ease;
+        .feature-card p {
+            color: rgba(236, 244, 251, 0.76);
+            font-size: 0.92rem;
         }
 
-        input:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        .auth-panel {
+            padding: 46px 42px;
+            background: linear-gradient(180deg, rgba(250, 251, 255, 0.96), rgba(244, 245, 255, 0.92));
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 24px;
         }
 
-        .form-group.error input {
-            border-color: #f5576c;
-            box-shadow: 0 0 0 3px rgba(245, 87, 108, 0.1);
+        .panel-header h1 {
+            font-family: "Fraunces", serif;
+            font-size: clamp(2rem, 4vw, 3rem);
+            line-height: 1.05;
+            margin-bottom: 10px;
         }
 
-        .error-message {
-            font-size: 0.82em;
-            color: #f5576c;
-            margin-top: 5px;
-            display: none;
+        .panel-header p {
+            color: var(--text-muted);
         }
 
-        .error-message.show {
-            display: block;
+        .submit-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            border-radius: 18px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
         }
 
         .submit-btn {
             width: 100%;
-            padding: 13px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 0.95em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: 'Poppins', sans-serif;
-            margin-top: 10px;
+            padding: 15px 18px;
+            background: linear-gradient(135deg, var(--primary), #7c3aed);
+            color: #ffffff;
+            box-shadow: 0 16px 28px rgba(79, 70, 229, 0.24);
         }
 
         .submit-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
-        }
-
-        .submit-btn:active {
-            transform: translateY(0);
         }
 
         .submit-btn:disabled {
@@ -277,246 +187,235 @@
         }
 
         .alert {
-            padding: 12px 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            font-size: 0.9em;
             display: none;
-            animation: slideDown 0.3s ease;
+            padding: 14px 16px;
+            border-radius: 18px;
+            font-size: 0.95rem;
         }
 
         .alert.show {
             display: block;
         }
 
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
         .alert-success {
-            background: #d1f2eb;
-            color: #065f46;
-            border-left: 4px solid #10b981;
+            background: rgba(31, 157, 120, 0.12);
+            color: #0d6a51;
+            border: 1px solid rgba(31, 157, 120, 0.16);
         }
 
         .alert-error {
-            background: #fee2e2;
-            color: #991b1b;
-            border-left: 4px solid #ef4444;
+            background: rgba(207, 79, 79, 0.12);
+            color: #9f3030;
+            border: 1px solid rgba(207, 79, 79, 0.16);
         }
 
-        .form-footer {
-            text-align: center;
-            font-size: 0.9em;
-            color: #6b7280;
-            margin-top: 20px;
+        form {
+            display: grid;
+            gap: 16px;
         }
 
-        .form-footer button {
-            background: none;
-            border: none;
-            color: #667eea;
-            font-weight: 600;
+        .field {
+            display: grid;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 14px 15px;
+            border-radius: 18px;
+            border: 1px solid var(--border);
+            background: var(--surface-soft);
+            color: var(--text-main);
+            transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            outline: none;
+            border-color: rgba(99, 102, 241, 0.4);
+            box-shadow: 0 0 0 5px rgba(99, 102, 241, 0.16);
+            transform: translateY(-1px);
+        }
+
+        .remember-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            color: var(--text-muted);
+            font-size: 0.92rem;
+        }
+
+        .checkbox-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
             cursor: pointer;
-            font-family: 'Poppins', sans-serif;
         }
 
-        .form-footer button:hover {
-            text-decoration: underline;
+        .checkbox-label input {
+            accent-color: var(--primary);
         }
 
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-            .wrapper {
+        .panel-footer {
+            color: var(--text-muted);
+            font-size: 0.92rem;
+        }
+
+        @media (max-width: 960px) {
+            .auth-shell {
                 grid-template-columns: 1fr;
-                min-height: auto;
             }
 
-            .welcome-section {
+            .brand-side {
+                padding: 34px 28px;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 14px;
+            }
+
+            .brand-side {
                 display: none;
             }
 
-            .auth-section {
-                padding: 40px 24px;
+            .brand-side,
+            .auth-panel {
+                padding: 28px 22px;
             }
 
-            .welcome-section h1 {
-                font-size: 2em;
+            .feature-grid {
+                grid-template-columns: 1fr;
             }
 
-            input {
-                padding: 11px 12px;
-                font-size: 0.9em;
-            }
-
-            .submit-btn {
-                padding: 11px;
-                font-size: 0.9em;
-            }
-
-            .tabs {
-                margin-bottom: 30px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .container {
-                margin: 0;
-            }
-
-            .auth-section {
-                padding: 32px 18px;
-            }
-
-            .tabs {
-                margin-bottom: 24px;
-                gap: 5px;
-            }
-
-            .tab-btn {
-                font-size: 0.9em;
-            }
-
-            .form-group {
-                margin-bottom: 16px;
-            }
-
-            label {
-                font-size: 0.85em;
-            }
-
-            input {
-                padding: 10px 11px;
-                font-size: 0.88em;
-            }
-
-            .submit-btn {
-                padding: 10px;
-                font-size: 0.88em;
-            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="wrapper">
-            <!-- Welcome Section -->
-            <div class="welcome-section">
-                <h1>🏪 Toko Rafilah</h1>
-                <p>Sistem Manajemen Inventory & Keuangan yang ampuh untuk bisnis Anda</p>
-                <ul class="feature-list">
-                    <li>Kelola stok produk dengan mudah</li>
-                    <li>Pantau arus keuangan real-time</li>
-                    <li>Laporan mendalam dan akurat</li>
-                    <li>Interface yang user-friendly</li>
-                    <li>Aman dengan autentikasi pengguna</li>
-                </ul>
+    <div class="auth-shell">
+        <section class="brand-side">
+            <div>
+                <div class="brand-eyebrow">Warung OS</div>
+                <div class="brand-title">Rafilah Storeboard</div>
+                <p class="brand-copy">
+                    Sistem toko yang kini tampil lebih tegas, lebih cepat dibaca, dan enak dipakai untuk kerja harian.
+                </p>
             </div>
 
-            <!-- Auth Section -->
-            <div class="auth-section">
-                <div class="tabs">
-                    <button class="tab-btn active" onclick="switchTab('login')">Login</button>
-                </div>
-
-                <!-- Login Tab -->
-                <div id="login" class="tab-content active">
-                    <div class="alert alert-success" id="login-alert"></div>
-                    <div class="alert alert-error" id="login-error"></div>
-
-                    <form id="login-form" onsubmit="handleLogin(event)">
-                        <div class="form-group">
-                            <label for="login-username">Username</label>
-                            <input type="text" id="login-username" name="username" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="login-password">Password</label>
-                            <input type="password" id="login-password" name="password" required>
-                        </div>
-
-                        <div class="form-group checkbox-group">
-                            <label class="checkbox-label">
-                                <input type="checkbox" id="remember-me" name="remember_me">
-                                <span>Ingat perangkat ini (30 hari)</span>
-                            </label>
-                        </div>
-
-                        <button type="submit" class="submit-btn" id="login-btn">Login</button>
-                    </form>
-                </div>
+            <div class="feature-grid">
+                <article class="feature-card">
+                    <strong>Stok</strong>
+                    <p>Pantau produk masuk, keluar, dan nilai inventaris secara cepat.</p>
+                </article>
+                <article class="feature-card">
+                    <strong>Cashflow</strong>
+                    <p>Lihat pemasukan dan pengeluaran tanpa perlu berpindah alat.</p>
+                </article>
+                <article class="feature-card">
+                    <strong>Kasir</strong>
+                    <p>POS tetap siap dipakai untuk transaksi harian langsung dari browser.</p>
+                </article>
+                <article class="feature-card">
+                    <strong>Akses aman</strong>
+                    <p>Login tetap sederhana tanpa menampilkan data akun di halaman masuk.</p>
+                </article>
             </div>
-        </div>
+        </section>
+
+        <section class="auth-panel">
+            <div class="panel-header">
+                <div class="panel-label">Masuk</div>
+                <h1>Buka dashboard toko</h1>
+                <p>Masuk dengan akun yang sudah terdaftar untuk membuka sistem toko.</p>
+            </div>
+
+            <div class="alert alert-success" id="login-alert"></div>
+            <div class="alert alert-error" id="login-error"></div>
+
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="field">
+                    <label for="login-username">Username</label>
+                    <input type="text" id="login-username" name="username" autocomplete="username" required>
+                </div>
+
+                <div class="field">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" name="password" autocomplete="current-password" required>
+                </div>
+
+                <div class="remember-row">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="remember-me" name="remember_me">
+                        <span>Ingat perangkat ini selama 30 hari</span>
+                    </label>
+                    <span>Akses aman dari perangkat pribadi</span>
+                </div>
+
+                <button type="submit" class="submit-btn" id="login-btn">Masuk ke aplikasi</button>
+            </form>
+
+            <p class="panel-footer">
+                Jika login gagal, pastikan database dan akun admin sudah tersedia.
+            </p>
+        </section>
     </div>
 
     <script>
-        // Tab switching
-        function switchTab(tab) {
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-
-            // Show selected tab
-            document.getElementById(tab).classList.add('active');
-            
-            // Set active button
-            const buttons = document.querySelectorAll('.tab-btn');
-            buttons.forEach(btn => {
-                if (btn.textContent.toLowerCase().includes(tab === 'login' ? 'login' : 'sign up')) {
-                    btn.classList.add('active');
-                }
-            });
-        }
-
-        // Show alert
-        function showAlert(element, message, type = 'error') {
-            const alert = document.getElementById(element);
+        function showAlert(elementId, message) {
+            const alert = document.getElementById(elementId);
             alert.textContent = message;
             alert.classList.add('show');
-            alert.style.display = 'block';
         }
 
-        // Hide alert
-        function hideAlert(element) {
-            const alert = document.getElementById(element);
+        function hideAlert(elementId) {
+            const alert = document.getElementById(elementId);
             alert.classList.remove('show');
-            alert.style.display = 'none';
+            alert.textContent = '';
         }
 
-        // Handle login
-        async function handleLogin(e) {
-            e.preventDefault();
-            
-            const form = document.getElementById('login-form');
-            const username = document.getElementById('login-username').value;
-            const password = document.getElementById('login-password').value;
+        async function handleLogin(event) {
+            event.preventDefault();
+
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value.trim();
             const rememberMe = document.getElementById('remember-me').checked;
-            const btn = document.getElementById('login-btn');
+            const button = document.getElementById('login-btn');
 
-            // Hide previous alerts
-            hideAlert('login-error');
             hideAlert('login-alert');
+            hideAlert('login-error');
 
-            // Validate
-            if (!username.trim()) {
-                showAlert('login-error', '❌ Username tidak boleh kosong', 'error');
-                return;
-            }
-            if (!password.trim()) {
-                showAlert('login-error', '❌ Password tidak boleh kosong', 'error');
+            if (!username) {
+                showAlert('login-error', 'Username tidak boleh kosong.');
                 return;
             }
 
-            // Disable button
-            btn.disabled = true;
-            btn.textContent = '⏳ Memproses...';
+            if (!password) {
+                showAlert('login-error', 'Password tidak boleh kosong.');
+                return;
+            }
+
+            button.disabled = true;
+            button.textContent = 'Memproses...';
 
             try {
                 const formData = new FormData();
                 formData.append('action', 'login');
                 formData.append('username', username);
                 formData.append('password', password);
+
                 if (rememberMe) {
                     formData.append('remember_me', 'on');
                 }
@@ -526,58 +425,43 @@
                     body: formData
                 });
 
-                // Check response status
                 if (!response.ok) {
-                    throw new Error(`Server error (${response.status}): ${response.statusText}`);
+                    throw new Error(`Server mengembalikan status ${response.status}.`);
                 }
 
-                // Check content type
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    throw new Error('Invalid response format from server');
+                const contentType = response.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
+                    throw new Error('Respons server bukan JSON yang valid.');
                 }
 
                 const data = await response.json();
 
-                if (data.success) {
-                    // Handle device token from server response
-                    if (data.device_token && rememberMe) {
-                        console.log('[Login] Saving device token...');
-                        window.deviceManager.saveDeviceToken(
-                            data.device_token,
-                            data.user,
-                            data.token_expires_at
-                        );
-                        showAlert('login-alert', '✓ ' + data.message + ' (Device remembered)', 'success');
-                    } else {
-                        showAlert('login-alert', '✓ ' + data.message, 'success');
-                    }
-                    
-                    setTimeout(() => {
-                        window.location.href = data.redirect;
-                    }, 1000);
-                } else {
-                    showAlert('login-error', '❌ ' + data.message, 'error');
+                if (!data.success) {
+                    showAlert('login-error', data.message || 'Login gagal.');
+                    return;
                 }
+
+                if (data.device_token && rememberMe && window.deviceManager) {
+                    window.deviceManager.saveDeviceToken(
+                        data.device_token,
+                        data.user,
+                        data.token_expires_at
+                    );
+                }
+
+                showAlert('login-alert', data.message || 'Login berhasil.');
+                window.setTimeout(() => {
+                    window.location.href = data.redirect || 'index.php';
+                }, 800);
             } catch (error) {
-                showAlert('login-error', '❌ Terjadi kesalahan: ' + error.message, 'error');
+                showAlert('login-error', `Terjadi kesalahan: ${error.message}`);
             } finally {
-                btn.disabled = false;
-                btn.textContent = 'Login';
+                button.disabled = false;
+                button.textContent = 'Masuk ke aplikasi';
             }
         }
-
-        // Handle signup
-        // Signup disabled - feature removed for security
-        window.addEventListener('load', () => {
-            const params = new URLSearchParams(window.location.search);
-            if (params.get('tab') === 'login') {
-                switchTab('login');
-            }
-        });
     </script>
-    
-    <!-- Device Manager for Remember Device Feature -->
+
     <script src="assets/device-manager.js" defer></script>
 </body>
 </html>

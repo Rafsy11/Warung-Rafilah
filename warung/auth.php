@@ -31,12 +31,18 @@ require_once 'mailer.php';
 
 $response = ['success' => false, 'message' => ''];
 
+// DEBUG: Log incoming request
+error_log("Auth request: action=" . ($_POST['action'] ?? $_GET['action'] ?? 'none'));
+
 // Only initialize email service if needed (for login/signup/logout)
 $emailService = null;
 if (isset($_POST['action']) || isset($_GET['action'])) {
     try {
-        $emailService = getEmailService();
+        // For now, disable email service to avoid timeout issues
+        // $emailService = getEmailService();
+        $emailService = null; // Temporarily disabled
     } catch (Exception $e) {
+        error_log("Email error: " . $e->getMessage());
         $response['message'] = 'Email service not available';
     }
 }
@@ -53,84 +59,94 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     } elseif (empty($password)) {
         $response['message'] = 'Password tidak boleh kosong';
     } else {
-        $db = getDB();
-        $stmt = $db->prepare("SELECT id, username, email, nama_lengkap, password FROM users WHERE username = ?");
-        
-        if ($stmt) {
-            $stmt->bind_param("s", $username);
-            $stmt->execute();
-            $result = $stmt->get_result();
+        try {
+            $db = getDB();
+            error_log("Database connection OK");
             
-            if ($result->num_rows === 1) {
-                $user = $result->fetch_assoc();
+            $stmt = $db->prepare("SELECT id, username, email, nama_lengkap, password FROM users WHERE username = ?");
+            
+            if ($stmt) {
+                $stmt->bind_param("s", $username);
+                $stmt->execute();
+                $result = $stmt->get_result();
                 
-                if (password_verify($password, $user['password'])) {
-                    // Login successful
-                    setUserSession($user);
+                if ($result->num_rows === 1) {
+                    $user = $result->fetch_assoc();
                     
-                    // Handle remember-me device token
-                    if ($remember_me) {
-                        $token = createDeviceToken($user['id'], 30); // 30 days
-                        if ($token) {
-                            // Set secure cookie (httpOnly, secure if HTTPS)
-                            setcookie(
-                                'device_token',
-                                $token,
-                                [
-                                    'expires' => time() + (30 * 24 * 60 * 60),
-                                    'path' => '/',
-                                    'httponly' => true,
-                                    'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
-                                    'samesite' => 'Lax'
-                                ]
-                            );
-                            $_SESSION['device_token'] = $token;
-                            
-                            // Return token to frontend
-                            $response['device_token'] = $token;
-                            $response['token_expires_at'] = date('c', time() + (30 * 24 * 60 * 60));
+                    if (password_verify($password, $user['password'])) {
+                        // Login successful
+                        setUserSession($user);
+                        
+                        // Handle remember-me device token (skip if fails)
+                        if ($remember_me) {
+                            try {
+                                $token = createDeviceToken($user['id'], 30); // 30 days
+                                if ($token) {
+                                    setcookie(
+                                        'device_token',
+                                        $token,
+                                        [
+                                            'expires' => time() + (30 * 24 * 60 * 60),
+                                            'path' => '/',
+                                            'httponly' => true,
+                                            'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
+                                            'samesite' => 'Lax'
+                                        ]
+                                    );
+                                    $_SESSION['device_token'] = $token;
+                                    $response['device_token'] = $token;
+                                    $response['token_expires_at'] = date('c', time() + (30 * 24 * 60 * 60));
+                                }
+                            } catch (Exception $e) {
+                                error_log("Device token error (non-critical): " . $e->getMessage());
+                            }
                         }
-                    }
-                    
-                    // Return user data
-                    $response['user'] = [
-                        'id' => $user['id'],
-                        'username' => $user['username'],
-                        'email' => $user['email'],
-                        'nama_lengkap' => $user['nama_lengkap']
-                    ];
-                    
-                    // Update last login time
-                    $update_stmt = $db->prepare("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?");
-                    if ($update_stmt) {
-                        $update_stmt->bind_param("i", $user['id']);
-                        $update_stmt->execute();
-                        $update_stmt->close();
-                    }
-                    
-                    // Send login notification (non-blocking - don't fail login if email fails)
-                    if ($emailService) {
+                        
+                        // Return user data
+                        $response['user'] = [
+                            'id' => $user['id'],
+                            'username' => $user['username'],
+                            'email' => $user['email'],
+                            'nama_lengkap' => $user['nama_lengkap']
+                        ];
+                        
+                        // Update last login time (skip if fails)
                         try {
-                            $emailService->sendLoginNotification($user['id'], $user['email'], $user['username']);
-                            $emailService->addNotification($user['id'], 'login', '✓ Login Berhasil', 'Anda berhasil login ke akun Toko Rafilah');
+                            $update_stmt = $db->prepare("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?");
+                            if ($update_stmt) {
+                                $update_stmt->bind_param("i", $user['id']);
+                                $update_stmt->execute();
+                                $update_stmt->close();
+                            }
                         } catch (Exception $e) {
-                            // Log error but don't fail the login
-                            error_log("Email notification failed for user {$user['id']}: " . $e->getMessage());
+                            error_log("Update login time failed: " . $e->getMessage());
                         }
+                        
+                        // Email notification (completely skipped for now)
+                        // if ($emailService) {
+                        //     try {
+                        //         $emailService->sendLoginNotification($user['id'], $user['email'], $user['username']);
+                        //     } catch (Exception $e) {
+                        //         error_log("Email notification failed (non-critical): " . $e->getMessage());
+                        //     }
+                        // }
+                        
+                        $response['success'] = true;
+                        $response['message'] = 'Login berhasil!';
+                        $response['redirect'] = 'index.php';
+                    } else {
+                        $response['message'] = 'Username atau password salah';
                     }
-                    
-                    $response['success'] = true;
-                    $response['message'] = 'Login berhasil!';
-                    $response['redirect'] = 'index.php';
                 } else {
-                    $response['message'] = 'Username atau password salah';
+                    $response['message'] = 'Username tidak ditemukan';
                 }
+                $stmt->close();
             } else {
-                $response['message'] = 'Username tidak ditemukan';
+                $response['message'] = 'Error database preparation: ' . $db->error;
             }
-            $stmt->close();
-        } else {
-            $response['message'] = 'Error database: ' . $db->error;
+        } catch (Exception $e) {
+            error_log("Login exception: " . $e->getMessage());
+            $response['message'] = 'Terjadi kesalahan server: ' . $e->getMessage();
         }
     }
 }

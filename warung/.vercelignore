@@ -1,0 +1,15 @@
+node_modules
+.git
+.env
+.env.local
+npm-debug.log
+yarn-error.log
+.DS_Store
+logs
+error.log
+*.swp
+*.swo
+*~
+.vscode
+.idea
+DEPLOYMENT_DEBUG.md

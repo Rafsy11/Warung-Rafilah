@@ -1,0 +1,80 @@
+# ============================================================================
+# TOKO RAFILAH - Debian 11 Apache Configuration
+# ============================================================================
+
+# Enable mod_rewrite
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # For Debian: remove /warung/ if nginx/direct domain access
+    # RewriteBase /
+    # For Apache subdirectory:
+    RewriteBase /warung/
+    
+    # Block direct access to config files
+    RewriteRule ^config\.php - [F,NC]
+    RewriteRule ^session\.php - [F,NC]
+    
+    # Block direct access to sensitive directories
+    RewriteRule ^(config|session|pages|database|app|lib|middleware|routes)/ - [F,NC]
+</IfModule>
+
+# Prevent direct access to all PHP files by default
+<FilesMatch "\.php$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+</FilesMatch>
+
+# Allow access to specific public PHP files
+<FilesMatch "^(index|auth|login|check_setup|verify_users|admin|verify-email|forgot-password|reset-password|email-summary|test_email|dashboard|produk|inventory|keuangan|test_dashboard|dashboard_simple_test|kasir)\.php$">
+    <IfModule mod_authz_core.c>
+        Require all granted
+    </IfModule>
+</FilesMatch>
+
+# Deny access to internal PHP files
+<Files "config.php">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+</Files>
+
+<Files "session.php">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+</Files>
+
+# Prevent access to dot files
+<Files "^\.">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+</Files>
+
+# Disable directory listing
+<IfModule mod_autoindex.c>
+    Options -Indexes
+</IfModule>
+
+# Add security headers
+<IfModule mod_headers.c>
+    Header always unset X-Powered-By
+    Header unset X-Powered-By
+</IfModule>
+
+# Set proper MIME types
+<IfModule mod_mime.c>
+    AddType text/css .css
+    AddType application/javascript .js
+    AddType application/json .json
+</IfModule>
+
+# Cache static files
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType image/svg+xml "access plus 1 month"
+</IfModule>
