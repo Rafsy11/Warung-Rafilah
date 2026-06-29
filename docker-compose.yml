@@ -1,0 +1,143 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pos_postgres
+    restart: always
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+      - ./db/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    command: [ "postgres", "-c", "config_file=/etc/postgresql/postgresql.conf" ]
+    mem_limit: 1500m
+    mem_reservation: 512m
+    cpus: 1.5
+    networks:
+      - pos_internal
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nextjs:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: pos_nextjs
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      NODE_OPTIONS: "--max-old-space-size=180"
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET}
+      QRIS_WEBHOOK_SECRET: ${QRIS_WEBHOOK_SECRET}
+      PORT: 3000
+      TZ: Asia/Jakarta
+      HOSTNAME: 0.0.0.0
+      PGHOST: postgres
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+    mem_limit: 300m
+    mem_reservation: 150m
+    cpus: 1.0
+    ports:
+      - "3000:3000"
+    networks:
+      - pos_internal
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/api/health" ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: pos_n8n
+    restart: always
+    environment:
+      N8N_HOST: localhost
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      WEBHOOK_URL: http://n8n:5678
+      GENERIC_TIMEZONE: Asia/Jakarta
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: ${N8N_USER}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_PASSWORD}
+      N8N_MCP_ACCESS_ENABLED: "true"
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB}
+      DB_POSTGRESDB_USER: ${POSTGRES_USER}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_POSTGRESDB_SCHEMA: n8n
+    volumes:
+      - n8n_data:/home/node/.n8n
+    mem_limit: 600m
+    mem_reservation: 250m
+    cpus: 1.0
+    ports:
+      - "127.0.0.1:5678:5678"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - pos_internal
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: pos_cloudflared
+    restart: always
+    command: tunnel run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    mem_limit: 96m
+    mem_reservation: 32m
+    cpus: 0.3
+    depends_on:
+      - nextjs
+    networks:
+      - pos_internal
+
+  waha:
+    image: devlikeapro/waha
+    container_name: pos_waha
+    restart: always
+    ports:
+      - "127.0.0.1:3001:3000"
+    environment:
+      - WAHA_DASHBOARD_USERNAME=${WAHA_DASHBOARD_USERNAME}
+      - WAHA_DASHBOARD_PASSWORD=${WAHA_DASHBOARD_PASSWORD}
+      - WAHA_API_KEY=${WAHA_API_KEY}
+      - WHATSAPP_HOOK_URL=http://n8n:5678/webhook/35c400a5-5629-49bd-b5b3-ca15a807480d/waha
+      - WHATSAPP_HOOK_EVENTS=message
+      - WHATSAPP_RESTART_ALL_SESSIONS=True
+      - WHATSAPP_START_SESSION=default
+    volumes:
+      - waha_data:/app/.sessions
+    mem_limit: 800m
+    mem_reservation: 300m
+    cpus: 1.0
+    networks:
+      - pos_internal
+
+networks:
+  pos_internal:
+    driver: bridge
+
+volumes:
+  pgdata:
+  n8n_data:
+  waha_data:

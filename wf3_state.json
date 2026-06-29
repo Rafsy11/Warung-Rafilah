@@ -1,0 +1,388 @@
+{
+    "id":  "AGAqjqdKGye765iu",
+    "name":  "Chatbot: Cek Stok (/stok)",
+    "active":  true,
+    "isArchived":  false,
+    "versionId":  "5b2fa687-20a5-4f3a-a39c-a75acafcb312",
+    "activeVersionId":  "5b2fa687-20a5-4f3a-a39c-a75acafcb312",
+    "triggerCount":  1,
+    "createdAt":  "2026-06-21T07:19:30.714Z",
+    "updatedAt":  "2026-06-29T05:42:39.014Z",
+    "settings":  {
+                     "executionOrder":  "v1",
+                     "binaryMode":  "separate",
+                     "availableInMCP":  true
+                 },
+    "connections":  {
+                        "Is Command /stok?":  {
+                                                  "main":  [
+                                                               [
+                                                                   {
+                                                                       "node":  "Query Low Stock",
+                                                                       "type":  "main",
+                                                                       "index":  0
+                                                                   }
+                                                               ],
+                                                               [
+
+                                                               ]
+                                                           ]
+                                              },
+                        "Query Low Stock":  {
+                                                "main":  [
+                                                             [
+                                                                 {
+                                                                     "node":  "Format Reply",
+                                                                     "type":  "main",
+                                                                     "index":  0
+                                                                 }
+                                                             ]
+                                                         ]
+                                            },
+                        "Format Reply":  {
+                                             "main":  [
+                                                          [
+                                                              {
+                                                                  "node":  "Send WhatsApp",
+                                                                  "type":  "main",
+                                                                  "index":  0
+                                                              }
+                                                          ]
+                                                      ]
+                                         },
+                        "WAHA Trigger":  {
+                                             "main":  [
+                                                          [
+
+                                                          ],
+                                                          [
+                                                              {
+                                                                  "node":  "Is Command /stok?",
+                                                                  "type":  "main",
+                                                                  "index":  0
+                                                              }
+                                                          ]
+                                                      ]
+                                         }
+                    },
+    "nodes":  [
+                  {
+                      "parameters":  {
+                                         "conditions":  {
+                                                            "combinator":  "and",
+                                                            "conditions":  [
+                                                                               {
+                                                                                   "id":  "check-event",
+                                                                                   "leftValue":  "={{ $json.event }}",
+                                                                                   "operator":  {
+                                                                                                    "operation":  "equals",
+                                                                                                    "type":  "string"
+                                                                                                },
+                                                                                   "rightValue":  "message"
+                                                                               },
+                                                                               {
+                                                                                   "id":  "check-not-from-me",
+                                                                                   "leftValue":  "={{ $json.payload.fromMe }}",
+                                                                                   "operator":  {
+                                                                                                    "operation":  "equals",
+                                                                                                    "type":  "boolean"
+                                                                                                },
+                                                                                   "rightValue":  false
+                                                                               },
+                                                                               {
+                                                                                   "id":  "check-body",
+                                                                                   "leftValue":  "={{ $json.payload?.body?.startsWith(\u0027/stok\u0027) }}",
+                                                                                   "operator":  {
+                                                                                                    "operation":  "equals",
+                                                                                                    "type":  "boolean"
+                                                                                                },
+                                                                                   "rightValue":  true
+                                                                               }
+                                                                           ],
+                                                            "options":  {
+                                                                            "caseSensitive":  true,
+                                                                            "leftValue":  "",
+                                                                            "typeValidation":  "strict",
+                                                                            "version":  2
+                                                                        }
+                                                        },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "if-command-stok",
+                      "name":  "Is Command /stok?",
+                      "type":  "n8n-nodes-base.if",
+                      "typeVersion":  2.2,
+                      "position":  [
+                                       16,
+                                       672
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "executeQuery",
+                                         "query":  "SELECT barcode, name, stock_qty FROM warung.products WHERE stock_qty \u003c= 10 AND is_active = true;",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "postgres-check-stock",
+                      "name":  "Query Low Stock",
+                      "type":  "n8n-nodes-base.postgres",
+                      "typeVersion":  2.5,
+                      "position":  [
+                                       240,
+                                       672
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "const items = $input.all();\n\nlet message = \u0027🤖 *Bot Warung Menjawab*\\n\\n\u0027;\n\nif (items.length === 0 || (items.length === 1 \u0026\u0026 !items[0].json.barcode)) {\n  message += \u0027✅ Semua stok produk dalam keadaan aman! Tidak ada yang menipis.\\n\u0027;\n} else {\n  message += \u0027Berikut adalah barang yang stoknya 10 atau kurang:\\n\\n\u0027;\n  items.forEach((item, i) =\u003e {\n    const d = item.json;\n    if(d.name) {\n      message += `${i + 1}. *${d.name}* (Sisa: ${d.stock_qty})\\n`;\n    }\n  });\n  message += \u0027\\n🔔 Silakan lakukan restock!\u0027;\n}\n\nreturn [{ json: { whatsapp_text: message } }];"
+                                     },
+                      "id":  "code-format-bot-reply",
+                      "name":  "Format Reply",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       464,
+                                       672
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "resource":  "Chatting",
+                                         "operation":  "Send Text",
+                                         "session":  "default",
+                                         "chatId":  "={{ $(\u0027WAHA Trigger\u0027).item.json.payload.from }}",
+                                         "text":  "={{ $json.whatsapp_text }}",
+                                         "requestOptions":  {
+
+                                                            }
+                                     },
+                      "id":  "waha-node-proper",
+                      "name":  "Send WhatsApp",
+                      "type":  "@devlikeapro/n8n-nodes-waha.WAHA",
+                      "typeVersion":  202502,
+                      "position":  [
+                                       688,
+                                       672
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+
+                                     },
+                      "type":  "@devlikeapro/n8n-nodes-waha.wahaTrigger",
+                      "typeVersion":  202502,
+                      "position":  [
+                                       -272,
+                                       288
+                                   ],
+                      "id":  "b17c4e86-a57b-46dc-b31f-6bb5c964ff81",
+                      "name":  "WAHA Trigger",
+                      "webhookId":  "35c400a5-5629-49bd-b5b3-ca15a807480d"
+                  }
+              ],
+    "activeVersion":  {
+                          "nodes":  [
+                                        {
+                                            "parameters":  {
+                                                               "conditions":  {
+                                                                                  "combinator":  "and",
+                                                                                  "conditions":  [
+                                                                                                     {
+                                                                                                         "id":  "check-event",
+                                                                                                         "leftValue":  "={{ $json.event }}",
+                                                                                                         "operator":  {
+                                                                                                                          "operation":  "equals",
+                                                                                                                          "type":  "string"
+                                                                                                                      },
+                                                                                                         "rightValue":  "message"
+                                                                                                     },
+                                                                                                     {
+                                                                                                         "id":  "check-not-from-me",
+                                                                                                         "leftValue":  "={{ $json.payload.fromMe }}",
+                                                                                                         "operator":  {
+                                                                                                                          "operation":  "equals",
+                                                                                                                          "type":  "boolean"
+                                                                                                                      },
+                                                                                                         "rightValue":  false
+                                                                                                     },
+                                                                                                     {
+                                                                                                         "id":  "check-body",
+                                                                                                         "leftValue":  "={{ $json.payload?.body?.startsWith(\u0027/stok\u0027) }}",
+                                                                                                         "operator":  {
+                                                                                                                          "operation":  "equals",
+                                                                                                                          "type":  "boolean"
+                                                                                                                      },
+                                                                                                         "rightValue":  true
+                                                                                                     }
+                                                                                                 ],
+                                                                                  "options":  {
+                                                                                                  "caseSensitive":  true,
+                                                                                                  "leftValue":  "",
+                                                                                                  "typeValidation":  "strict",
+                                                                                                  "version":  2
+                                                                                              }
+                                                                              },
+                                                               "options":  {
+
+                                                                           }
+                                                           },
+                                            "id":  "if-command-stok",
+                                            "name":  "Is Command /stok?",
+                                            "type":  "n8n-nodes-base.if",
+                                            "typeVersion":  2.2,
+                                            "position":  [
+                                                             16,
+                                                             672
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "operation":  "executeQuery",
+                                                               "query":  "SELECT barcode, name, stock_qty FROM warung.products WHERE stock_qty \u003c= 10 AND is_active = true;",
+                                                               "options":  {
+
+                                                                           }
+                                                           },
+                                            "id":  "postgres-check-stock",
+                                            "name":  "Query Low Stock",
+                                            "type":  "n8n-nodes-base.postgres",
+                                            "typeVersion":  2.5,
+                                            "position":  [
+                                                             240,
+                                                             672
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "jsCode":  "const items = $input.all();\n\nlet message = \u0027🤖 *Bot Warung Menjawab*\\n\\n\u0027;\n\nif (items.length === 0 || (items.length === 1 \u0026\u0026 !items[0].json.barcode)) {\n  message += \u0027✅ Semua stok produk dalam keadaan aman! Tidak ada yang menipis.\\n\u0027;\n} else {\n  message += \u0027Berikut adalah barang yang stoknya 10 atau kurang:\\n\\n\u0027;\n  items.forEach((item, i) =\u003e {\n    const d = item.json;\n    if(d.name) {\n      message += `${i + 1}. *${d.name}* (Sisa: ${d.stock_qty})\\n`;\n    }\n  });\n  message += \u0027\\n🔔 Silakan lakukan restock!\u0027;\n}\n\nreturn [{ json: { whatsapp_text: message } }];"
+                                                           },
+                                            "id":  "code-format-bot-reply",
+                                            "name":  "Format Reply",
+                                            "type":  "n8n-nodes-base.code",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             464,
+                                                             672
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "resource":  "Chatting",
+                                                               "operation":  "Send Text",
+                                                               "session":  "default",
+                                                               "chatId":  "={{ $(\u0027WAHA Trigger\u0027).item.json.payload.from }}",
+                                                               "text":  "={{ $json.whatsapp_text }}",
+                                                               "requestOptions":  {
+
+                                                                                  }
+                                                           },
+                                            "id":  "waha-node-proper",
+                                            "name":  "Send WhatsApp",
+                                            "type":  "@devlikeapro/n8n-nodes-waha.WAHA",
+                                            "typeVersion":  202502,
+                                            "position":  [
+                                                             688,
+                                                             672
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+
+                                                           },
+                                            "type":  "@devlikeapro/n8n-nodes-waha.wahaTrigger",
+                                            "typeVersion":  202502,
+                                            "position":  [
+                                                             -272,
+                                                             288
+                                                         ],
+                                            "id":  "b17c4e86-a57b-46dc-b31f-6bb5c964ff81",
+                                            "name":  "WAHA Trigger",
+                                            "webhookId":  "35c400a5-5629-49bd-b5b3-ca15a807480d"
+                                        }
+                                    ],
+                          "connections":  {
+                                              "Is Command /stok?":  {
+                                                                        "main":  [
+                                                                                     [
+                                                                                         {
+                                                                                             "node":  "Query Low Stock",
+                                                                                             "type":  "main",
+                                                                                             "index":  0
+                                                                                         }
+                                                                                     ],
+                                                                                     [
+
+                                                                                     ]
+                                                                                 ]
+                                                                    },
+                                              "Query Low Stock":  {
+                                                                      "main":  [
+                                                                                   [
+                                                                                       {
+                                                                                           "node":  "Format Reply",
+                                                                                           "type":  "main",
+                                                                                           "index":  0
+                                                                                       }
+                                                                                   ]
+                                                                               ]
+                                                                  },
+                                              "Format Reply":  {
+                                                                   "main":  [
+                                                                                [
+                                                                                    {
+                                                                                        "node":  "Send WhatsApp",
+                                                                                        "type":  "main",
+                                                                                        "index":  0
+                                                                                    }
+                                                                                ]
+                                                                            ]
+                                                               },
+                                              "WAHA Trigger":  {
+                                                                   "main":  [
+                                                                                [
+
+                                                                                ],
+                                                                                [
+                                                                                    {
+                                                                                        "node":  "Is Command /stok?",
+                                                                                        "type":  "main",
+                                                                                        "index":  0
+                                                                                    }
+                                                                                ]
+                                                                            ]
+                                                               }
+                                          }
+                      },
+    "tags":  [
+
+             ],
+    "meta":  {
+                 "aiBuilderAssisted":  true,
+                 "builderVariant":  "mcp"
+             },
+    "parentFolderId":  null,
+    "scopes":  [
+                   "execution:reveal",
+                   "workflow:create",
+                   "workflow:delete",
+                   "workflow:disableRedaction",
+                   "workflow:enableRedaction",
+                   "workflow:execute",
+                   "workflow:execute-chat",
+                   "workflow:export",
+                   "workflow:import",
+                   "workflow:list",
+                   "workflow:move",
+                   "workflow:publish",
+                   "workflow:read",
+                   "workflow:share",
+                   "workflow:unpublish",
+                   "workflow:unshare",
+                   "workflow:update"
+               ],
+    "canExecute":  true
+}

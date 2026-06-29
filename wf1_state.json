@@ -1,0 +1,253 @@
+{
+    "updatedAt":  "2026-06-21T06:46:24.653Z",
+    "createdAt":  "2026-06-21T06:34:39.996Z",
+    "id":  "bST5RuAwFpD8NyAg",
+    "name":  "Production: Low Stock Alert",
+    "description":  null,
+    "active":  true,
+    "isArchived":  false,
+    "nodes":  [
+                  {
+                      "parameters":  {
+                                         "rule":  {
+                                                      "interval":  [
+                                                                       {
+                                                                           "field":  "cronExpression",
+                                                                           "expression":  "0 20 * * *"
+                                                                       }
+                                                                   ]
+                                                  }
+                                     },
+                      "id":  "schedule-trigger",
+                      "name":  "Schedule Trigger",
+                      "type":  "n8n-nodes-base.scheduleTrigger",
+                      "typeVersion":  1.2,
+                      "position":  [
+                                       0,
+                                       208
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "executeQuery",
+                                         "query":  "SELECT barcode, name, stock_qty FROM warung.products WHERE stock_qty \u003c= 10 AND is_active = true;",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "postgres-low-stock",
+                      "name":  "Query Low Stock",
+                      "type":  "n8n-nodes-base.postgres",
+                      "typeVersion":  2.5,
+                      "position":  [
+                                       224,
+                                       208
+                                   ],
+                      "credentials":  {
+                                          "postgres":  {
+                                                           "id":  "ZirBa4BDDoRV8vxs",
+                                                           "name":  "Postgres account"
+                                                       }
+                                      }
+                  },
+                  {
+                      "parameters":  {
+                                         "conditions":  {
+                                                            "options":  {
+                                                                            "caseSensitive":  true,
+                                                                            "leftValue":  "",
+                                                                            "typeValidation":  "strict",
+                                                                            "version":  2
+                                                                        },
+                                                            "conditions":  [
+                                                                               {
+                                                                                   "id":  "condition-check",
+                                                                                   "leftValue":  "={{ $input.all().length }}",
+                                                                                   "rightValue":  0,
+                                                                                   "operator":  {
+                                                                                                    "type":  "number",
+                                                                                                    "operation":  "gt"
+                                                                                                }
+                                                                               }
+                                                                           ],
+                                                            "combinator":  "and"
+                                                        },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "if-has-items",
+                      "name":  "Has Low Stock?",
+                      "type":  "n8n-nodes-base.if",
+                      "typeVersion":  2.2,
+                      "position":  [
+                                       448,
+                                       208
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "const items = $input.all();\n\nlet message = \u0027?? *Laporan Stok Menipis* ??\\n\u0027;\nmessage += \u0027?? \u0027 + new Date().toLocaleDateString(\u0027id-ID\u0027, { weekday: \u0027long\u0027, year: \u0027numeric\u0027, month: \u0027long\u0027, day: \u0027numeric\u0027 }) + \u0027\\n\u0027;\nmessage += \u0027????????????????????\\n\\n\u0027;\n\nitems.forEach((item, i) =\u003e {\n  const d = item.json;\n  message += `${i + 1}. *${d.name}*\\n`;\n  message += `   ?? Barcode: ${d.barcode}\\n`;\n  message += `   ?? Sisa Stok: *${d.stock_qty}* unit\\n\\n`;\n});\n\nmessage += \u0027????????????????????\\n\u0027;\nmessage += `Total: *${items.length}* produk perlu restock\\n`;\nmessage += \u0027\\n?? Segera lakukan pemesanan ulang!\u0027;\n\nreturn [{ json: { whatsapp_text: message } }];"
+                                     },
+                      "id":  "code-format-alert",
+                      "name":  "Format Alert Message",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       672,
+                                       208
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "method":  "POST",
+                                         "url":  "http://waha:3000/api/sendText",
+                                         "sendHeaders":  true,
+                                         "headerParameters":  {
+                                                                  "parameters":  [
+                                                                                     {
+                                                                                         "name":  "Content-Type",
+                                                                                         "value":  "application/json"
+                                                                                     }
+                                                                                 ]
+                                                              },
+                                         "sendBody":  true,
+                                         "bodyParameters":  {
+                                                                "parameters":  [
+                                                                                   {
+
+                                                                                   }
+                                                                               ]
+                                                            },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "waha-send-text",
+                      "name":  "Send WhatsApp Alert",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "typeVersion":  4.2,
+                      "position":  [
+                                       944,
+                                       368
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "resource":  "Chatting",
+                                         "operation":  "Send Text",
+                                         "requestOptions":  {
+
+                                                            }
+                                     },
+                      "type":  "@devlikeapro/n8n-nodes-waha.WAHA",
+                      "typeVersion":  202502,
+                      "position":  [
+                                       896,
+                                       192
+                                   ],
+                      "id":  "ec4f959c-e457-4a55-9f36-6293d5583ee1",
+                      "name":  "Send a text message",
+                      "credentials":  {
+                                          "wahaApi":  {
+                                                          "id":  "uXjZvjc5y9NnRc37",
+                                                          "name":  "WAHA account"
+                                                      }
+                                      }
+                  }
+              ],
+    "connections":  {
+                        "Schedule Trigger":  {
+                                                 "main":  [
+                                                              [
+                                                                  {
+                                                                      "node":  "Query Low Stock",
+                                                                      "type":  "main",
+                                                                      "index":  0
+                                                                  }
+                                                              ]
+                                                          ]
+                                             },
+                        "Query Low Stock":  {
+                                                "main":  [
+                                                             [
+                                                                 {
+                                                                     "node":  "Has Low Stock?",
+                                                                     "type":  "main",
+                                                                     "index":  0
+                                                                 }
+                                                             ]
+                                                         ]
+                                            },
+                        "Has Low Stock?":  {
+                                               "main":  [
+                                                            [
+                                                                {
+                                                                    "node":  "Format Alert Message",
+                                                                    "type":  "main",
+                                                                    "index":  0
+                                                                }
+                                                            ],
+                                                            [
+
+                                                            ]
+                                                        ]
+                                           },
+                        "Format Alert Message":  {
+                                                     "main":  [
+                                                                  [
+                                                                      {
+                                                                          "node":  "Send a text message",
+                                                                          "type":  "main",
+                                                                          "index":  0
+                                                                      }
+                                                                  ]
+                                                              ]
+                                                 }
+                    },
+    "settings":  {
+                     "executionOrder":  "v1",
+                     "binaryMode":  "separate"
+                 },
+    "staticData":  null,
+    "meta":  {
+                 "templateCredsSetupCompleted":  true
+             },
+    "nodeGroups":  [
+
+                   ],
+    "pinData":  {
+
+                },
+    "versionId":  "fcc1c697-ebcb-48c8-87f8-b2d9d44d1b67",
+    "activeVersionId":  null,
+    "versionCounter":  7,
+    "triggerCount":  0,
+    "sourceWorkflowId":  null,
+    "shared":  [
+                   {
+                       "updatedAt":  "2026-06-21T06:34:39.996Z",
+                       "createdAt":  "2026-06-21T06:34:39.996Z",
+                       "role":  "workflow:owner",
+                       "workflowId":  "bST5RuAwFpD8NyAg",
+                       "projectId":  "Gf5dJCggCTnX6M1j",
+                       "project":  {
+                                       "updatedAt":  "2026-06-19T12:40:04.838Z",
+                                       "createdAt":  "2026-06-19T12:36:08.861Z",
+                                       "id":  "Gf5dJCggCTnX6M1j",
+                                       "name":  "Rafi Syahirul \u003cchannelrafi089@gmail.com\u003e",
+                                       "type":  "personal",
+                                       "icon":  null,
+                                       "description":  null,
+                                       "customTelemetryTags":  [
+
+                                                               ],
+                                       "creatorId":  "e30349f2-561a-4c52-9f5d-095c3d4d92ba"
+                                   }
+                   }
+               ],
+    "tags":  [
+
+             ],
+    "activeVersion":  null
+}

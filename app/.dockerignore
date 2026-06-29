@@ -1,0 +1,43 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Build outputs
+.next
+out
+dist
+build
+
+# Development
+.vscode
+.idea
+*.log
+
+# Testing
+coverage
+.nyc_output
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+!README.md
+CLAUDE.md
+AGENTS.md
+SECURITY.md
+
+# Misc
+.DS_Store
+Thumbs.db
+*.pem
+*.key
+*.cert

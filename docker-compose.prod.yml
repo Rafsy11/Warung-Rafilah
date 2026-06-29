@@ -1,0 +1,185 @@
+# Docker Compose untuk Local POS Production
+# Optimized untuk PC dengan 8GB RAM
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pos_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-pos_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-pos_production}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --auth-host=scram-sha-256"
+      # Performance tuning untuk 8GB RAM
+      POSTGRES_SHARED_BUFFERS: "512MB"
+      POSTGRES_EFFECTIVE_CACHE_SIZE: "2GB"
+      POSTGRES_MAX_CONNECTIONS: "50"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+      - ./backups:/backups
+    networks:
+      - pos_network
+    ports:
+      # HANYA bind ke localhost untuk keamanan!
+      - "127.0.0.1:5432:5432"
+    shm_size: 512mb
+    command: 
+      - "postgres"
+      - "-c"
+      - "shared_buffers=512MB"
+      - "-c"
+      - "effective_cache_size=2GB"
+      - "-c"
+      - "maintenance_work_mem=128MB"
+      - "-c"
+      - "work_mem=16MB"
+      - "-c"
+      - "max_connections=50"
+      - "-c"
+      - "max_parallel_workers=2"
+      - "-c"
+      - "max_parallel_workers_per_gather=1"
+      - "-c"
+      - "wal_buffers=16MB"
+      - "-c"
+      - "checkpoint_completion_target=0.9"
+      - "-c"
+      - "random_page_cost=1.1"
+      - "-c"
+      - "effective_io_concurrency=200"
+      - "-c"
+      - "log_statement=mod"
+      - "-c"
+      - "log_connections=on"
+      - "-c"
+      - "log_disconnections=on"
+      - "-c"
+      - "log_duration=on"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pos_admin}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
+    image: pos-app:latest
+    container_name: pos_app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      POSTGRES_USER: ${POSTGRES_USER:-pos_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-pos_production}
+      PGHOST: postgres
+      PGPORT: 5432
+      JWT_SECRET: ${JWT_SECRET}
+      QRIS_WEBHOOK_SECRET: ${QRIS_WEBHOOK_SECRET}
+      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-pos_session}
+      # Node.js memory optimization
+      NODE_OPTIONS: "--max-old-space-size=768"
+    networks:
+      - pos_network
+    ports:
+      # HANYA bind ke localhost!
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - app_logs:/app/logs
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Resource limits untuk 8GB RAM
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '1'
+          memory: 512M
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: pos_cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - pos_network
+    # Minimal resource untuk tunnel
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+  # Backup service (optional - runs once daily)
+  backup:
+    image: postgres:16-alpine
+    container_name: pos_backup
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-pos_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-pos_production}
+      PGHOST: postgres
+    volumes:
+      - ./backups:/backups
+    networks:
+      - pos_network
+    entrypoint: /bin/sh
+    command: >
+      -c "
+      echo 'Starting backup at' $$(date);
+      pg_dump -U $$POSTGRES_USER -h postgres -F c -b -v -f /backups/pos_backup_$$(date +%Y%m%d_%H%M%S).dump $$POSTGRES_DB;
+      echo 'Backup completed at' $$(date);
+      find /backups -name '*.dump' -mtime +7 -delete;
+      echo 'Old backups cleaned';
+      "
+
+volumes:
+  postgres_data:
+    driver: local
+    name: pos_postgres_data
+  app_logs:
+    driver: local
+    name: pos_app_logs
+
+networks:
+  pos_network:
+    driver: bridge
+    name: pos_network
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

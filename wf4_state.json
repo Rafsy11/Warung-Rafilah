@@ -1,0 +1,171 @@
+{
+  "id": "3085d5b68a102def",
+  "name": "Production: Agent Float Low-Balance Alert",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/30 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "6b41e65d-4c94-4f25-ab13-3a69c00271ae",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT balance_after FROM agent.float_ledger ORDER BY created_at DESC LIMIT 1;",
+        "options": {}
+      },
+      "id": "f3e9501b-3a08-437c-abbf-f44a7439e467",
+      "name": "Query Float Balance",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1340,
+        540
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "ZirBa4BDDoRV8vxs",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "680b92ec-42be-4491-93a1-3fc723e348d7",
+              "leftValue": "={{ $json.balance_after }}",
+              "rightValue": 200000,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4d683320-babf-478c-9481-7eaa57a60d6c",
+      "name": "IF - Low Balance",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1560,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const balance = Number($input.first().json.balance_after) || 0;\nconst fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);\n\nconst whatsapp_text = `⚠️ *Peringatan Saldo Float Rendah* ⚠️\\n\\n` +\n    `Saldo float agen saat ini: *${fmt(balance)}*\\n` +\n    `🔔 Batas minimal adalah *Rp200.000*.\\n` +\n    `Silakan lakukan top-up saldo sebelum ada transaksi penarikan besar berikutnya.`;\n    \nreturn [{ json: { whatsapp_text } }];"
+      },
+      "id": "8b09c452-1e97-4c9c-a0e5-2682a12b6951",
+      "name": "Format Alert Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        510
+      ]
+    },
+    {
+      "id": "d956a5d1-fac0-4c02-b452-efba65a9118e",
+      "name": "Send WhatsApp Alert",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        2000,
+        510
+      ],
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "default",
+        "chatId": "120363226138191044@g.us",
+        "text": "={{ $json.whatsapp_text }}"
+      },
+      "credentials": {
+        "wahaApi": {
+          "id": "uXjZvjc5y9NnRc37",
+          "name": "WAHA account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Query Float Balance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Float Balance": {
+      "main": [
+        [
+          {
+            "node": "IF - Low Balance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Low Balance": {
+      "main": [
+        [
+          {
+            "node": "Format Alert Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Format Alert Message": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "nodeGroups": [],
+  "pinData": {}
+}
