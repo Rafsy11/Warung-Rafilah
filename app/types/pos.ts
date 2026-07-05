@@ -29,4 +29,11 @@ export interface CartItem {
     admin_fee: number;
     agent_commission: number;
   };
+  activeDiscount?: {
+    id: string;
+    name: string;
+    discount_type: 'product';
+    value_type: 'fixed' | 'percentage';
+    discount_value: number;
+  };
 }

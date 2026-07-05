@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { RefreshCw, Settings, Store, Printer, BarChart3, Sun, Moon, LogOut } from 'lucide-react';
+import { RefreshCw, Settings, Store, Printer, BarChart3, Sun, Moon, LogOut, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 type AppShellProps = {
@@ -10,9 +10,21 @@ type AppShellProps = {
   onReprint?: () => void;
   activeSession?: any;
   onCloseSession?: () => void;
+  isAiOpen?: boolean;
+  onToggleAi?: () => void;
 };
 
-export default function AppShell({ children, mode, onModeChange, userRole, onReprint, activeSession, onCloseSession }: AppShellProps) {
+export default function AppShell({ 
+  children, 
+  mode, 
+  onModeChange, 
+  userRole, 
+  onReprint, 
+  activeSession, 
+  onCloseSession,
+  isAiOpen = false,
+  onToggleAi
+}: AppShellProps) {
   const [time, setTime] = useState<string>('');
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const router = useRouter();
@@ -134,6 +146,19 @@ export default function AppShell({ children, mode, onModeChange, userRole, onRep
                 title="Laporan Harian"
               >
                 <BarChart3 size={15} />
+              </button>
+            )}
+            {userRole === 'owner' && onToggleAi && (
+              <button
+                onClick={onToggleAi}
+                className={`p-2 rounded-full transition-all duration-150 cursor-pointer relative ${
+                  isAiOpen 
+                    ? 'bg-secondary text-on-secondary shadow-sm' 
+                    : 'hover:bg-surface-container-highest hover:text-primary'
+                }`}
+                title="Asisten AI (Velo)"
+              >
+                <Sparkles size={15} className={isAiOpen ? 'animate-pulse' : ''} />
               </button>
             )}
             <button className="p-2 hover:bg-surface-container-highest rounded-full hover:text-primary transition-all duration-150 cursor-pointer" title="Settings">

@@ -167,8 +167,14 @@ export default function CartTable({
       {/* Cart Items */}
       <div className="flex-1 overflow-y-auto scrollbar-hide bg-surface-dim">
         {items.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-on-surface-variant">
-            No items in cart.
+          <div className="flex flex-col items-center justify-center h-full text-on-surface-variant/40 gap-3 p-4 select-none animate-in fade-in duration-300">
+            <div className="p-4 rounded-full bg-surface-container-high border border-outline-variant/30 text-on-surface-variant/30">
+              <ScanBarcode size={48} className="stroke-[1.25]" />
+            </div>
+            <div className="text-center">
+              <p className="font-semibold text-on-surface-variant/80 text-sm">Keranjang masih kosong</p>
+              <p className="text-xs text-on-surface-variant/50 mt-1 max-w-[200px]">Scan barcode produk atau cari produk untuk mulai transaksi</p>
+            </div>
           </div>
         ) : (
           items.map((item, index) => (
@@ -207,6 +213,14 @@ export default function CartTable({
                 {item.appliedTierName && (
                   <span className="bg-emerald-950/40 text-emerald-400 text-[9px] font-bold px-1.5 py-0.5 rounded border border-emerald-500/20 uppercase tracking-wide shrink-0">
                     {item.appliedTierName}
+                  </span>
+                )}
+                {item.activeDiscount && (
+                  <span className="bg-rose-950/40 text-rose-400 text-[9px] font-bold px-1.5 py-0.5 rounded border border-rose-500/20 uppercase tracking-wide shrink-0">
+                    DISC {item.activeDiscount.value_type === 'percentage' 
+                      ? `${item.activeDiscount.discount_value}%` 
+                      : `Rp ${(Number(item.activeDiscount.discount_value)).toLocaleString('id-ID')}`
+                    }
                   </span>
                 )}
               </div>

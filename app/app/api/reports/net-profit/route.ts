@@ -22,8 +22,17 @@ export async function GET(req: NextRequest) {
       [date]
     );
 
-    const grossMargin = marginRes.rows[0].gross_margin;
-    const grossRevenue = marginRes.rows[0].gross_revenue;
+    const discountRes = await db.query(
+      `SELECT COALESCE(SUM(discount), 0)::float as total_discounts
+       FROM warung.sales
+       WHERE status = 'completed'
+         AND date_trunc('day', created_at AT TIME ZONE 'Asia/Jakarta') = $1::date`,
+      [date]
+    );
+
+    const totalDiscounts = discountRes.rows[0].total_discounts;
+    const grossMargin = marginRes.rows[0].gross_margin - totalDiscounts;
+    const grossRevenue = marginRes.rows[0].gross_revenue - totalDiscounts;
     const totalCogs = marginRes.rows[0].total_cogs;
 
     // 2. Agent Commission

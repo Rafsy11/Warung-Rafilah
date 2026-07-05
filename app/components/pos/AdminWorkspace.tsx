@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Package, Search, Plus, Edit2, Trash2, X, Save, AlertCircle, Loader2, History, Scale, Wallet, RefreshCw, Users, User, Tag, Truck } from 'lucide-react';
+import { Package, Search, Plus, Edit2, Trash2, X, Save, AlertCircle, Loader2, History, Scale, Wallet, RefreshCw, Users, User, Tag, Truck, Percent } from 'lucide-react';
 
 interface Product {
   id: string;
@@ -57,6 +57,20 @@ interface Customer {
   current_debt: string;
 }
 
+interface Discount {
+  id: string;
+  name: string;
+  discount_type: 'global' | 'product';
+  value_type: 'fixed' | 'percentage';
+  discount_value: number;
+  product_id: string | null;
+  product_name?: string | null;
+  product_barcode?: string | null;
+  min_purchase_amount: number;
+  is_active: boolean;
+  created_at: string;
+}
+
 interface AdminWorkspaceProps {
   onToast: (msg: string, type: 'success' | 'error') => void;
   scannedBarcode?: { code: string; timestamp: number } | null;
@@ -65,7 +79,7 @@ interface AdminWorkspaceProps {
 export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspaceProps) {
   const nowDate = new Date();
   const sevenDaysLater = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  const [activeTab, setActiveTab] = useState<'products' | 'adjust' | 'convert' | 'customers' | 'sessions' | 'history' | 'float' | 'consignment' | 'procurement'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'adjust' | 'convert' | 'customers' | 'sessions' | 'history' | 'float' | 'consignment' | 'procurement' | 'discounts'>('products');
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -190,6 +204,23 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
   const [procurementItems, setProcurementItems] = useState<any[]>([]);
   const [loadingProcurement, setLoadingProcurement] = useState(false);
   const [totalEstimatedCost, setTotalEstimatedCost] = useState(0);
+
+  // Discount Management States
+  const [discounts, setDiscounts] = useState<Discount[]>([]);
+  const [loadingDiscounts, setLoadingDiscounts] = useState(false);
+  const [showDiscountForm, setShowDiscountForm] = useState(false);
+  const [editingDiscount, setEditingDiscount] = useState<Discount | null>(null);
+  const [discountName, setDiscountName] = useState('');
+  const [discountType, setDiscountType] = useState<'global' | 'product'>('global');
+  const [discountValueType, setDiscountValueType] = useState<'fixed' | 'percentage'>('fixed');
+  const [discountValue, setDiscountValue] = useState('');
+  const [discountProductId, setDiscountProductId] = useState<string | null>(null);
+  const [discountProductSearch, setDiscountProductSearch] = useState('');
+  const [discountProductSuggestions, setDiscountProductSuggestions] = useState<Product[]>([]);
+  const [discountMinPurchase, setDiscountMinPurchase] = useState('0');
+  const [discountIsActive, setDiscountIsActive] = useState(true);
+  const [discountFormError, setDiscountFormError] = useState('');
+  const [savingDiscount, setSavingDiscount] = useState(false);
 
   const fetchProducts = useCallback(async (search = '') => {
     setLoading(true);
@@ -443,6 +474,124 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
     }
   }, [onToast]);
 
+  const fetchDiscounts = useCallback(async () => {
+    setLoadingDiscounts(true);
+    try {
+      const res = await fetch('/api/discounts');
+      if (res.ok) {
+        const data = await res.json();
+        setDiscounts(data.items || []);
+      } else {
+        onToast('Gagal memuat data diskon.', 'error');
+      }
+    } catch {
+      onToast('Koneksi bermasalah saat memuat diskon.', 'error');
+    } finally {
+      setLoadingDiscounts(false);
+    }
+  }, [onToast]);
+
+  const handleOpenAddDiscountForm = () => {
+    setEditingDiscount(null);
+    setDiscountName('');
+    setDiscountType('global');
+    setDiscountValueType('fixed');
+    setDiscountValue('');
+    setDiscountProductId(null);
+    setDiscountProductSearch('');
+    setDiscountProductSuggestions([]);
+    setDiscountMinPurchase('0');
+    setDiscountIsActive(true);
+    setDiscountFormError('');
+    setShowDiscountForm(true);
+  };
+
+  const handleOpenEditDiscountForm = (d: Discount) => {
+    setEditingDiscount(d);
+    setDiscountName(d.name);
+    setDiscountType(d.discount_type);
+    setDiscountValueType(d.value_type);
+    setDiscountValue(String(d.discount_value));
+    setDiscountProductId(d.product_id);
+    setDiscountProductSearch(d.product_name || '');
+    setDiscountProductSuggestions([]);
+    setDiscountMinPurchase(String(d.min_purchase_amount));
+    setDiscountIsActive(d.is_active);
+    setDiscountFormError('');
+    setShowDiscountForm(true);
+  };
+
+  const handleSubmitDiscountForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!discountName.trim()) {
+      setDiscountFormError('Nama diskon wajib diisi.');
+      return;
+    }
+    if (!discountValue || Number(discountValue) <= 0) {
+      setDiscountFormError('Nilai diskon harus lebih besar dari 0.');
+      return;
+    }
+    if (discountValueType === 'percentage' && Number(discountValue) > 100) {
+      setDiscountFormError('Diskon persentase tidak boleh melebihi 100%.');
+      return;
+    }
+    if (discountType === 'product' && !discountProductId) {
+      setDiscountFormError('Pilih produk untuk diskon per-produk.');
+      return;
+    }
+
+    setSavingDiscount(true);
+    setDiscountFormError('');
+
+    const payload = {
+      name: discountName.trim(),
+      discount_type: discountType,
+      value_type: discountValueType,
+      discount_value: Number(discountValue),
+      product_id: discountType === 'product' ? discountProductId : null,
+      min_purchase_amount: discountType === 'global' ? Number(discountMinPurchase) || 0 : 0,
+      is_active: discountIsActive,
+    };
+
+    try {
+      const url = editingDiscount ? `/api/discounts/${editingDiscount.id}` : '/api/discounts';
+      const method = editingDiscount ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        onToast(`✓ Diskon "${discountName}" berhasil ${editingDiscount ? 'diperbarui' : 'ditambahkan'}.`, 'success');
+        setShowDiscountForm(false);
+        fetchDiscounts();
+      } else {
+        const err = await res.json();
+        setDiscountFormError(err.error || 'Gagal menyimpan diskon.');
+      }
+    } catch {
+      setDiscountFormError('Koneksi bermasalah. Coba lagi.');
+    } finally {
+      setSavingDiscount(false);
+    }
+  };
+
+  const handleDeleteDiscount = async (id: string, name: string) => {
+    if (!confirm(`Hapus diskon "${name}"? Tindakan ini tidak dapat dibatalkan.`)) return;
+    try {
+      const res = await fetch(`/api/discounts/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        onToast(`✓ Diskon "${name}" berhasil dihapus.`, 'success');
+        fetchDiscounts();
+      } else {
+        onToast('Gagal menghapus diskon.', 'error');
+      }
+    } catch {
+      onToast('Koneksi bermasalah.', 'error');
+    }
+  };
+
   // Fetch data on tab change
   useEffect(() => {
     if (activeTab === 'products') {
@@ -459,8 +608,29 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
       fetchProcurementList();
     } else if (activeTab === 'convert') {
       fetchConversionMaps();
+    } else if (activeTab === 'discounts') {
+      fetchDiscounts();
     }
-  }, [activeTab, searchQuery, fetchProducts, fetchMovements, fetchShrinkageSummary, fetchFloatBalance, fetchFloatLedger, fetchConsignmentData, fetchProcurementList, fetchConversionMaps]);
+  }, [activeTab, searchQuery, fetchProducts, fetchMovements, fetchShrinkageSummary, fetchFloatBalance, fetchFloatLedger, fetchConsignmentData, fetchProcurementList, fetchConversionMaps, fetchDiscounts]);
+
+  // Discount product search with 300ms debounce
+  useEffect(() => {
+    if (!showDiscountForm || discountType !== 'product') return;
+    if (discountProductSearch.trim().length < 2) {
+      setDiscountProductSuggestions([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/products?search=${encodeURIComponent(discountProductSearch)}&limit=10`);
+        if (res.ok) {
+          const data = await res.json();
+          setDiscountProductSuggestions(data.items || []);
+        }
+      } catch { /* silent */ }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [discountProductSearch, discountType, showDiscountForm]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1302,6 +1472,17 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
         >
           <Tag size={16} />
           Daftar Kulakan
+        </button>
+        <button
+          onClick={() => setActiveTab('discounts')}
+          className={`font-label-md text-label-md px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all cursor-pointer shrink-0 w-full text-left ${
+            activeTab === 'discounts'
+              ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
+              : 'text-on-surface-variant hover:bg-surface-container-high/50'
+          }`}
+        >
+          <Percent size={16} />
+          Manajemen Diskon
         </button>
       </div>
 
@@ -3305,6 +3486,357 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ── Tab Manajemen Diskon ───────────────────────────────────────────── */}
+        {activeTab === 'discounts' && (
+          <div className="flex-1 flex gap-gutter overflow-hidden h-full">
+            {/* LEFT: Discount List */}
+            <div className="flex-1 flex flex-col bg-surface-container rounded-xl border border-outline-variant p-5 overflow-hidden">
+              <div className="flex justify-between items-center mb-4 shrink-0">
+                <div className="flex items-center gap-2">
+                  <Percent size={20} className="text-secondary" />
+                  <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">Manajemen Diskon</h2>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={fetchDiscounts}
+                    disabled={loadingDiscounts}
+                    className="bg-surface-container-highest border border-outline-variant text-on-surface font-label-md text-label-md rounded-lg px-4 py-2 hover:bg-surface-container-high transition-colors disabled:opacity-40 cursor-pointer"
+                  >
+                    {loadingDiscounts ? 'Loading...' : 'Refresh'}
+                  </button>
+                  <button
+                    onClick={handleOpenAddDiscountForm}
+                    className="bg-secondary-container hover:bg-secondary-container/80 text-on-secondary-container font-label-md text-label-md font-bold rounded-lg px-4 py-2 flex items-center gap-1.5 transition-all shadow-md shadow-secondary/10 border border-secondary/20 cursor-pointer"
+                  >
+                    <Plus size={16} />
+                    BUAT DISKON
+                  </button>
+                </div>
+              </div>
+
+              {/* Info Banner */}
+              <div className="bg-primary-container/10 border border-primary/20 rounded-xl p-3 mb-4 shrink-0 text-sm text-on-surface-variant leading-relaxed">
+                <p><span className="font-bold text-primary">Diskon Global</span> — berlaku untuk semua produk di transaksi ritel, dengan minimal pembelian opsional.</p>
+                <p className="mt-1"><span className="font-bold text-secondary">Diskon Per-Produk</span> — hanya berlaku untuk produk tertentu. Kasir bisa memilih diskon saat proses checkout.</p>
+              </div>
+
+              <div className="flex-1 overflow-y-auto border border-outline-variant/30 rounded-lg bg-surface-dim">
+                {loadingDiscounts ? (
+                  <div className="flex items-center justify-center py-16 text-on-surface-variant">
+                    <Loader2 size={24} className="animate-spin mr-2" /> Memuat diskon...
+                  </div>
+                ) : discounts.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-on-surface-variant gap-2">
+                    <Percent size={32} className="opacity-30" />
+                    <p className="font-medium">Belum ada diskon yang dibuat.</p>
+                    <p className="text-sm opacity-60">Klik "Buat Diskon" untuk menambahkan.</p>
+                  </div>
+                ) : (
+                  <table className="w-full text-left border-collapse font-label-md text-label-md">
+                    <thead>
+                      <tr className="bg-surface-container border-b border-outline-variant font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider sticky top-0 z-10">
+                        <th className="p-3 pl-4">Nama Diskon</th>
+                        <th className="p-3">Tipe</th>
+                        <th className="p-3">Nilai</th>
+                        <th className="p-3">Produk / Min. Beli</th>
+                        <th className="p-3 text-center">Status</th>
+                        <th className="p-3 text-center">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant/20">
+                      {discounts.map(d => (
+                        <tr key={d.id} className="hover:bg-surface-container-high/30 transition-colors">
+                          <td className="p-3 pl-4">
+                            <span className="font-semibold text-on-surface">{d.name}</span>
+                          </td>
+                          <td className="p-3">
+                            <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                              d.discount_type === 'global'
+                                ? 'bg-primary-container text-on-primary-container'
+                                : 'bg-secondary-container text-on-secondary-container'
+                            }`}>
+                              {d.discount_type === 'global' ? 'Global' : 'Per-Produk'}
+                            </span>
+                          </td>
+                          <td className="p-3 font-mono font-bold">
+                            {d.value_type === 'percentage'
+                              ? `${d.discount_value}%`
+                              : `Rp ${d.discount_value.toLocaleString('id-ID')}`
+                            }
+                          </td>
+                          <td className="p-3 text-on-surface-variant text-xs">
+                            {d.discount_type === 'product'
+                              ? <span className="font-medium text-on-surface">{d.product_name || '-'} <span className="font-mono opacity-50">{d.product_barcode}</span></span>
+                              : d.min_purchase_amount > 0
+                                ? `Min. Rp ${d.min_purchase_amount.toLocaleString('id-ID')}`
+                                : <span className="opacity-40">Semua transaksi</span>
+                            }
+                          </td>
+                          <td className="p-3 text-center">
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const res = await fetch(`/api/discounts/${d.id}`, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ is_active: !d.is_active }),
+                                  });
+                                  if (res.ok) {
+                                    onToast(`✓ Status diskon diubah.`, 'success');
+                                    fetchDiscounts();
+                                  }
+                                } catch { onToast('Gagal mengubah status.', 'error'); }
+                              }}
+                              className={`px-3 py-1 rounded-full text-[11px] font-bold cursor-pointer transition-all ${
+                                d.is_active
+                                  ? 'bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500/30'
+                                  : 'bg-surface-container-highest text-on-surface-variant hover:bg-surface-container-high'
+                              }`}
+                            >
+                              {d.is_active ? 'Aktif' : 'Nonaktif'}
+                            </button>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex gap-1.5 justify-center">
+                              <button
+                                onClick={() => handleOpenEditDiscountForm(d)}
+                                title="Edit"
+                                className="p-1.5 rounded hover:bg-surface-container-high text-on-surface-variant transition-colors cursor-pointer"
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteDiscount(d.id, d.name)}
+                                title="Hapus"
+                                className="p-1.5 rounded hover:bg-error-container text-error transition-colors cursor-pointer"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+
+            {/* RIGHT: Create / Edit Form */}
+            {showDiscountForm && (
+              <div className="w-96 shrink-0 bg-surface-container rounded-xl border border-outline-variant p-5 flex flex-col gap-4 overflow-y-auto">
+                <div className="flex items-center justify-between border-b border-outline-variant/30 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Percent size={18} className="text-secondary" />
+                    <h3 className="font-bold text-on-surface">{editingDiscount ? 'Edit Diskon' : 'Buat Diskon Baru'}</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowDiscountForm(false)}
+                    className="p-1 hover:bg-surface-container-high rounded text-on-surface-variant transition-colors cursor-pointer"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {discountFormError && (
+                  <div className="flex items-center gap-2 bg-error-container text-on-error-container rounded-lg p-3 text-sm">
+                    <AlertCircle size={16} className="shrink-0" />
+                    <span>{discountFormError}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmitDiscountForm} className="flex flex-col gap-4">
+                  {/* Name */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Nama Diskon *</label>
+                    <input
+                      type="text"
+                      value={discountName}
+                      onChange={e => setDiscountName(e.target.value)}
+                      placeholder="Contoh: Diskon Pelanggan Setia"
+                      className="bg-surface-dim border border-outline-variant rounded-lg px-3 py-2 text-on-surface font-label-md text-label-md focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-colors"
+                    />
+                  </div>
+
+                  {/* Discount Type */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Tipe Diskon *</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(['global', 'product'] as const).map(t => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => { setDiscountType(t); setDiscountProductId(null); setDiscountProductSearch(''); }}
+                          className={`border-2 rounded-lg py-2 font-label-md text-label-md font-bold cursor-pointer transition-all ${
+                            discountType === t
+                              ? 'bg-secondary-container border-secondary text-on-secondary-container'
+                              : 'bg-surface-dim border-outline-variant text-on-surface-variant hover:bg-surface-container-high'
+                          }`}
+                        >
+                          {t === 'global' ? '🌐 Global' : '📦 Per-Produk'}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-on-surface-variant/70">
+                      {discountType === 'global'
+                        ? 'Berlaku untuk semua produk dalam transaksi.'
+                        : 'Hanya berlaku untuk produk tertentu yang dipilih.'}
+                    </p>
+                  </div>
+
+                  {/* Product search — only if product type */}
+                  {discountType === 'product' && (
+                    <div className="flex flex-col gap-1.5">
+                      <label className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Produk *</label>
+                      {discountProductId ? (
+                        <div className="flex justify-between items-center bg-surface-dim border border-outline-variant rounded-lg px-3 py-2">
+                          <span className="font-medium text-sm text-on-surface">
+                            {discountProductSearch || 'Produk dipilih'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => { setDiscountProductId(null); setDiscountProductSearch(''); }}
+                            className="text-on-surface-variant hover:text-error transition-colors"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="relative">
+                          <Search size={16} className="absolute left-3 top-2.5 text-on-surface-variant/60" />
+                          <input
+                            type="text"
+                            value={discountProductSearch}
+                            onChange={e => setDiscountProductSearch(e.target.value)}
+                            placeholder="Cari produk..."
+                            className="w-full bg-surface-dim border border-outline-variant rounded-lg px-3 py-2 pl-9 text-on-surface font-label-md text-label-md focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-colors"
+                          />
+                          {discountProductSuggestions.length > 0 && (
+                            <div className="absolute top-full left-0 right-0 z-50 bg-surface-container-highest border border-outline-variant rounded-lg shadow-xl mt-1 max-h-48 overflow-y-auto">
+                              {discountProductSuggestions.map(p => (
+                                <div
+                                  key={p.id}
+                                  onClick={() => {
+                                    setDiscountProductId(p.id);
+                                    setDiscountProductSearch(p.name);
+                                    setDiscountProductSuggestions([]);
+                                  }}
+                                  className="px-4 py-2 cursor-pointer hover:bg-surface-container-high transition-colors text-sm"
+                                >
+                                  <span className="font-semibold">{p.name}</span>
+                                  <span className="ml-2 text-xs font-mono opacity-50">{p.barcode}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Value type */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Jenis Potongan *</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(['fixed', 'percentage'] as const).map(t => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setDiscountValueType(t)}
+                          className={`border-2 rounded-lg py-2 font-label-md text-label-md font-bold cursor-pointer transition-all ${
+                            discountValueType === t
+                              ? 'bg-secondary-container border-secondary text-on-secondary-container'
+                              : 'bg-surface-dim border-outline-variant text-on-surface-variant hover:bg-surface-container-high'
+                          }`}
+                        >
+                          {t === 'fixed' ? '💰 Nominal (Rp)' : '📊 Persentase (%)'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Discount value */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
+                      Nilai Diskon * {discountValueType === 'percentage' ? '(%)' : '(Rp)'}
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant font-label-md text-label-md">
+                        {discountValueType === 'percentage' ? '%' : 'Rp'}
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        max={discountValueType === 'percentage' ? 100 : undefined}
+                        step={discountValueType === 'percentage' ? '0.01' : '100'}
+                        value={discountValue}
+                        onChange={e => setDiscountValue(e.target.value)}
+                        placeholder={discountValueType === 'percentage' ? '0.00' : '0'}
+                        className="w-full bg-surface-dim border border-outline-variant rounded-lg px-3 py-2 pl-10 text-on-surface font-label-md text-label-md focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Min purchase — only for global */}
+                  {discountType === 'global' && (
+                    <div className="flex flex-col gap-1.5">
+                      <label className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Min. Pembelian (Rp)</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant font-label-md text-label-md">Rp</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1000"
+                          value={discountMinPurchase}
+                          onChange={e => setDiscountMinPurchase(e.target.value)}
+                          placeholder="0"
+                          className="w-full bg-surface-dim border border-outline-variant rounded-lg px-3 py-2 pl-10 text-on-surface font-label-md text-label-md focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-colors"
+                        />
+                      </div>
+                      <p className="text-xs text-on-surface-variant/70">Isi 0 agar berlaku tanpa minimal pembelian.</p>
+                    </div>
+                  )}
+
+                  {/* Active toggle */}
+                  <div className="flex items-center justify-between bg-surface-dim border border-outline-variant rounded-lg px-3 py-3">
+                    <span className="font-label-md text-label-md text-on-surface font-semibold">Aktifkan Diskon</span>
+                    <button
+                      type="button"
+                      onClick={() => setDiscountIsActive(v => !v)}
+                      className={`relative w-11 h-6 rounded-full transition-all cursor-pointer ${
+                        discountIsActive ? 'bg-secondary' : 'bg-surface-container-highest'
+                      }`}
+                    >
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
+                        discountIsActive ? 'translate-x-5' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-2 border-t border-outline-variant/30">
+                    <button
+                      type="button"
+                      onClick={() => setShowDiscountForm(false)}
+                      className="flex-1 bg-surface-container-highest text-on-surface font-label-md text-label-md rounded-lg py-2.5 hover:bg-surface-container-high transition-colors cursor-pointer"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={savingDiscount}
+                      className="flex-1 bg-secondary-container hover:bg-secondary-container/80 text-on-secondary-container font-label-md text-label-md font-bold rounded-lg py-2.5 flex items-center justify-center gap-1.5 transition-all shadow-md shadow-secondary/15 disabled:opacity-40 cursor-pointer"
+                    >
+                      {savingDiscount ? <><Loader2 size={14} className="animate-spin" /> Menyimpan...</> : <><Save size={14} /> {editingDiscount ? 'Simpan Perubahan' : 'Buat Diskon'}</>}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
           </div>
         )}
       </div>

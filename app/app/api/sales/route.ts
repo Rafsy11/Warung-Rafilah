@@ -23,6 +23,7 @@ const saleItemSchema = z.object({
 
 const saleRequestSchema = z.object({
   total_amount:     z.number().positive(),
+  discount:         z.number().nonnegative().optional().default(0),
   payment_method:   z.enum(['CASH', 'QRIS', 'transfer', 'SPLIT', 'DEBT', 'debt']),
   payment_received: z.number().nonnegative().default(0),
   change_given:     z.number().nonnegative().default(0),
@@ -68,6 +69,7 @@ export async function POST(request: NextRequest) {
     
     const { 
       total_amount, 
+      discount = 0,
       payment_method, 
       payment_received, 
       change_given, 
@@ -76,6 +78,10 @@ export async function POST(request: NextRequest) {
       split_qris_amount,
       customer_id
     } = parsed.data;
+
+    if (discount > total_amount) {
+      return NextResponse.json({ error: 'Discount cannot be greater than subtotal' }, { status: 400 });
+    }
 
     const client = await db.connect();
     
@@ -108,7 +114,7 @@ export async function POST(request: NextRequest) {
       // Buat transaction_code unik
       const transaction_code = `WRG-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-      let finalAmount = total_amount;
+      let finalAmount = total_amount - discount;
       let qrisSuffix = 0;
       let saleStatus = 'completed';
 
@@ -116,7 +122,7 @@ export async function POST(request: NextRequest) {
         saleStatus = 'pending';
         let isUnique = false;
         let attempts = 0;
-        const qrisPart = payment_method === 'QRIS' ? total_amount : (split_qris_amount || 0);
+        const qrisPart = payment_method === 'QRIS' ? (total_amount - discount) : (split_qris_amount || 0);
         const cashPart = payment_method === 'SPLIT' ? (split_cash_amount || 0) : 0;
 
         while (!isUnique && attempts < 10) {
@@ -135,7 +141,7 @@ export async function POST(request: NextRequest) {
           attempts++;
         }
         if (!isUnique) {
-          finalAmount = total_amount + Math.floor(Math.random() * 1000);
+          finalAmount = (total_amount - discount) + Math.floor(Math.random() * 1000);
         }
       }
 
@@ -157,7 +163,7 @@ export async function POST(request: NextRequest) {
         const currentDebt = Number(customer.current_debt);
         const creditLimit = Number(customer.credit_limit);
 
-        const debtAdded = total_amount - (payment_received || 0);
+        const debtAdded = (total_amount - discount) - (payment_received || 0);
 
         if (currentDebt + debtAdded > creditLimit) {
           throw new Error(`Batas limit kredit terlampaui. Saldo hutang saat ini: Rp ${currentDebt.toLocaleString('id-ID')}, Limit: Rp ${creditLimit.toLocaleString('id-ID')}. Transaksi ini membutuhkan tambahan hutang Rp ${debtAdded.toLocaleString('id-ID')} (Total akumulasi: Rp ${(currentDebt + debtAdded).toLocaleString('id-ID')})`);
@@ -175,13 +181,14 @@ export async function POST(request: NextRequest) {
 
       const saleResult = await client.query(
         `INSERT INTO warung.sales 
-         (transaction_code, cashier_id, subtotal, total_amount, payment_method, payment_received, change_given, status, split_cash_amount, split_qris_amount, customer_id, session_id) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
+         (transaction_code, cashier_id, subtotal, discount, total_amount, payment_method, payment_received, change_given, status, split_cash_amount, split_qris_amount, customer_id, session_id) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
         [
           transaction_code, 
           cashier_id, 
-          total_amount, 
-          finalAmount, 
+          total_amount, // subtotal
+          discount,
+          finalAmount, // total_amount
           payment_method.toLowerCase(), 
           payment_method === 'SPLIT' ? dbSplitCash : (payment_method === 'QRIS' ? 0 : payment_received), 
           change_given, 
@@ -198,7 +205,7 @@ export async function POST(request: NextRequest) {
       if (payment_method.toLowerCase() === 'debt') {
         const custRes = await client.query('SELECT current_debt FROM warung.customers WHERE id = $1', [customer_id]);
         const newDebt = Number(custRes.rows[0].current_debt);
-        const debtAdded = total_amount - (payment_received || 0);
+        const debtAdded = (total_amount - discount) - (payment_received || 0);
 
         await client.query(
           `INSERT INTO warung.debt_ledger (customer_id, sale_id, entry_type, amount, balance_after, note, created_by)
@@ -378,7 +385,7 @@ export async function POST(request: NextRequest) {
                     phone: customer.phone,
                     current_debt: customer.current_debt,
                     credit_limit: customer.credit_limit,
-                    amount: total_amount,
+                    amount: total_amount - discount,
                     type: 'new_debt'
                   })
                 }).catch(err => console.error('Failed to trigger auto debt alert:', err));

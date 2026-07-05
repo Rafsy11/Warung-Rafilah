@@ -4,6 +4,8 @@ import { Sparkles, X, Send, Loader2, CheckCircle2, XCircle } from 'lucide-react'
 interface AIAssistantProps {
   userRole: string;
   userId?: string;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
 interface HistoryEntry {
@@ -12,7 +14,7 @@ interface HistoryEntry {
 }
 
 interface ConfirmationData {
-  action: 'RESTOCK' | 'REDUCE';
+  action: string;
   productId: string;
   productName: string;
   quantity: number;
@@ -97,8 +99,7 @@ Saya memahami seluruh sistem POS ini. Yang bisa saya bantu:
 ✓ "saldo float agen berapa?"
 ✓ "sesi kasir sekarang siapa?"`;
 
-export default function AIAssistant({ userRole, userId }: AIAssistantProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export default function AIAssistant({ userRole, userId, isOpen = false, onClose }: AIAssistantProps) {
   const [prompt, setPrompt] = useState('');
   const [messages, setMessages] = useState<Message[]>([
     { id: 'welcome', sender: 'ai', text: WELCOME_TEXT, timestamp: new Date() },
@@ -118,6 +119,17 @@ export default function AIAssistant({ userRole, userId }: AIAssistantProps) {
       setTimeout(() => inputRef.current?.focus(), 150);
     }
   }, [messages, isOpen, scrollToBottom]);
+
+  // Reset messages + history when closed
+  const prevIsOpenRef = useRef(false);
+  useEffect(() => {
+    if (!isOpen && prevIsOpenRef.current) {
+      setMessages([{ id: 'welcome', sender: 'ai', text: WELCOME_TEXT, timestamp: new Date() }]);
+      setHistory([]);
+      setPrompt('');
+    }
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen]);
 
   if (userRole !== 'owner') return null;
 
@@ -305,11 +317,12 @@ export default function AIAssistant({ userRole, userId }: AIAssistantProps) {
   };
 
   // ── Render ───────────────────────────────────────────────────────────────
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed bottom-16 left-6 z-50 flex flex-col items-start">
+    <div className="fixed top-20 right-4 z-40 flex flex-col items-end">
       {/* Chat Window */}
-      {isOpen && (
-        <div className="bg-surface-container rounded-2xl border border-outline-variant shadow-2xl w-80 md:w-96 h-[480px] flex flex-col mb-4 overflow-hidden animate-in slide-in-from-bottom-5 fade-in duration-200">
+      <div className="bg-surface-container rounded-2xl border border-outline-variant shadow-2xl w-80 md:w-96 h-[520px] flex flex-col overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200">
           {/* Header */}
           <div className="bg-primary text-on-primary px-4 py-3 flex items-center justify-between shadow-sm flex-shrink-0">
             <div className="flex items-center gap-2">
@@ -317,12 +330,7 @@ export default function AIAssistant({ userRole, userId }: AIAssistantProps) {
               <span className="font-bold text-sm tracking-wide">Velo — Asisten AI</span>
             </div>
             <button
-              onClick={() => {
-                setIsOpen(false);
-                // Clear active session messages and history context
-                setMessages([{ id: 'welcome', sender: 'ai', text: WELCOME_TEXT, timestamp: new Date() }]);
-                setHistory([]);
-              }}
+              onClick={onClose}
               className="text-on-primary/80 hover:text-on-primary transition-colors cursor-pointer"
             >
               <X size={18} />
@@ -430,19 +438,6 @@ export default function AIAssistant({ userRole, userId }: AIAssistantProps) {
             </button>
           </form>
         </div>
-      )}
-
-      {/* Trigger Button */}
-      {!isOpen && (
-        <button
-          type="button"
-          onClick={() => setIsOpen(true)}
-          className="flex items-center justify-center w-12 h-12 bg-primary hover:bg-primary/95 text-on-primary rounded-full shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 cursor-pointer"
-          title="Asisten AI"
-        >
-          <Sparkles size={20} className="animate-pulse" />
-        </button>
-      )}
     </div>
   );
 }

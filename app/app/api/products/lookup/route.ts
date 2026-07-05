@@ -23,7 +23,18 @@ export async function GET(request: NextRequest) {
                  FROM warung.product_pricing_tiers t 
                  WHERE t.product_id = warung.products.id), 
                 '[]'::json
-              ) as pricing_tiers
+              ) as pricing_tiers,
+              (SELECT json_build_object(
+                 'id', d.id,
+                 'name', d.name,
+                 'discount_type', d.discount_type,
+                 'value_type', d.value_type,
+                 'discount_value', d.discount_value::float
+               )
+               FROM warung.discounts d
+               WHERE d.product_id = warung.products.id AND d.is_active = true
+               LIMIT 1
+              ) as active_discount
        FROM warung.products 
        WHERE barcode = $1 AND is_active = true 
        LIMIT 1`,

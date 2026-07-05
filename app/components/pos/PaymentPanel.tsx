@@ -19,9 +19,11 @@ type PaymentPanelProps = {
   agentTotal:  number;
   agentFee:    number;
   discount:    number;
+  onDiscountChange: (discount: number) => void;
   grandTotal:  number;
   onPay:       (method: PaymentMethod, received: number, splitCash?: number, splitQris?: number, customerId?: string) => void;
   paying:      boolean;
+  activeDiscounts?: any[];
 };
 
 /** Round up to nearest denomination ceiling for quick-cash presets */
@@ -44,9 +46,11 @@ export default function PaymentPanel({
   agentTotal,
   agentFee,
   discount,
+  onDiscountChange,
   grandTotal,
   onPay,
   paying,
+  activeDiscounts,
 }: PaymentPanelProps) {
   const [method, setMethod]     = useState<PaymentMethod>('CASH');
   const [received, setReceived]   = useState(0);
@@ -57,6 +61,40 @@ export default function PaymentPanel({
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerSuggestions, setCustomerSuggestions] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+
+  const [discountInputVal, setDiscountInputVal] = useState('');
+
+  // Sync discountInputVal with discount prop
+  useEffect(() => {
+    if (discount === 0) {
+      setDiscountInputVal('');
+    } else {
+      setDiscountInputVal(discount.toLocaleString('id-ID'));
+    }
+  }, [discount]);
+
+  const handleDiscountInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/[^0-9]/g, '');
+    const val = Number(raw) || 0;
+    const subtotal = warungTotal + agentTotal + agentFee;
+    const clampedVal = Math.min(subtotal, val);
+    onDiscountChange(clampedVal);
+  };
+
+  const handleApplyPresetNominal = (amount: number) => {
+    const subtotal = warungTotal + agentTotal + agentFee;
+    onDiscountChange(Math.min(subtotal, amount));
+  };
+
+  const handleApplyPresetPercent = (percent: number) => {
+    const subtotal = warungTotal + agentTotal + agentFee;
+    const d = Math.round((subtotal * percent) / 100);
+    onDiscountChange(Math.min(subtotal, d));
+  };
+
+  const handleClearDiscount = () => {
+    onDiscountChange(0);
+  };
 
   // Real-time customer lookup for debt payment with 300ms debounce
   useEffect(() => {
@@ -154,7 +192,7 @@ export default function PaymentPanel({
 
   return (
     <section className="w-96 shrink-0 flex flex-col h-full overflow-hidden">
-      <div className="flex-1 overflow-hidden flex flex-col gap-2.5 pr-1 pb-1">
+      <div className="flex-1 overflow-y-auto flex flex-col gap-2 pr-1.5 pb-1">
 
         {/* ── Totals Card ─────────────────────────────────────────────────── */}
         <div className="bg-surface-container-lowest rounded-lg border border-outline-variant p-3 flex flex-col gap-2 shadow-md">
@@ -184,10 +222,123 @@ export default function PaymentPanel({
           )}
           <div className="mt-0.5 pt-1.5 border-t border-outline-variant">
             <div className="text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider mb-0.5">Grand Total</div>
-            <div className="font-display-price text-display-price text-secondary-container tracking-tight">
-              {grandTotal > 0 ? grandTotal.toLocaleString('id-ID') : '—'}
+            <div className="font-display-price text-display-price text-secondary font-bold tracking-tight">
+              {grandTotal > 0 ? `Rp ${grandTotal.toLocaleString('id-ID')}` : 'Rp 0'}
             </div>
           </div>
+        </div>
+
+        {/* ── Discount Panel ───────────────────────────────────────────────── */}
+        <div className="bg-surface-container rounded-lg border border-outline-variant p-2.5 flex flex-col gap-2 shadow-sm">
+          <div className="text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider flex justify-between items-center">
+            <span>Terapkan Diskon</span>
+            {discount > 0 && (
+              <span className="text-[10px] text-error font-semibold bg-error-container/20 px-1.5 py-0.5 rounded">
+                Aktif
+              </span>
+            )}
+          </div>
+          
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant font-label-md text-label-md">Rp</span>
+            <input
+              id="input-discount"
+              type="text"
+              value={discountInputVal}
+              onChange={handleDiscountInputChange}
+              placeholder="0"
+              className="w-full bg-surface-dim border border-outline-variant rounded-lg px-3 py-1.5 pl-10 pr-8 text-on-surface font-label-md text-label-md focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-colors"
+            />
+            {discount > 0 && (
+              <button
+                type="button"
+                onClick={handleClearDiscount}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-error transition-colors cursor-pointer"
+                title="Hapus diskon"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+
+          {/* Quick discount preset buttons */}
+          <div className="grid grid-cols-5 gap-1.5">
+            <button
+              type="button"
+              onClick={() => handleApplyPresetNominal(2000)}
+              className="bg-surface-container-highest hover:bg-surface-container-high border border-outline-variant text-on-surface rounded py-1 cursor-pointer transition-all active:scale-95 text-[11px] font-bold text-center"
+            >
+              2k
+            </button>
+            <button
+              type="button"
+              onClick={() => handleApplyPresetNominal(5000)}
+              className="bg-surface-container-highest hover:bg-surface-container-high border border-outline-variant text-on-surface rounded py-1 cursor-pointer transition-all active:scale-95 text-[11px] font-bold text-center"
+            >
+              5k
+            </button>
+            <button
+              type="button"
+              onClick={() => handleApplyPresetNominal(10000)}
+              className="bg-surface-container-highest hover:bg-surface-container-high border border-outline-variant text-on-surface rounded py-1 cursor-pointer transition-all active:scale-95 text-[11px] font-bold text-center"
+            >
+              10k
+            </button>
+            <button
+              type="button"
+              onClick={() => handleApplyPresetPercent(5)}
+              className="bg-surface-container-highest hover:bg-surface-container-high border border-outline-variant text-on-surface rounded py-1 cursor-pointer transition-all active:scale-95 text-[11px] font-bold text-center"
+            >
+              5%
+            </button>
+            <button
+              type="button"
+              onClick={() => handleApplyPresetPercent(10)}
+              className="bg-surface-container-highest hover:bg-surface-container-high border border-outline-variant text-on-surface rounded py-1 cursor-pointer transition-all active:scale-95 text-[11px] font-bold text-center"
+            >
+              10%
+            </button>
+          </div>
+
+          {/* Database Global Discounts */}
+          {activeDiscounts && activeDiscounts.filter(d => d.discount_type === 'global' && d.is_active).length > 0 && (
+            <div className="flex flex-col gap-1.5 mt-1 border-t border-outline-variant/30 pt-2 shrink-0">
+              <span className="text-[10px] text-on-surface-variant/75 uppercase tracking-wider font-bold">
+                Promo Toko Aktif:
+              </span>
+              <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto pr-1">
+                {activeDiscounts
+                  .filter(d => d.discount_type === 'global' && d.is_active)
+                  .map(d => {
+                    const meetsMin = warungTotal >= Number(d.min_purchase_amount);
+                    return (
+                      <button
+                        key={d.id}
+                        type="button"
+                        disabled={!meetsMin}
+                        onClick={() => {
+                          let amt = 0;
+                          if (d.value_type === 'percentage') {
+                            amt = Math.round(warungTotal * (Number(d.discount_value) / 100));
+                          } else {
+                            amt = Number(d.discount_value);
+                          }
+                          onDiscountChange(Math.min(warungTotal, amt));
+                        }}
+                        className={`text-[10px] font-bold px-2 py-1 rounded transition-all cursor-pointer border ${
+                          meetsMin
+                            ? 'bg-secondary-container/40 hover:bg-secondary-container/70 border-secondary/30 text-on-secondary-container'
+                            : 'bg-surface-container border-outline-variant/50 opacity-40 cursor-not-allowed text-on-surface-variant'
+                        }`}
+                        title={d.name + (d.min_purchase_amount > 0 ? ` (Min. Beli Rp ${d.min_purchase_amount.toLocaleString('id-ID')})` : '')}
+                      >
+                        🏷️ {d.name} ({d.value_type === 'percentage' ? `${d.discount_value}%` : `Rp ${Number(d.discount_value).toLocaleString('id-ID')}`})
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── Payment Method ───────────────────────────────────────────────── */}

@@ -6,6 +6,7 @@ export interface WarungReceiptData {
   cashier: string;
   items: { name: string; qty: number; unit_price: number; subtotal: number }[];
   total: number;
+  discount?: number;
   payment_method: 'CASH' | 'QRIS' | 'SPLIT' | 'DEBT';
   payment_received: number;
   split_cash_amount?: number;
@@ -122,6 +123,17 @@ function buildWarungHtml(d: WarungReceiptData): string {
   </div>
   
   <div class="divider"></div>
+  
+  ${d.discount && d.discount > 0 ? `
+  <div class="row" style="font-size: 8.5px; opacity: 0.85; margin-bottom: 0.5mm;">
+    <span>Subtotal:</span>
+    <span>${formatRp(d.total + d.discount)}</span>
+  </div>
+  <div class="row" style="font-size: 8.5px; opacity: 0.85; margin-bottom: 0.5mm;">
+    <span>Diskon:</span>
+    <span class="bold">-${formatRp(d.discount)}</span>
+  </div>
+  ` : ''}
   
   <div class="row bold" style="font-size: 12px; margin-top: 1mm;">
     <span>TOTAL</span>

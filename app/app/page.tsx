@@ -32,6 +32,34 @@ function getTierPrice(qty: number, basePrice: number, tiers?: { min_qty: number;
 export default function PosDashboard() {
   const [mode, setMode]     = useState<'warung' | 'agent' | 'admin'>('warung');
   const [cart, setCart]     = useState<CartItem[]>([]);
+  const [discount, setDiscount] = useState<number>(0);
+  const [activeDiscounts, setActiveDiscounts] = useState<any[]>([]);
+
+  const fetchActiveDiscounts = useCallback(async () => {
+    try {
+      const res = await fetch('/api/discounts?active=true');
+      if (res.ok) {
+        const data = await res.json();
+        setActiveDiscounts(data.items || []);
+      }
+    } catch (err) {
+      console.error('Error fetching active discounts:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mode === 'warung') {
+      fetchActiveDiscounts();
+    }
+  }, [mode, fetchActiveDiscounts]);
+
+  // Reset discount when cart is empty
+  useEffect(() => {
+    if (cart.length === 0) {
+      setDiscount(0);
+    }
+  }, [cart.length]);
+
   const [toast, setToast]   = useState<{ msg: string; type: 'error' | 'success' } | null>(null);
   const [paying, setPaying] = useState(false);
   const [userRole, setUserRole] = useState<string>('');
@@ -41,6 +69,7 @@ export default function PosDashboard() {
     transaction_code: string;
     total_amount: number;
     original_amount: number;
+    discount?: number;
     split_cash_amount?: number;
     split_qris_amount?: number;
     items: { name: string; qty: number; unit_price: number; subtotal: number }[];
@@ -62,6 +91,7 @@ export default function PosDashboard() {
   } | null>(null);
   const [showKasDetail, setShowKasDetail] = useState(false);
   const [rebalanceAlertDismissed, setRebalanceAlertDismissed] = useState(false);
+  const [isAiOpen, setIsAiOpen] = useState(false);
 
   const fetchRebalanceStatus = useCallback(async () => {
     try {
@@ -123,7 +153,18 @@ export default function PosDashboard() {
   // ── Mode switch ──────────────────────────────────────────────────────────────
   const handleF1 = useCallback(() => { setMode('warung'); setCart([]); }, []);
   const handleF2 = useCallback(() => { setMode('agent');  setCart([]); }, []);
-  const handleF3 = useCallback(() => { if (userRole === 'owner') { setMode('admin'); setCart([]); } }, [userRole]);
+  const handleF3 = useCallback(() => { 
+    if (userRole === 'owner') { 
+      setMode('admin'); 
+      setCart([]); 
+    } else if (mode === 'warung') {
+      const discountInput = document.getElementById('input-discount') as HTMLInputElement | null;
+      if (discountInput) {
+        discountInput.focus();
+        discountInput.select();
+      }
+    }
+  }, [userRole, mode]);
 
   // ── Add digital item to cart ────────────────────────────────────────────────
   const handleAddDigitalItem = useCallback((item: CartItem) => {
@@ -149,12 +190,22 @@ export default function PosDashboard() {
       prev.map(item => {
         if (item.id === id) {
           const originalPrice = item.basePrice || item.price;
-          const { price: newPrice, name: tierName } = getTierPrice(newQty, originalPrice, item.pricingTiers);
+          const { price: tierPrice, name: tierName } = getTierPrice(newQty, originalPrice, item.pricingTiers);
+          
+          let finalPrice = tierPrice;
+          if (item.activeDiscount) {
+            if (item.activeDiscount.value_type === 'percentage') {
+              finalPrice = Math.max(0, tierPrice * (1 - Number(item.activeDiscount.discount_value) / 100));
+            } else {
+              finalPrice = Math.max(0, tierPrice - Number(item.activeDiscount.discount_value));
+            }
+          }
+
           return {
             ...item,
             qty: newQty,
-            price: newPrice,
-            subtotal: newQty * newPrice,
+            price: Math.round(finalPrice),
+            subtotal: newQty * Math.round(finalPrice),
             basePrice: originalPrice,
             appliedTierName: tierName
           };
@@ -184,12 +235,22 @@ export default function PosDashboard() {
             if (idx === existing) {
               const newQty = item.qty + 1;
               const originalPrice = item.basePrice || item.price;
-              const { price: newPrice, name: tierName } = getTierPrice(newQty, originalPrice, item.pricingTiers);
+              const { price: tierPrice, name: tierName } = getTierPrice(newQty, originalPrice, item.pricingTiers);
+              
+              let finalPrice = tierPrice;
+              if (item.activeDiscount) {
+                if (item.activeDiscount.value_type === 'percentage') {
+                  finalPrice = Math.max(0, tierPrice * (1 - Number(item.activeDiscount.discount_value) / 100));
+                } else {
+                  finalPrice = Math.max(0, tierPrice - Number(item.activeDiscount.discount_value));
+                }
+              }
+
               return {
                 ...item,
                 qty: newQty,
-                price: newPrice,
-                subtotal: newQty * newPrice,
+                price: Math.round(finalPrice),
+                subtotal: newQty * Math.round(finalPrice),
                 basePrice: originalPrice,
                 appliedTierName: tierName
               };
@@ -198,6 +259,16 @@ export default function PosDashboard() {
           });
         }
         const { price: initialPrice, name: tierName } = getTierPrice(1, Number(data.price), data.pricing_tiers);
+        
+        let finalPrice = initialPrice;
+        if (data.active_discount) {
+          if (data.active_discount.value_type === 'percentage') {
+            finalPrice = Math.max(0, initialPrice * (1 - Number(data.active_discount.discount_value) / 100));
+          } else {
+            finalPrice = Math.max(0, initialPrice - Number(data.active_discount.discount_value));
+          }
+        }
+
         return [
           ...prev,
           {
@@ -205,11 +276,12 @@ export default function PosDashboard() {
             barcode:  data.barcode,
             name:     data.name,
             qty:      1,
-            price:    initialPrice,
-            subtotal: initialPrice,
+            price:    Math.round(finalPrice),
+            subtotal: Math.round(finalPrice),
             basePrice: Number(data.price),
             appliedTierName: tierName,
-            pricingTiers: data.pricing_tiers || []
+            pricingTiers: data.pricing_tiers || [],
+            activeDiscount: data.active_discount || undefined
           },
         ];
       });
@@ -235,9 +307,11 @@ export default function PosDashboard() {
     setPaying(true);
     try {
       const total       = cart.reduce((s, i) => s + i.subtotal, 0);
-      const change_given = method === 'CASH' ? Math.max(0, received - total) : 0;
+      const finalTotal  = Math.max(0, total - discount);
+      const change_given = method === 'CASH' ? Math.max(0, received - finalTotal) : 0;
       const payload = {
         total_amount:     total,
+        discount:         discount,
         payment_method:   method,
         payment_received: method === 'SPLIT' ? (splitCash || 0) : received,
         change_given,
@@ -273,6 +347,7 @@ export default function PosDashboard() {
           transaction_code: data.transaction_code,
           total_amount: data.total_amount,
           original_amount: total,
+          discount: discount,
           split_cash_amount: data.split_cash_amount,
           split_qris_amount: data.split_qris_amount,
           items: cart.map(i => ({
@@ -298,9 +373,10 @@ export default function PosDashboard() {
           unit_price: i.price,
           subtotal:   i.subtotal,
         })),
-        total:            data.total_amount || total,
+        total:            data.total_amount || finalTotal,
+        discount:         discount,
         payment_method:   method,
-        payment_received: method === 'SPLIT' ? (splitCash || 0) : (method === 'DEBT' ? 0 : (received || data.total_amount || total)),
+        payment_received: method === 'SPLIT' ? (splitCash || 0) : (method === 'DEBT' ? 0 : (received || data.total_amount || finalTotal)),
         split_cash_amount: method === 'SPLIT' ? splitCash : undefined,
         split_qris_amount: method === 'SPLIT' ? splitQris : undefined,
         change:           change_given,
@@ -316,7 +392,7 @@ export default function PosDashboard() {
     } finally {
       setPaying(false);
     }
-  }, [cart, paying, showToast]);
+  }, [cart, paying, showToast, discount]);
 
   const handleReprint = useCallback(() => {
     if (lastReceiptRef.current) {
@@ -350,7 +426,8 @@ export default function PosDashboard() {
     onEscape: () => setCart([]),
   });
 
-  const grandTotal = cart.reduce((s, i) => s + i.subtotal, 0);
+  const cartSubtotal = cart.reduce((s, i) => s + i.subtotal, 0);
+  const grandTotal = Math.max(0, cartSubtotal - discount);
 
   return (
     <AppShell
@@ -360,6 +437,8 @@ export default function PosDashboard() {
       onReprint={handleReprint}
       activeSession={activeSession}
       onCloseSession={() => setShowCloseSessionModal(true)}
+      isAiOpen={isAiOpen}
+      onToggleAi={() => setIsAiOpen(prev => !prev)}
     >
       {/* Toast overlay */}
       {toast && (
@@ -483,10 +562,12 @@ export default function PosDashboard() {
             warungTotal={cart.filter(i => !i.isAgent).reduce((s, i) => s + i.subtotal, 0)}
             agentTotal={cart.filter(i => i.isAgent).reduce((s, i) => s + (i.modal_price || 0), 0)}
             agentFee={cart.filter(i => i.isAgent).reduce((s, i) => s + (i.price - (i.modal_price || 0)), 0)}
-            discount={0}
+            discount={discount}
+            onDiscountChange={setDiscount}
             grandTotal={grandTotal}
             onPay={handleCheckout}
             paying={paying}
+            activeDiscounts={activeDiscounts}
           />
         </>
       ) : mode === 'agent' ? (
@@ -510,6 +591,7 @@ export default function PosDashboard() {
               cashier:          userNameRef.current,
               items:            pendingQrisSale.items,
               total:            pendingQrisSale.total_amount,
+              discount:         pendingQrisSale.discount,
               payment_method:   isSplit ? 'SPLIT' : 'QRIS',
               payment_received: pendingQrisSale.total_amount,
               split_cash_amount: pendingQrisSale.split_cash_amount,
@@ -556,7 +638,7 @@ export default function PosDashboard() {
         />
       )}
 
-      <AIAssistant userRole={userRole} />
+      <AIAssistant userRole={userRole} isOpen={isAiOpen} onClose={() => setIsAiOpen(false)} />
     </AppShell>
   );
 }
