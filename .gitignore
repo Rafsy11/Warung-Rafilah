@@ -1,0 +1,22 @@
+# ── Windows-only scripts (tidak dibutuhkan di PC Kasir Linux) ──
+*.bat
+start-pos.ps1
+
+# ── File workflow state internal (hanya untuk development) ──
+wf*.json
+
+# ── UI prototype (bukan bagian deployment) ──
+ui.html
+
+# ── Environment & secrets (JANGAN pernah di-commit!) ──
+.env
+.env.local
+.env.production
+.env.development
+
+# ── OS artifacts ──
+.DS_Store
+Thumbs.db
+
+# ── VS Code settings (opsional, boleh hapus jika ingin share settings) ──
+.vscode/
