@@ -92,10 +92,10 @@ CREATE TABLE warung.sales (
     subtotal            NUMERIC(12,2) NOT NULL,
     discount            NUMERIC(12,2) NOT NULL DEFAULT 0,
     total_amount        NUMERIC(12,2) NOT NULL,
-    payment_method      VARCHAR(20) NOT NULL CHECK (payment_method IN ('cash','qris','transfer','split')),
+    payment_method      VARCHAR(20) NOT NULL CHECK (payment_method IN ('cash','qris','transfer','split','debt')),
     payment_received    NUMERIC(12,2) NOT NULL DEFAULT 0,
     change_given        NUMERIC(12,2) NOT NULL DEFAULT 0,
-    status              VARCHAR(20) NOT NULL DEFAULT 'completed' CHECK (status IN ('completed','voided')),
+    status              VARCHAR(20) NOT NULL DEFAULT 'completed' CHECK (status IN ('completed','voided','pending')),
     split_cash_amount   NUMERIC(12,2) NOT NULL DEFAULT 0,
     split_qris_amount   NUMERIC(12,2) NOT NULL DEFAULT 0,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
