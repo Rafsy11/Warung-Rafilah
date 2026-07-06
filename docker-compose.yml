@@ -51,6 +51,9 @@ services:
       AI_BASE_URL: ${AI_BASE_URL}
       AI_API_KEY: ${AI_API_KEY}
       AI_MODEL: ${AI_MODEL}
+      CASH_DRAWER_DEVICE: ${CASH_DRAWER_DEVICE:-/dev/usb/lp0}
+    devices:
+      - "${CASH_DRAWER_DEVICE:-/dev/usb/lp0}:${CASH_DRAWER_DEVICE:-/dev/usb/lp0}"
     mem_limit: 300m
     mem_reservation: 150m
     cpus: 1.0

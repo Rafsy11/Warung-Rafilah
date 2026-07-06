@@ -385,6 +385,14 @@ export default function PosDashboard() {
       lastReceiptRef.current = receiptData;
       printReceipt(receiptData);
 
+      // Buka laci kasir untuk pembayaran tunai (CASH / SPLIT)
+      // QRIS & DEBT tidak perlu buka laci
+      if (method === 'CASH' || method === 'SPLIT') {
+        fetch('/api/cash-drawer', { method: 'POST' }).catch(() => {
+          // Gagal diam-diam — transaksi sudah berhasil dicatat
+        });
+      }
+
       setCart([]);
       fetchRebalanceStatus();
     } catch {
