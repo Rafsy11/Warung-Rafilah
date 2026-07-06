@@ -8,12 +8,6 @@ wf*.json
 # ── UI prototype (bukan bagian deployment) ──
 ui.html
 
-# ── Environment & secrets (JANGAN pernah di-commit!) ──
-.env
-.env.local
-.env.production
-.env.development
-
 # ── OS artifacts ──
 .DS_Store
 Thumbs.db
