@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Zap, X, ScanBarcode, Plus, Minus, Trash2, AlertCircle } from 'lucide-react';
 import type { CartItem } from '@/types/pos';
 
@@ -28,10 +28,16 @@ export default function CartTable({
   onChangeQty?: (id: string, newQty: number) => void;
   onAddDigitalItem?: (item: CartItem) => void;
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState('');
   const [searchResults, setSearchResults] = useState<{ id: string; barcode: string; name: string; sell_price: string; stock_qty: string }[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [selectedCartIds, setSelectedCartIds] = useState<string[]>([]);
+
+  // Focus input on mount and whenever mode or items count changes
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, [mode, items.length]);
 
   // Layanan Digital states
   const [showDigitalModal, setShowDigitalModal] = useState(false);
@@ -294,6 +300,7 @@ export default function CartTable({
               </div>
             )}
             <input
+              ref={inputRef}
               autoFocus
               type="text"
               value={inputValue}

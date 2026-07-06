@@ -56,6 +56,7 @@ export function useGlobalHotkeys(config: HotkeysConfig) {
       if (e.key === 'Enter') {
         if (bufferRef.current.length > 0 && config.onScan) {
           e.preventDefault();
+          e.stopPropagation(); // Hentikan agar tidak men-trigger event keydown di PaymentPanel
           config.onScan(bufferRef.current);
           bufferRef.current = '';
         }
@@ -76,10 +77,11 @@ export function useGlobalHotkeys(config: HotkeysConfig) {
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
+    // Gunakan capture phase (true) agar interseptor barcode berjalan paling awal
+    window.addEventListener('keydown', handleKeyDown, true);
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keydown', handleKeyDown, true);
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
