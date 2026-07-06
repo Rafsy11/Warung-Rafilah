@@ -20,15 +20,21 @@ if ! docker info >/dev/null 2>&1; then
     exit 0
 fi
 
+# Tentukan file docker compose yang akan digunakan
+COMPOSE_CMD="docker compose -f docker-compose.yml"
+if [ -f "docker-compose.linux.yml" ]; then
+    COMPOSE_CMD="docker compose -f docker-compose.yml -f docker-compose.linux.yml"
+fi
+
 echo "🛑 Menghentikan server POS secara aman..."
-docker compose down
+$COMPOSE_CMD down
 
 if [ $? -eq 0 ]; then
     echo "✅ POS Warung Rafilah berhasil dimatikan."
     echo "Anda sekarang dapat mematikan PC Kasir dengan aman."
 else
     echo "❌ Terjadi masalah saat menghentikan server. Coba jalankan:"
-    echo "   docker compose down"
+    echo "   $COMPOSE_CMD down"
 fi
 
 read -p "Tekan [Enter] untuk menutup jendela ini..."

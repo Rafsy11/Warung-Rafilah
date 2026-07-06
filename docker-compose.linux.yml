@@ -1,0 +1,5 @@
+# Konfigurasi tambahan khusus PC Kasir (Linux Mint) untuk akses laci kasir (RJ12) via printer USB
+services:
+  pos_nextjs:
+    devices:
+      - "${CASH_DRAWER_DEVICE:-/dev/usb/lp0}:${CASH_DRAWER_DEVICE:-/dev/usb/lp0}"

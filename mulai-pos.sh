@@ -52,11 +52,17 @@ if ! docker info >/dev/null 2>&1; then
     exit 1
 fi
 
+# Tentukan file docker compose yang akan digunakan
+COMPOSE_CMD="docker compose -f docker-compose.yml"
+if [ -f "docker-compose.linux.yml" ]; then
+    COMPOSE_CMD="docker compose -f docker-compose.yml -f docker-compose.linux.yml"
+fi
+
 echo "📥 Menarik/memperbarui image docker..."
-docker compose pull
+$COMPOSE_CMD pull
 
 echo "▶️  Menyalakan server POS..."
-docker compose up -d
+$COMPOSE_CMD up -d
 
 echo "⏳ Menunggu server siap..."
 sleep 5
