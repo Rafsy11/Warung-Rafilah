@@ -5,6 +5,9 @@ start-pos.ps1
 # ── File workflow state internal (hanya untuk development) ──
 wf*.json
 
+# ── n8n data folder (berisi credentials & runtime data, jangan di-git) ──
+n8n_data/
+
 # ── UI prototype (bukan bagian deployment) ──
 ui.html
 
