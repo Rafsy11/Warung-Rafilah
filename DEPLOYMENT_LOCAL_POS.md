@@ -4,7 +4,7 @@
 - **RAM**: 8GB
 - **Storage**: 512GB SSD
 - **Network**: Local + Cloudflare Tunnel
-- **OS**: Windows (recommended: Windows 10/11 Pro)
+- **OS**: Linux Mint
 
 ## 🔐 Security Considerations untuk Local Deployment
 
