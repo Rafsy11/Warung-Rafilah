@@ -61,10 +61,6 @@ fi
 echo "📥 Menarik/memperbarui image docker..."
 $COMPOSE_CMD pull
 
-echo "🔨 Build image NextJS..."
-# Build tanpa cache untuk menghindari error credential
-$COMPOSE_CMD build --no-cache pos_nextjs 2>&1 | grep -v "credential" || true
-
 echo "▶️  Menyalakan server POS..."
 $COMPOSE_CMD up -d
 
