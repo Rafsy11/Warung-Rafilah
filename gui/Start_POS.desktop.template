@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Start POS
+Comment=Start the local POS application
+Exec="/path/to/your/folder/gui/start-pos-gui.sh"
+Icon=utilities-terminal
+Terminal=false
+Categories=Utility;
+StartupNotify=true

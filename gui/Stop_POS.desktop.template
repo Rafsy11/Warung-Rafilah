@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Stop POS
+Comment=Stop the local POS application
+Exec="/path/to/your/folder/gui/stop-pos-gui.sh"
+Icon=process-stop
+Terminal=false
+Categories=Utility;
+StartupNotify=true
