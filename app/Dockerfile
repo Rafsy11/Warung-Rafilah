@@ -11,7 +11,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+RUN POSTGRES_PASSWORD=placeholder_build JWT_SECRET=placeholder_build npm run build
 
 # ---- runner ----
 FROM node:20-alpine AS runner
