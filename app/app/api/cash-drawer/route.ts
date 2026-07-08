@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { writeFile } from 'fs/promises';
+import { requireRole } from '@/lib/rbac';
+import { enforceRateLimit } from '@/lib/rate-limiter';
 
 /**
  * ESC/POS cash drawer open command.
@@ -17,7 +19,13 @@ const DRAWER_CMD = Buffer.from([0x1b, 0x70, 0x00, 0x19, 0x19]);
  * Kirim sinyal buka laci kasir ke thermal printer via ESC/POS.
  * Printer kemudian meneruskan sinyal ke laci lewat kabel RJ12.
  */
-export async function POST() {
+export async function POST(req: Request) {
+  const forbidden = requireRole(req, ['owner', 'cashier']);
+  if (forbidden) return forbidden;
+
+  const rateLimited = enforceRateLimit(req, 'API_WRITE', '/api/cash-drawer');
+  if (rateLimited) return rateLimited;
+
   const device = process.env.CASH_DRAWER_DEVICE;
 
   if (!device) {

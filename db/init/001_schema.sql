@@ -41,19 +41,22 @@ CREATE TRIGGER trg_users_updated_at
     BEFORE UPDATE ON core.users
     FOR EACH ROW EXECUTE FUNCTION core.set_updated_at();
 
-CREATE TABLE core.audit_log (
+CREATE TABLE core.audit_logs (
     id              BIGSERIAL PRIMARY KEY,
     user_id         UUID REFERENCES core.users(id),
     action          VARCHAR(100) NOT NULL,
-    entity_table    VARCHAR(100),
-    entity_id       TEXT,
+    resource_type   VARCHAR(100),
+    resource_id     TEXT,
     metadata        JSONB,
-    ip_address      INET,
+    ip_address      VARCHAR(50),
+    user_agent      TEXT,
+    status          VARCHAR(20) NOT NULL DEFAULT 'success' CHECK (status IN ('success', 'failed')),
+    error_message   TEXT,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_audit_log_created_at ON core.audit_log (created_at DESC);
-CREATE INDEX idx_audit_log_user_id ON core.audit_log (user_id);
+CREATE INDEX idx_audit_logs_created_at ON core.audit_logs (created_at DESC);
+CREATE INDEX idx_audit_logs_user_id ON core.audit_logs (user_id);
 
 -- ============================================================
 -- WARUNG SCHEMA — physical retail
@@ -237,5 +240,5 @@ ORDER BY 1 DESC;
 -- SEED: single admin owner account
 -- ============================================================
 INSERT INTO core.users (username, pin_hash, full_name, role)
-VALUES ('admin', crypt('123456', gen_salt('bf', 12)), 'Store Owner', 'owner')
+VALUES ('admin', crypt('1914110127', gen_salt('bf', 12)), 'Store Owner', 'owner')
 ON CONFLICT (username) DO NOTHING;

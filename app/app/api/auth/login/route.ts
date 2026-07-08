@@ -4,6 +4,9 @@ import * as crypto from 'crypto';
 import { rateLimiter, RATE_LIMITS } from '@/lib/rate-limiter';
 import { logAudit, getClientIp, getUserAgent } from '@/lib/audit-logger';
 import { validateRequest, loginSchema } from '@/lib/validation';
+import { getJwtSecret } from '@/lib/runtime-env';
+
+const JWT_SECRET = getJwtSecret();
 
 export async function POST(req: Request) {
   const ip = getClientIp(req);
@@ -99,9 +102,8 @@ export async function POST(req: Request) {
       exp:       Math.floor(Date.now() / 1000) + 60 * 60 * 24,
     };
     const payload   = Buffer.from(JSON.stringify(payloadObj)).toString('base64url');
-    const secret = process.env.JWT_SECRET || 'fallback_dev_secret';
     const signature = crypto
-      .createHmac('sha256', secret)
+      .createHmac('sha256', JWT_SECRET)
       .update(`${header}.${payload}`)
       .digest('base64url');
     const token = `${header}.${payload}.${signature}`;

@@ -89,14 +89,15 @@ export async function PATCH(
 
       // Write to audit log
       await client.query(
-        `INSERT INTO core.audit_log (user_id, action, entity_table, entity_id, metadata)
-         VALUES ($1, $2, $3, $4, $5)`,
+        `INSERT INTO core.audit_logs (user_id, action, resource_type, resource_id, metadata, status)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
         [
           userId,
           `manual_reconciliation_${status}`,
           'agent.transactions',
           id,
-          JSON.stringify({ status, provider_ref_id, previous_status: tx.status })
+          JSON.stringify({ status, provider_ref_id, previous_status: tx.status }),
+          'success'
         ]
       );
 

@@ -1,20 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getJwtSecret } from '@/lib/runtime-env';
 
 const SESSION_COOKIE = process.env.SESSION_COOKIE_NAME || 'pos_session';
 const PUBLIC_PATHS   = ['/login', '/api/auth/login', '/api/health', '/api/webhooks'];
+const JWT_SECRET = getJwtSecret();
 
 async function verifyToken(token: string): Promise<Record<string, unknown> | null> {
   try {
     const [header, payload, sig] = token.split('.');
     if (!header || !payload || !sig) return null;
 
-    const secret = process.env.JWT_SECRET || 'fallback_dev_secret';
     const encoder = new TextEncoder();
     
     // Import the secret key
     const key = await crypto.subtle.importKey(
       'raw',
-      encoder.encode(secret),
+      encoder.encode(JWT_SECRET),
       { name: 'HMAC', hash: 'SHA-256' },
       false,
       ['verify']

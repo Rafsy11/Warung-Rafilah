@@ -18,4 +18,6 @@ Thumbs.db
 # ── VS Code settings (opsional, boleh hapus jika ingin share settings) ──
 .vscode/
 
+# Environment secrets
+.env
 

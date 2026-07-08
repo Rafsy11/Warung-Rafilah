@@ -1,3 +1,5 @@
+import { NextResponse } from 'next/server';
+
 /**
  * Advanced Rate Limiter with Sliding Window
  * Lebih akurat daripada fixed window counter
@@ -127,3 +129,46 @@ export const RATE_LIMITS = {
   API_WRITE: { limit: 30, windowMs: 60 * 1000 }, // 30 writes per minute
   WEBHOOK: { limit: 50, windowMs: 60 * 1000 }, // 50 webhooks per minute
 } as const;
+
+export function getRateLimitActor(req: Request): string {
+  const userId = req.headers.get('x-user-id')?.trim();
+  if (userId) {
+    return `user:${userId}`;
+  }
+
+  const forwardedFor = req.headers.get('x-forwarded-for');
+  const realIp = req.headers.get('x-real-ip');
+  const cfConnectingIp = req.headers.get('cf-connecting-ip');
+  const ip = cfConnectingIp || realIp || forwardedFor?.split(',')[0]?.trim() || 'unknown';
+  return `ip:${ip}`;
+}
+
+export function enforceRateLimit(
+  req: Request,
+  bucket: keyof typeof RATE_LIMITS,
+  scope: string
+) {
+  const actor = getRateLimitActor(req);
+  const { limit, windowMs } = RATE_LIMITS[bucket];
+  const key = `${scope}:${actor}`;
+
+  if (!rateLimiter.isRateLimited(key, limit, windowMs)) {
+    return null;
+  }
+
+  const retryAfter = rateLimiter.getTimeUntilReset(key, windowMs);
+  return NextResponse.json(
+    {
+      error: {
+        code: 'rate_limited',
+        message: `Terlalu banyak permintaan. Coba lagi dalam ${retryAfter} detik.`,
+      },
+    },
+    {
+      status: 429,
+      headers: {
+        'Retry-After': retryAfter.toString(),
+      },
+    }
+  );
+}

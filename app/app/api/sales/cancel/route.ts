@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { requireRole } from '@/lib/rbac';
+import { enforceRateLimit } from '@/lib/rate-limiter';
 
 export async function POST(req: NextRequest) {
+  const forbidden = requireRole(req, ['owner']);
+  if (forbidden) return forbidden;
+
+  const rateLimited = enforceRateLimit(req, 'API_WRITE', '/api/sales/cancel');
+  if (rateLimited) return rateLimited;
+
   try {
     const body = await req.json();
     const { saleId } = body;

@@ -8,7 +8,7 @@ export const loginSchema = z.object({
     .regex(/^[a-zA-Z0-9_-]+$/, 'Username hanya boleh huruf, angka, underscore dan dash'),
   pin: z.string()
     .min(4, 'PIN minimal 4 karakter')
-    .max(6, 'PIN maksimal 6 karakter')
+    .max(10, 'PIN maksimal 10 karakter')
     .regex(/^\d+$/, 'PIN hanya boleh angka')
 });
 

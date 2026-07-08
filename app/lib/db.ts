@@ -1,12 +1,15 @@
 import { Pool } from 'pg';
 import fs from 'fs';
 import path from 'path';
+import { requireProductionEnv } from '@/lib/runtime-env';
 
 const pool = new Pool({
   host: process.env.PGHOST || 'localhost',
   port: parseInt(process.env.PGPORT || '5432', 10),
   user: process.env.POSTGRES_USER || 'pos_admin',
-  password: process.env.POSTGRES_PASSWORD || 'pos_password_123',
+  password: process.env.NODE_ENV === 'production'
+    ? requireProductionEnv('POSTGRES_PASSWORD')
+    : (process.env.POSTGRES_PASSWORD || 'pos_password_123'),
   database: process.env.POSTGRES_DB || 'pos_production',
 });
 
