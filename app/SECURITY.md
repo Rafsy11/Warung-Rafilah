@@ -56,7 +56,6 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 # Minimum requirements:
 JWT_SECRET=minimum_32_characters_random_string
-QRIS_WEBHOOK_SECRET=minimum_32_characters_random_string
 POSTGRES_PASSWORD=strong_password_minimum_16_characters
 ```
 
@@ -125,7 +124,7 @@ ORDER BY created_at DESC;
 ### Jika Terjadi Security Breach:
 
 1. **Immediate Actions**
-   - Rotate semua secrets (JWT_SECRET, QRIS_WEBHOOK_SECRET)
+   - Rotate semua secrets (JWT_SECRET, database, service tokens)
    - Force logout semua user (clear cookies)
    - Disable compromised accounts
    - Enable maintenance mode jika diperlukan

@@ -41,7 +41,6 @@ services:
       NODE_OPTIONS: "--max-old-space-size=180"
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       JWT_SECRET: ${JWT_SECRET}
-      QRIS_WEBHOOK_SECRET: ${QRIS_WEBHOOK_SECRET}
       PORT: 3000
       TZ: Asia/Jakarta
       HOSTNAME: 0.0.0.0

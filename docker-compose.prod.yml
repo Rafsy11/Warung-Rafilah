@@ -94,7 +94,6 @@ services:
       PGHOST: postgres
       PGPORT: 5432
       JWT_SECRET: ${JWT_SECRET}
-      QRIS_WEBHOOK_SECRET: ${QRIS_WEBHOOK_SECRET}
       SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-pos_session}
       # Node.js memory optimization
       NODE_OPTIONS: "--max-old-space-size=768"
