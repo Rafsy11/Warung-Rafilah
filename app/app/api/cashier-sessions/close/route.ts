@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 
       // 1. Fetch active session
       const activeRes = await client.query(
-        `SELECT id, starting_cash FROM warung.cashier_sessions 
+        `SELECT id, starting_cash, opened_at FROM warung.cashier_sessions 
          WHERE cashier_id = $1 AND status = 'open' 
          ORDER BY opened_at DESC LIMIT 1 FOR UPDATE`,
         [cashierId]
@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
       const session = activeRes.rows[0];
       const sessionId = session.id;
       const startingCash = Number(session.starting_cash);
+      const openedAt = session.opened_at;
 
       // 2. Fetch sales summary grouped by payment method
       const salesRes = await client.query(
@@ -77,7 +78,16 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const expectedCash = startingCash + cashSales;
+      // Fetch debt payments received during this session
+      const debtPaidRes = await client.query(
+        `SELECT COALESCE(SUM(amount), 0) as total 
+         FROM warung.debt_ledger 
+         WHERE entry_type = 'debt_paid' AND created_at >= $1`,
+        [openedAt]
+      );
+      const totalDebtPaid = Number(debtPaidRes.rows[0].total);
+
+      const expectedCash = startingCash + cashSales + totalDebtPaid;
       const cashDifference = actualCashNum - expectedCash;
 
       // 3. Update session
