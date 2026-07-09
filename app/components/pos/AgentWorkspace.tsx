@@ -2,29 +2,35 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  Smartphone, FileText, QrCode, ArrowDownCircle, ArrowRightLeft,
   Phone, DollarSign, CheckCircle2, XCircle, Clock, ChevronRight,
-  Loader2, User, LogOut, AlertCircle,
+  ChevronLeft, Loader2, User, LogOut, AlertCircle,
 } from 'lucide-react';
 import { printReceipt } from '@/lib/print/receipt';
 import FloatBalanceWidget from '@/components/pos/FloatBalanceWidget';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type ServiceType = 'e_wallet_topup' | 'bill_payment' | 'qris_deposit' | 'cash_withdrawal' | 'transfer';
+interface DigitalProduct {
+  id: string;
+  category: string;
+  product_name: string;
+  product_code: string;
+  admin_fee: string;
+  agent_commission: string;
+  icon_emoji: string;
+}
 
-interface ServiceDef {
-  type:       ServiceType;
-  label:      string;
-  Icon:       React.ElementType;
-  adminFee:   number;
-  commission: number;
+interface CategoryGroup {
+  category: string;
+  icon: string;
+  products: DigitalProduct[];
 }
 
 interface RecentTx {
   id:               string;
   transaction_code: string;
   service_type:     string;
+  product_name:     string | null;
   amount:           string;
   status:           string;
   created_at:       string;
@@ -32,13 +38,25 @@ interface RecentTx {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const SERVICES: ServiceDef[] = [
-  { type: 'e_wallet_topup',  label: 'E-Wallet Topup',  Icon: Smartphone,       adminFee: 1_000, commission: 1_500 },
-  { type: 'bill_payment',    label: 'Bayar Tagihan',    Icon: FileText,         adminFee: 2_500, commission: 2_000 },
-  { type: 'qris_deposit',    label: 'QRIS Deposit',     Icon: QrCode,           adminFee: 0,     commission: 500   },
-  { type: 'cash_withdrawal', label: 'Tarik Tunai',      Icon: ArrowDownCircle,  adminFee: 5_000, commission: 3_000 },
-  { type: 'transfer',        label: 'Transfer Dana',    Icon: ArrowRightLeft,   adminFee: 3_000, commission: 2_500 },
-];
+const CATEGORY_LABELS: Record<string, string> = {
+  listrik:       'Listrik',
+  bpjs:          'BPJS',
+  pajak:         'Pajak',
+  e_wallet:      'E-Wallet',
+  pulsa_data:    'Pulsa & Data',
+  topup_game:    'Top-Up Game',
+  air_pdam:      'Air / PDAM',
+  tv_internet:   'TV & Internet',
+  transfer_bank: 'Transfer Bank',
+  tarik_tunai:   'Tarik Tunai',
+  asuransi:      'Asuransi',
+  // Legacy
+  e_wallet_topup:  'E-Wallet',
+  bill_payment:    'Tagihan',
+  qris_deposit:    'QRIS',
+  cash_withdrawal: 'Tarik Tunai',
+  transfer:        'Transfer',
+};
 
 const STATUS_ICON: Record<string, React.ReactNode> = {
   success:  <CheckCircle2 size={14} className="text-emerald-400" />,
@@ -47,52 +65,62 @@ const STATUS_ICON: Record<string, React.ReactNode> = {
   reversed: <XCircle      size={14} className="text-on-surface-variant" />,
 };
 
-const SERVICE_LABEL: Record<string, string> = {
-  e_wallet_topup:  'E-Wallet',
-  bill_payment:    'Tagihan',
-  qris_deposit:    'QRIS',
-  cash_withdrawal: 'Tarik Tunai',
-  transfer:        'Transfer',
-};
-
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-function ServiceTile({ svc, selected, onClick }: {
-  svc: ServiceDef;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  const { Icon, label, commission } = svc;
+function CategoryTile({ cat, onClick }: { cat: CategoryGroup; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className={`flex flex-col gap-2 p-3 rounded-xl border-2 text-left transition-all ${
+      className="flex flex-col items-center gap-2 p-3 rounded-xl border-2 bg-surface-container border-outline-variant hover:bg-surface-container-high hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10 transition-all active:scale-[0.97]"
+    >
+      <div className="text-2xl leading-none">{cat.icon}</div>
+      <div className="font-label-md text-label-md font-semibold text-on-surface text-center leading-tight">
+        {CATEGORY_LABELS[cat.category] ?? cat.category}
+      </div>
+      <div className="font-label-sm text-[10px] text-on-surface-variant">
+        {cat.products.length} produk
+      </div>
+    </button>
+  );
+}
+
+function ProductTile({ product, selected, onClick }: {
+  product: DigitalProduct;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
         selected
-          ? 'bg-primary-container border-primary shadow-lg shadow-primary/20 scale-[1.02]'
+          ? 'bg-primary-container border-primary shadow-lg shadow-primary/20 scale-[1.01]'
           : 'bg-surface-container border-outline-variant hover:bg-surface-container-high hover:border-primary/40'
       }`}
     >
-      <div className={`p-2 rounded-lg w-fit ${selected ? 'bg-on-primary-container/10' : 'bg-surface-container-highest'}`}>
-        <Icon size={20} className={selected ? 'text-on-primary-container' : 'text-on-surface-variant'} />
+      <div className={`text-xl shrink-0 ${selected ? '' : 'opacity-70'}`}>
+        {product.icon_emoji}
       </div>
-      <div className={`font-label-md text-label-md font-semibold ${selected ? 'text-on-primary-container' : 'text-on-surface'}`}>
-        {label}
-      </div>
-      <div className={`font-label-sm text-[10px] leading-tight ${selected ? 'text-on-primary-container/70' : 'text-on-surface-variant'}`}>
-        Komisi: Rp {commission.toLocaleString('id-ID')}
+      <div className="flex-1 min-w-0">
+        <div className={`font-label-md text-label-md font-semibold truncate ${selected ? 'text-on-primary-container' : 'text-on-surface'}`}>
+          {product.product_name}
+        </div>
+        <div className={`font-label-sm text-[10px] leading-tight ${selected ? 'text-on-primary-container/70' : 'text-on-surface-variant'}`}>
+          Admin: Rp {Number(product.admin_fee).toLocaleString('id-ID')} · Komisi: Rp {Number(product.agent_commission).toLocaleString('id-ID')}
+        </div>
       </div>
     </button>
   );
 }
 
 function RecentRow({ tx }: { tx: RecentTx }) {
-  const label = SERVICE_LABEL[tx.service_type] ?? tx.service_type;
+  const label = tx.product_name ?? CATEGORY_LABELS[tx.service_type] ?? tx.service_type;
   const date  = new Date(tx.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
   return (
     <div className="flex items-center gap-3 py-2 border-b border-outline-variant/30 last:border-0">
       <div className="flex-1 min-w-0">
-        <div className="font-label-md text-label-md text-on-surface truncate">{tx.transaction_code}</div>
-        <div className="font-label-sm text-label-sm text-on-surface-variant">{label} · {date}</div>
+        <div className="font-label-md text-label-md text-on-surface truncate">{label}</div>
+        <div className="font-label-sm text-label-sm text-on-surface-variant">{tx.transaction_code} · {date}</div>
       </div>
       <div className="text-right shrink-0">
         <div className="font-label-md text-label-md text-on-surface">
@@ -113,8 +141,6 @@ interface AgentWorkspaceProps {
   onToast: (msg: string, type: 'success' | 'error') => void;
 }
 
-// ── Closing modal types ──────────────────────────────────────────────────────
-
 interface DailySummary {
   transaction_count: number;
   gross_volume:      string;
@@ -124,7 +150,13 @@ interface DailySummary {
 }
 
 export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
-  const [selected, setSelected]     = useState<ServiceDef>(SERVICES[0]);
+  // Product catalog state
+  const [categories, setCategories]       = useState<CategoryGroup[]>([]);
+  const [loadingCatalog, setLoadingCatalog] = useState(true);
+  const [selectedCat, setSelectedCat]     = useState<CategoryGroup | null>(null);
+  const [selectedProd, setSelectedProd]   = useState<DigitalProduct | null>(null);
+
+  // Form state
   const [phone, setPhone]           = useState('');
   const [amountStr, setAmountStr]   = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -141,11 +173,11 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
   const [alreadyClosed, setAlreadyClosed]       = useState(false);
   const operatorRef = useRef<string>('');
 
-  const amount    = parseInt(amountStr.replace(/\D/g, ''), 10) || 0;
-  const adminFee  = selected.adminFee;
-  const commission = selected.commission;
-  const totalCharge = amount + adminFee;
-  const canSubmit  = amount > 0 && !submitting && floatBalance >= amount;
+  const amount       = parseInt(amountStr.replace(/\D/g, ''), 10) || 0;
+  const adminFee     = selectedProd ? Number(selectedProd.admin_fee) : 0;
+  const commission   = selectedProd ? Number(selectedProd.agent_commission) : 0;
+  const totalCharge  = amount + adminFee;
+  const canSubmit    = amount > 0 && selectedProd && !submitting && floatBalance >= amount;
 
   // ── Fetch operator name ────────────────────────────────────────────────────
   useEffect(() => {
@@ -153,6 +185,20 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
       operatorRef.current = d.id ?? '';
     }).catch(() => {});
   }, []);
+
+  // ── Fetch digital product catalog ─────────────────────────────────────────
+  useEffect(() => {
+    setLoadingCatalog(true);
+    fetch('/api/agent/products?grouped=true')
+      .then(r => r.json())
+      .then(data => {
+        setCategories(data.categories ?? []);
+      })
+      .catch(() => {
+        onToast('Gagal memuat katalog produk digital.', 'error');
+      })
+      .finally(() => setLoadingCatalog(false));
+  }, [onToast]);
 
   // ── Fetch recent transactions ──────────────────────────────────────────────
   const fetchRecent = useCallback(async () => {
@@ -163,16 +209,14 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
       const data = await res.json();
       setRecentTxs(data.items ?? []);
     } catch {
-      // silent — recent list is non-critical
+      // silent
     } finally {
       setLoadingTxs(false);
     }
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchRecent();
-    }, 0);
+    const timer = setTimeout(() => { fetchRecent(); }, 0);
     return () => clearTimeout(timer);
   }, [fetchRecent]);
 
@@ -206,7 +250,7 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           closing_date:       today,
-          opening_float:      closingFloat, // simplified: no opening ledger lookup
+          opening_float:      closingFloat,
           closing_float:      closingFloat,
           total_transactions: dailySummary.transaction_count,
           total_commission:   Number(dailySummary.total_commission),
@@ -234,9 +278,24 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
     }
   }, [dailySummary, closing, onToast]);
 
-  // Focus amount when service changes
-  const selectService = useCallback((svc: ServiceDef) => {
-    setSelected(svc);
+  // ── Select category ────────────────────────────────────────────────────────
+  const selectCategory = useCallback((cat: CategoryGroup) => {
+    setSelectedCat(cat);
+    setSelectedProd(null);
+    setAmountStr('');
+    setPhone('');
+  }, []);
+
+  const goBackToCategories = useCallback(() => {
+    setSelectedCat(null);
+    setSelectedProd(null);
+    setAmountStr('');
+    setPhone('');
+  }, []);
+
+  // ── Select product ─────────────────────────────────────────────────────────
+  const selectProduct = useCallback((prod: DigitalProduct) => {
+    setSelectedProd(prod);
     setAmountStr('');
     setTimeout(() => amountRef.current?.focus(), 50);
   }, []);
@@ -244,7 +303,7 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
   // ── Submit transaction ─────────────────────────────────────────────────────
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || !selectedProd) return;
     setSubmitting(true);
 
     const txCode = `AGT-${Date.now()}`;
@@ -252,7 +311,9 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
     try {
       const payload = {
         transaction_code: txCode,
-        service_type:     selected.type,
+        service_type:     selectedProd.category,
+        product_id:       selectedProd.id,
+        product_name:     selectedProd.product_name,
         customer_phone:   phone.trim() || undefined,
         amount,
         admin_fee:        adminFee,
@@ -273,16 +334,15 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
 
       const result = await res.json();
       onToast(
-        `✓ Sukses! ${selected.label} — Rp ${amount.toLocaleString('id-ID')} | Saldo baru: Rp ${Number(result.new_balance).toLocaleString('id-ID')}`,
+        `✓ Sukses! ${selectedProd.product_name} — Rp ${amount.toLocaleString('id-ID')} | Saldo baru: Rp ${Number(result.new_balance).toLocaleString('id-ID')}`,
         'success'
       );
 
-      // Print agent receipt
       printReceipt({
         type:             'agent',
         transaction_code: txCode,
         operator:         operatorRef.current || 'Operator',
-        service_label:    selected.label,
+        service_label:    selectedProd.product_name,
         customer_phone:   phone.trim() || undefined,
         amount,
         admin_fee:        adminFee,
@@ -299,7 +359,7 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
     } finally {
       setSubmitting(false);
     }
-  }, [canSubmit, selected, phone, amount, adminFee, commission, onToast, fetchRecent]);
+  }, [canSubmit, selectedProd, phone, amount, adminFee, commission, onToast, fetchRecent]);
 
   return (
     <div className="flex-1 flex gap-gutter overflow-hidden">
@@ -364,117 +424,163 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
         </div>
       )}
 
-      {/* ── LEFT: Service selector + Form ─────────────────────────────────── */}
+      {/* ── LEFT: Catalog + Form ──────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col gap-gutter overflow-y-auto pr-1">
 
         {/* Float Balance */}
         <FloatBalanceWidget onBalanceLoad={setFloatBalance} />
 
-        {/* Service grid */}
+        {/* Category / Product selector */}
         <div className="bg-surface-container rounded-xl border border-outline-variant p-4 flex flex-col gap-3">
-          <div className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
-            Pilih Layanan
-          </div>
-          <div className="grid grid-cols-5 gap-2">
-            {SERVICES.map(svc => (
-              <ServiceTile
-                key={svc.type}
-                svc={svc}
-                selected={selected.type === svc.type}
-                onClick={() => selectService(svc)}
-              />
-            ))}
-          </div>
+
+          {!selectedCat ? (
+            <>
+              {/* ── Level 1: Pilih Kategori ── */}
+              <div className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
+                Pilih Kategori Layanan
+              </div>
+              {loadingCatalog ? (
+                <div className="flex items-center justify-center py-8 text-on-surface-variant">
+                  <Loader2 size={20} className="animate-spin mr-2" /> Memuat katalog...
+                </div>
+              ) : categories.length === 0 ? (
+                <div className="text-center py-6 text-on-surface-variant font-body-md text-body-md">
+                  Belum ada produk digital. Jalankan migrasi database terlebih dahulu.
+                </div>
+              ) : (
+                <div className="grid grid-cols-5 gap-2">
+                  {categories.map(cat => (
+                    <CategoryTile
+                      key={cat.category}
+                      cat={cat}
+                      onClick={() => selectCategory(cat)}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              {/* ── Level 2: Pilih Produk ── */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={goBackToCategories}
+                  className="p-1.5 rounded-lg bg-surface-container-highest hover:bg-surface-dim border border-outline-variant transition-colors"
+                >
+                  <ChevronLeft size={16} className="text-on-surface-variant" />
+                </button>
+                <div className="text-lg leading-none">{selectedCat.icon}</div>
+                <div className="font-label-md text-label-md text-on-surface font-semibold">
+                  {CATEGORY_LABELS[selectedCat.category] ?? selectedCat.category}
+                </div>
+                <div className="font-label-sm text-label-sm text-on-surface-variant">
+                  — Pilih produk
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {selectedCat.products.map(prod => (
+                  <ProductTile
+                    key={prod.id}
+                    product={prod}
+                    selected={selectedProd?.id === prod.id}
+                    onClick={() => selectProduct(prod)}
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Transaction form */}
-        <form
-          onSubmit={handleSubmit}
-          className="bg-surface-container rounded-xl border border-outline-variant p-4 flex flex-col gap-4"
-        >
-          <div className="flex items-center gap-2">
-            <selected.Icon size={18} className="text-primary" />
-            <span className="font-label-md text-label-md text-on-surface font-semibold">
-              {selected.label}
-            </span>
-          </div>
+        {/* Transaction form — only show when product is selected */}
+        {selectedProd && (
+          <form
+            onSubmit={handleSubmit}
+            className="bg-surface-container rounded-xl border border-outline-variant p-4 flex flex-col gap-4"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-lg">{selectedProd.icon_emoji}</span>
+              <span className="font-label-md text-label-md text-on-surface font-semibold">
+                {selectedProd.product_name}
+              </span>
+            </div>
 
-          {/* Phone */}
-          <div className="flex flex-col gap-1.5">
-            <label className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5">
-              <Phone size={12} />
-              No. HP Pelanggan <span className="normal-case text-on-surface-variant/50">(opsional)</span>
-            </label>
-            <input
-              type="tel"
-              value={phone}
-              onChange={e => setPhone(e.target.value)}
-              placeholder="0812xxxxxxxx"
-              className="bg-surface-dim border border-outline-variant rounded-lg px-3 py-2.5 text-on-surface font-label-md text-label-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors placeholder:text-on-surface-variant/40"
-              disabled={submitting}
-            />
-          </div>
-
-          {/* Amount */}
-          <div className="flex flex-col gap-1.5">
-            <label className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5">
-              <DollarSign size={12} />
-              Nominal Transaksi
-            </label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant font-label-md text-label-md">Rp</span>
+            {/* Phone / Customer ID */}
+            <div className="flex flex-col gap-1.5">
+              <label className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5">
+                <Phone size={12} />
+                No. HP / ID Pelanggan <span className="normal-case text-on-surface-variant/50">(opsional)</span>
+              </label>
               <input
-                ref={amountRef}
-                type="text"
-                value={amountStr ? Number(amountStr.replace(/[^0-9]/g, '')).toLocaleString('id-ID') : ''}
-                onChange={e => setAmountStr(e.target.value.replace(/[^0-9]/g, ''))}
-                placeholder="0"
-                className="w-full bg-surface-dim border border-outline-variant rounded-lg px-3 py-2.5 pl-10 text-on-surface font-label-md text-label-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors placeholder:text-on-surface-variant/40"
+                type="tel"
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+                placeholder="0812xxxxxxxx / No. Meter"
+                className="bg-surface-dim border border-outline-variant rounded-lg px-3 py-2.5 text-on-surface font-label-md text-label-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors placeholder:text-on-surface-variant/40"
                 disabled={submitting}
               />
             </div>
-          </div>
 
-          {/* Fee breakdown */}
-          {amount > 0 && (
-            <div className="bg-surface-dim rounded-lg border border-outline-variant/50 p-3 flex flex-col gap-2">
-              <div className="flex justify-between font-label-sm text-label-sm text-on-surface-variant">
-                <span>Modal (keluar dari float)</span>
-                <span className="text-on-surface">Rp {amount.toLocaleString('id-ID')}</span>
+            {/* Amount */}
+            <div className="flex flex-col gap-1.5">
+              <label className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5">
+                <DollarSign size={12} />
+                Nominal Transaksi
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant font-label-md text-label-md">Rp</span>
+                <input
+                  ref={amountRef}
+                  type="text"
+                  value={amountStr ? Number(amountStr.replace(/[^0-9]/g, '')).toLocaleString('id-ID') : ''}
+                  onChange={e => setAmountStr(e.target.value.replace(/[^0-9]/g, ''))}
+                  placeholder="0"
+                  className="w-full bg-surface-dim border border-outline-variant rounded-lg px-3 py-2.5 pl-10 text-on-surface font-label-md text-label-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors placeholder:text-on-surface-variant/40"
+                  disabled={submitting}
+                />
               </div>
-              <div className="flex justify-between font-label-sm text-label-sm text-on-surface-variant">
-                <span>Biaya Admin (ditagih ke pelanggan)</span>
-                <span className="text-on-surface">Rp {adminFee.toLocaleString('id-ID')}</span>
-              </div>
-              <div className="border-t border-outline-variant/30 pt-2 flex justify-between font-label-md text-label-md">
-                <span className="text-on-surface-variant">Total diterima dari pelanggan</span>
-                <span className="text-secondary font-bold">Rp {totalCharge.toLocaleString('id-ID')}</span>
-              </div>
-              <div className="flex justify-between font-label-sm text-label-sm">
-                <span className="text-on-surface-variant">Komisi kamu</span>
-                <span className="text-emerald-400 font-semibold">+ Rp {commission.toLocaleString('id-ID')}</span>
-              </div>
-              {floatBalance < amount && (
-                <div className="text-error font-label-sm text-label-sm mt-1">
-                  ⚠ Saldo float tidak cukup (tersedia Rp {floatBalance.toLocaleString('id-ID')})
-                </div>
-              )}
             </div>
-          )}
 
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={!canSubmit}
-            className="w-full bg-primary-container hover:bg-primary-container/80 text-on-primary-container font-label-lg text-label-lg rounded-xl py-3.5 flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-md shadow-primary/10 border border-primary/30 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {submitting ? (
-              <><Loader2 size={18} className="animate-spin" /> Memproses...</>
-            ) : (
-              <><ChevronRight size={18} /> PROSES {selected.label.toUpperCase()} [ENTER]</>
+            {/* Fee breakdown */}
+            {amount > 0 && (
+              <div className="bg-surface-dim rounded-lg border border-outline-variant/50 p-3 flex flex-col gap-2">
+                <div className="flex justify-between font-label-sm text-label-sm text-on-surface-variant">
+                  <span>Modal (keluar dari float)</span>
+                  <span className="text-on-surface">Rp {amount.toLocaleString('id-ID')}</span>
+                </div>
+                <div className="flex justify-between font-label-sm text-label-sm text-on-surface-variant">
+                  <span>Biaya Admin (ditagih ke pelanggan)</span>
+                  <span className="text-on-surface">Rp {adminFee.toLocaleString('id-ID')}</span>
+                </div>
+                <div className="border-t border-outline-variant/30 pt-2 flex justify-between font-label-md text-label-md">
+                  <span className="text-on-surface-variant">Total diterima dari pelanggan</span>
+                  <span className="text-secondary font-bold">Rp {totalCharge.toLocaleString('id-ID')}</span>
+                </div>
+                <div className="flex justify-between font-label-sm text-label-sm">
+                  <span className="text-on-surface-variant">Komisi kamu</span>
+                  <span className="text-emerald-400 font-semibold">+ Rp {commission.toLocaleString('id-ID')}</span>
+                </div>
+                {floatBalance < amount && (
+                  <div className="text-error font-label-sm text-label-sm mt-1">
+                    ⚠ Saldo float tidak cukup (tersedia Rp {floatBalance.toLocaleString('id-ID')})
+                  </div>
+                )}
+              </div>
             )}
-          </button>
-        </form>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={!canSubmit}
+              className="w-full bg-primary-container hover:bg-primary-container/80 text-on-primary-container font-label-lg text-label-lg rounded-xl py-3.5 flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-md shadow-primary/10 border border-primary/30 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {submitting ? (
+                <><Loader2 size={18} className="animate-spin" /> Memproses...</>
+              ) : (
+                <><ChevronRight size={18} /> PROSES {selectedProd.product_name.toUpperCase()} [ENTER]</>
+              )}
+            </button>
+          </form>
+        )}
       </div>
 
       {/* ── RIGHT: Recent transactions ─────────────────────────────────────── */}

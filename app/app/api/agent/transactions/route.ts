@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     params.push(limit);
 
     const { rows } = await db.query(
-      `SELECT t.id, t.transaction_code, t.service_type,
+      `SELECT t.id, t.transaction_code, t.service_type, t.product_name,
               t.customer_phone, t.amount, t.admin_fee,
               t.agent_commission, t.status, t.created_at
        FROM agent.transactions t
@@ -45,7 +45,13 @@ export async function GET(req: NextRequest) {
 const agentTxSchema = z.object({
   transaction_code: z.string(),
   operator_id: z.string().uuid().optional(),
-  service_type: z.enum(['e_wallet_topup', 'bill_payment', 'qris_deposit', 'cash_withdrawal', 'transfer']),
+  service_type: z.enum([
+    'e_wallet_topup', 'bill_payment', 'qris_deposit', 'cash_withdrawal', 'transfer',
+    'listrik', 'bpjs', 'pajak', 'e_wallet', 'pulsa_data', 'topup_game',
+    'air_pdam', 'transfer_bank', 'tarik_tunai', 'tv_internet', 'asuransi',
+  ]),
+  product_id: z.string().uuid().optional(),
+  product_name: z.string().optional(),
   customer_phone: z.string().optional(),
   amount: z.number().positive(),
   admin_fee: z.number().nonnegative(),
@@ -61,7 +67,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid request data', details: parsed.error.issues }, { status: 400 });
     }
     
-    const { transaction_code, service_type, customer_phone, amount, admin_fee, agent_commission } = parsed.data;
+    const { transaction_code, service_type, product_id, product_name, customer_phone, amount, admin_fee, agent_commission } = parsed.data;
 
     const client = await db.connect();
     
@@ -78,9 +84,9 @@ export async function POST(request: NextRequest) {
       // 1. Catat master transaksi AmarthaFin dengan status pending
       const txResult = await client.query(
         `INSERT INTO agent.transactions 
-        (transaction_code, operator_id, service_type, customer_phone, amount, admin_fee, agent_commission, status) 
-        VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending') RETURNING id`,
-        [transaction_code, operator_id, service_type, customer_phone, amount, admin_fee, agent_commission]
+        (transaction_code, operator_id, service_type, product_id, product_name, customer_phone, amount, admin_fee, agent_commission, status) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending') RETURNING id`,
+        [transaction_code, operator_id, service_type, product_id || null, product_name || null, customer_phone, amount, admin_fee, agent_commission]
       );
       
       const txId = txResult.rows[0].id;
