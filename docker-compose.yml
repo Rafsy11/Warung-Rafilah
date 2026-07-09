@@ -71,7 +71,7 @@ services:
     container_name: pos_n8n
     restart: always
     environment:
-      N8N_HOST: localhost
+      N8N_HOST: 0.0.0.0
       N8N_PORT: 5678
       N8N_PROTOCOL: http
       WEBHOOK_URL: http://n8n:5678
@@ -128,6 +128,7 @@ services:
       - WHATSAPP_HOOK_EVENTS=message
       - WHATSAPP_RESTART_ALL_SESSIONS=True
       - WHATSAPP_START_SESSION=default
+      - WHATSAPP_HOOK_SET_SESSION=default
     volumes:
       - waha_data:/app/.sessions
     mem_limit: 800m

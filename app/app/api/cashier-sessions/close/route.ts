@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
       await client.query('COMMIT');
 
       // Auto-trigger n8n Daily Closing Recap webhook asynchronously
-      fetch('http://n8n:5678/webhook/AetxwMY3malrlZKW/webhook/daily-closing-recap', {
+      fetch('http://n8n:5678/webhook/daily-closing-recap', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: sessionId })
