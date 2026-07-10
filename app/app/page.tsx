@@ -14,6 +14,7 @@ import CashSessionModal from '@/components/pos/CashSessionModal';
 import AIAssistant from '@/components/pos/AIAssistant';
 import QuickAddProductModal from '@/components/pos/QuickAddProductModal';
 import KeyboardShortcutsModal from '@/components/pos/KeyboardShortcutsModal';
+import CalculatorModal from '@/components/pos/CalculatorModal';
 
 function getTierPrice(qty: number, basePrice: number, tiers?: { min_qty: number; tier_price: number; name: string }[]) {
   if (!tiers || tiers.length === 0) return { price: basePrice, name: undefined };
@@ -96,6 +97,7 @@ export default function PosDashboard() {
   const [rebalanceAlertDismissed, setRebalanceAlertDismissed] = useState(false);
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
 
   const fetchRebalanceStatus = useCallback(async () => {
     try {
@@ -463,6 +465,10 @@ export default function PosDashboard() {
   }, [mode]);
 
   const handleEscape = useCallback(() => {
+    if (isCalculatorOpen) {
+      setIsCalculatorOpen(false);
+      return;
+    }
     if (isShortcutsOpen) {
       setIsShortcutsOpen(false);
       return;
@@ -476,13 +482,14 @@ export default function PosDashboard() {
       return;
     }
     setCart([]);
-  }, [isShortcutsOpen, showKasDetail, isAiOpen]);
+  }, [isCalculatorOpen, isShortcutsOpen, showKasDetail, isAiOpen]);
 
   useGlobalHotkeys({
     onF1:     handleF1,
     onF2:     handleF2,
     onF3:     handleF3,
     onF4:     () => setShowKasDetail(prev => !prev),
+    onF5:     () => setIsCalculatorOpen(prev => !prev),
     onF6:     () => { if (userRole === 'owner') setIsAiOpen(prev => !prev); },
     onF7:     handleF7,
     onF8:     () => setIsShortcutsOpen(prev => !prev),
@@ -511,6 +518,8 @@ export default function PosDashboard() {
       onToggleAi={() => setIsAiOpen(prev => !prev)}
       isShortcutsOpen={isShortcutsOpen}
       onToggleShortcuts={() => setIsShortcutsOpen(prev => !prev)}
+      isCalculatorOpen={isCalculatorOpen}
+      onToggleCalculator={() => setIsCalculatorOpen(prev => !prev)}
       onCancel={() => setCart([])}
     >
       {/* Toast overlay */}
@@ -714,6 +723,8 @@ export default function PosDashboard() {
       <AIAssistant userRole={userRole} isOpen={isAiOpen} onClose={() => setIsAiOpen(false)} />
 
       <KeyboardShortcutsModal isOpen={isShortcutsOpen} onClose={() => setIsShortcutsOpen(false)} />
+
+      <CalculatorModal isOpen={isCalculatorOpen} onClose={() => setIsCalculatorOpen(false)} />
 
       {/* Quick Add Product Modal — triggered when barcode scan returns 404 */}
       {quickAddBarcode && (

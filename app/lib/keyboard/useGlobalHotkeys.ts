@@ -6,6 +6,7 @@ type HotkeysConfig = {
   onF2:      () => void;
   onF3?:     () => void;
   onF4?:     () => void;
+  onF5?:     () => void;
   onF6?:     () => void;
   onF7?:     () => void;
   onF8?:     () => void;
@@ -46,6 +47,12 @@ export function useGlobalHotkeys(config: HotkeysConfig) {
           if (config.onF4) {
             e.preventDefault();
             config.onF4();
+          }
+          return;
+        case 'F5':
+          if (config.onF5) {
+            e.preventDefault();
+            config.onF5();
           }
           return;
         case 'F6':

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { RefreshCw, Store, Printer, BarChart3, Sun, Moon, LogOut, Sparkles, Keyboard } from 'lucide-react';
+import { RefreshCw, Store, Printer, BarChart3, Sun, Moon, LogOut, Sparkles, Keyboard, Calculator } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 type AppShellProps = {
@@ -14,6 +14,8 @@ type AppShellProps = {
   onToggleAi?: () => void;
   isShortcutsOpen?: boolean;
   onToggleShortcuts?: () => void;
+  isCalculatorOpen?: boolean;
+  onToggleCalculator?: () => void;
   onCancel?: () => void;
 };
 
@@ -29,6 +31,8 @@ export default function AppShell({
   onToggleAi,
   isShortcutsOpen = false,
   onToggleShortcuts,
+  isCalculatorOpen = false,
+  onToggleCalculator,
   onCancel
 }: AppShellProps) {
   const [time, setTime] = useState<string>('');
@@ -185,6 +189,19 @@ export default function AppShell({
                 title="Panduan Keyboard Shortcuts [F8]"
               >
                 <Keyboard size={15} />
+              </button>
+            )}
+            {onToggleCalculator && (
+              <button
+                onClick={onToggleCalculator}
+                className={`p-2 rounded-full transition-all duration-150 cursor-pointer relative ${
+                  isCalculatorOpen 
+                    ? 'bg-secondary text-on-secondary shadow-sm' 
+                    : 'hover:bg-surface-container-highest hover:text-primary'
+                }`}
+                title="Kalkulator POS [F5]"
+              >
+                <Calculator size={15} />
               </button>
             )}
             {userRole === 'owner' && onToggleAi && (
