@@ -12,6 +12,7 @@ import type { CartItem } from '@/types/pos';
 import QrisPaymentModal from '@/components/pos/QrisPaymentModal';
 import CashSessionModal from '@/components/pos/CashSessionModal';
 import AIAssistant from '@/components/pos/AIAssistant';
+import QuickAddProductModal from '@/components/pos/QuickAddProductModal';
 
 function getTierPrice(qty: number, basePrice: number, tiers?: { min_qty: number; tier_price: number; name: string }[]) {
   if (!tiers || tiers.length === 0) return { price: basePrice, name: undefined };
@@ -64,6 +65,7 @@ export default function PosDashboard() {
   const [paying, setPaying] = useState(false);
   const [userRole, setUserRole] = useState<string>('');
   const [scannedBarcode, setScannedBarcode] = useState<{ code: string; timestamp: number } | null>(null);
+  const [quickAddBarcode, setQuickAddBarcode] = useState<string | null>(null);
   const [pendingQrisSale, setPendingQrisSale] = useState<{
     id: string;
     transaction_code: string;
@@ -220,7 +222,7 @@ export default function PosDashboard() {
     try {
       const res = await fetch(`/api/products/lookup?barcode=${encodeURIComponent(barcode)}`);
       if (res.status === 404) {
-        showToast(`Barcode tidak ditemukan: ${barcode}`, 'error');
+        setQuickAddBarcode(barcode);
         return;
       }
       if (!res.ok) {
@@ -288,6 +290,24 @@ export default function PosDashboard() {
     } catch {
       showToast('Koneksi bermasalah. Periksa server.', 'error');
     }
+  }, [showToast]);
+
+  // ── Quick Add Product → inject into cart after save ────────────────────────
+  const handleQuickAddSaved = useCallback((product: { id: string; barcode: string; name: string; price: number }) => {
+    setQuickAddBarcode(null);
+    setCart(prev => [
+      ...prev,
+      {
+        id:       product.id,
+        barcode:  product.barcode,
+        name:     product.name,
+        qty:      1,
+        price:    product.price,
+        subtotal: product.price,
+        basePrice: product.price,
+      },
+    ]);
+    showToast(`✓ "${product.name}" disimpan & ditambahkan ke keranjang`, 'success');
   }, [showToast]);
 
   // ── Barcode scan in Admin Mode ───────────────────────────────────────────────
@@ -647,6 +667,15 @@ export default function PosDashboard() {
       )}
 
       <AIAssistant userRole={userRole} isOpen={isAiOpen} onClose={() => setIsAiOpen(false)} />
+
+      {/* Quick Add Product Modal — triggered when barcode scan returns 404 */}
+      {quickAddBarcode && (
+        <QuickAddProductModal
+          barcode={quickAddBarcode}
+          onSaved={handleQuickAddSaved}
+          onClose={() => setQuickAddBarcode(null)}
+        />
+      )}
     </AppShell>
   );
 }
