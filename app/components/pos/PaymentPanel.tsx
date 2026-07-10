@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Banknote, QrCode, MonitorSmartphone, Coins, User, Search, X } from 'lucide-react';
+import { Banknote, QrCode, MonitorSmartphone, Coins, User, Search, X, UserPlus } from 'lucide-react';
+import QuickAddCustomerModal from '@/components/pos/QuickAddCustomerModal';
 
 export type PaymentMethod = 'CASH' | 'QRIS' | 'SPLIT' | 'DEBT';
 
@@ -61,6 +62,8 @@ export default function PaymentPanel({
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerSuggestions, setCustomerSuggestions] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [customerSearchDone, setCustomerSearchDone] = useState(false);
+  const [quickAddName, setQuickAddName] = useState<string | null>(null);
 
   const [discountInputVal, setDiscountInputVal] = useState('');
 
@@ -98,6 +101,7 @@ export default function PaymentPanel({
 
   // Real-time customer lookup for debt payment with 300ms debounce
   useEffect(() => {
+    setCustomerSearchDone(false);
     if (customerSearch.trim().length < 2) {
       setCustomerSuggestions([]);
       return;
@@ -111,6 +115,8 @@ export default function PaymentPanel({
         }
       } catch (err) {
         console.error(err);
+      } finally {
+        setCustomerSearchDone(true);
       }
     }, 300);
     return () => clearTimeout(timer);
@@ -163,6 +169,13 @@ export default function PaymentPanel({
     setSplitQrisAmount(0);
     setSelectedCustomer(null);
   }, [canPay, method, received, grandTotal, splitCashAmount, splitQrisAmount, onPay, selectedCustomer]);
+
+  const handleQuickAddCustomerSaved = useCallback((customer: Customer) => {
+    setSelectedCustomer(customer);
+    setCustomerSearch('');
+    setCustomerSuggestions([]);
+    setQuickAddName(null);
+  }, []);
 
   // Listen to Enter key for quick payment submission
   useEffect(() => {
@@ -534,6 +547,13 @@ export default function PaymentPanel({
                   placeholder="Cari nama pelanggan..."
                   value={customerSearch}
                   onChange={e => setCustomerSearch(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && customerSearchDone && customerSuggestions.length === 0 && customerSearch.trim().length >= 2) {
+                      e.preventDefault();
+                      setQuickAddName(customerSearch.trim());
+                      setCustomerSuggestions([]);
+                    }
+                  }}
                   className="w-full bg-surface-dim border border-outline-variant rounded-lg px-3 py-2 pl-10 text-on-surface font-label-md text-label-md focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-colors"
                 />
                 <Search size={18} className="absolute left-3 top-2.5 text-on-surface-variant/60" />
@@ -560,6 +580,25 @@ export default function PaymentPanel({
                         </div>
                       );
                     })}
+                  </div>
+                )}
+
+                {/* Empty search result → show Quick Add button */}
+                {customerSearchDone && customerSuggestions.length === 0 && customerSearch.trim().length >= 2 && (
+                  <div className="absolute top-full left-0 right-0 z-50 bg-surface-container-highest border border-outline-variant rounded-lg shadow-xl mt-1 py-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQuickAddName(customerSearch.trim());
+                        setCustomerSuggestions([]);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left hover:bg-secondary-container/30 font-label-md text-label-md transition-colors"
+                    >
+                      <UserPlus size={16} className="text-secondary shrink-0" />
+                      <span>
+                        Tambah Pelanggan Baru: <span className="font-bold text-secondary">&ldquo;{customerSearch.trim()}&rdquo;</span>
+                      </span>
+                    </button>
                   </div>
                 )}
               </div>
@@ -628,6 +667,14 @@ export default function PaymentPanel({
           {paying ? 'MEMPROSES...' : method === 'QRIS' ? 'BAYAR QRIS [ENTER]' : method === 'SPLIT' ? 'BAYAR SPLIT [ENTER]' : method === 'DEBT' ? 'CATAT HUTANG [ENTER]' : 'BAYAR TUNAI [ENTER]'}
         </button>
       </div>
+
+      {quickAddName && (
+        <QuickAddCustomerModal
+          initialName={quickAddName}
+          onSaved={handleQuickAddCustomerSaved}
+          onClose={() => setQuickAddName(null)}
+        />
+      )}
     </section>
   );
 }
