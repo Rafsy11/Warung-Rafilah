@@ -4,13 +4,13 @@
 
 :root {
   color-scheme: light;
-  --background: #f1f5f9;
+  --background: #e2e8f0;
   --on-background: #0f172a;
   --on-tertiary: #ffffff;
   --on-primary-fixed-variant: #1e40af;
   --inverse-surface: #0f172a;
   --on-secondary-fixed: #1e3a8a;
-  --outline: #cbd5e1;
+  --outline: #94a3b8;
   --primary: #1d4ed8;
   --surface-bright: #ffffff;
   --on-primary: #ffffff;
@@ -31,9 +31,9 @@
   --on-tertiary-fixed: #115e59;
   --surface-container: #ffffff;
   --on-surface: #0f172a;
-  --surface-dim: #e2e8f0;
+  --surface-dim: #f8fafc;
   --surface-container-lowest: #ffffff;
-  --surface-container-highest: #e2e8f0;
+  --surface-container-highest: #cbd5e1;
   --error: #dc2626;
   --secondary-fixed: #eff6ff;
   --on-error-container: #7f1d1d;
@@ -44,7 +44,7 @@
   --on-error: #ffffff;
   --tertiary-container: #ccfbf1;
   --surface-variant: #f8fafc;
-  --outline-variant: #e2e8f0;
+  --outline-variant: #cbd5e1;
   --surface-tint: #1d4ed8;
   --tertiary-fixed-dim: #818cf8;
   --on-tertiary-fixed-variant: #0d9488;
