@@ -300,6 +300,7 @@ export default function CartTable({
               </div>
             )}
             <input
+              id="main-barcode-search-input"
               ref={inputRef}
               autoFocus
               type="text"

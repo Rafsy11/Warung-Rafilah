@@ -511,6 +511,7 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
                 No. HP / ID Pelanggan <span className="normal-case text-on-surface-variant/50">(opsional)</span>
               </label>
               <input
+                id="agent-customer-phone-input"
                 type="tel"
                 value={phone}
                 onChange={e => setPhone(e.target.value)}

@@ -1524,6 +1524,7 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
               <form onSubmit={handleSearchSubmit} className="flex gap-2 mb-4 shrink-0">
                 <div className="relative flex-1">
                   <input
+                    id="admin-product-search-input"
                     type="text"
                     placeholder="Cari produk berdasarkan nama..."
                     value={searchQuery}

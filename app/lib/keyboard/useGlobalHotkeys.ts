@@ -5,8 +5,17 @@ type HotkeysConfig = {
   onF1:      () => void;
   onF2:      () => void;
   onF3?:     () => void;
+  onF4?:     () => void;
+  onF6?:     () => void;
+  onF7?:     () => void;
+  onF8?:     () => void;
+  onF9?:     () => void;
   onF10?:    () => void;
   onEscape?: () => void;
+  onAlt1?:   () => void;
+  onAlt2?:   () => void;
+  onAlt3?:   () => void;
+  onAlt4?:   () => void;
 };
 
 export function useGlobalHotkeys(config: HotkeysConfig) {
@@ -33,6 +42,36 @@ export function useGlobalHotkeys(config: HotkeysConfig) {
             config.onF3();
           }
           return;
+        case 'F4':
+          if (config.onF4) {
+            e.preventDefault();
+            config.onF4();
+          }
+          return;
+        case 'F6':
+          if (config.onF6) {
+            e.preventDefault();
+            config.onF6();
+          }
+          return;
+        case 'F7':
+          if (config.onF7) {
+            e.preventDefault();
+            config.onF7();
+          }
+          return;
+        case 'F8':
+          if (config.onF8) {
+            e.preventDefault();
+            config.onF8();
+          }
+          return;
+        case 'F9':
+          if (config.onF9) {
+            e.preventDefault();
+            config.onF9();
+          }
+          return;
         case 'F10':
           if (config.onF10) {
             e.preventDefault();
@@ -45,6 +84,30 @@ export function useGlobalHotkeys(config: HotkeysConfig) {
             config.onEscape();
           }
           return;
+      }
+
+      // Handle Alt + combinations
+      if (e.altKey) {
+        if (e.key === '1' && config.onAlt1) {
+          e.preventDefault();
+          config.onAlt1();
+          return;
+        }
+        if (e.key === '2' && config.onAlt2) {
+          e.preventDefault();
+          config.onAlt2();
+          return;
+        }
+        if (e.key === '3' && config.onAlt3) {
+          e.preventDefault();
+          config.onAlt3();
+          return;
+        }
+        if (e.key === '4' && config.onAlt4) {
+          e.preventDefault();
+          config.onAlt4();
+          return;
+        }
       }
 
       // Abort global scanner buffer if the user is typing in an input field

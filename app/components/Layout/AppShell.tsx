@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { RefreshCw, Store, Printer, BarChart3, Sun, Moon, LogOut, Sparkles } from 'lucide-react';
+import { RefreshCw, Store, Printer, BarChart3, Sun, Moon, LogOut, Sparkles, Keyboard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 type AppShellProps = {
@@ -12,6 +12,8 @@ type AppShellProps = {
   onCloseSession?: () => void;
   isAiOpen?: boolean;
   onToggleAi?: () => void;
+  isShortcutsOpen?: boolean;
+  onToggleShortcuts?: () => void;
   onCancel?: () => void;
 };
 
@@ -25,6 +27,8 @@ export default function AppShell({
   onCloseSession,
   isAiOpen = false,
   onToggleAi,
+  isShortcutsOpen = false,
+  onToggleShortcuts,
   onCancel
 }: AppShellProps) {
   const [time, setTime] = useState<string>('');
@@ -137,7 +141,7 @@ export default function AppShell({
           </div>
           
           <div className="h-5 w-px bg-outline-variant/40"></div>
-
+ 
           <div className="flex items-center gap-1 text-on-surface-variant">
             <button
               onClick={toggleTheme}
@@ -168,6 +172,19 @@ export default function AppShell({
                 title="Laporan Harian"
               >
                 <BarChart3 size={15} />
+              </button>
+            )}
+            {onToggleShortcuts && (
+              <button
+                onClick={onToggleShortcuts}
+                className={`p-2 rounded-full transition-all duration-150 cursor-pointer relative ${
+                  isShortcutsOpen 
+                    ? 'bg-secondary text-on-secondary shadow-sm' 
+                    : 'hover:bg-surface-container-highest hover:text-primary'
+                }`}
+                title="Panduan Keyboard Shortcuts [F8]"
+              >
+                <Keyboard size={15} />
               </button>
             )}
             {userRole === 'owner' && onToggleAi && (

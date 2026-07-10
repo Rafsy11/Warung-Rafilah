@@ -203,6 +203,65 @@ export default function PaymentPanel({
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, [canPay, handlePay]);
 
+  useEffect(() => {
+    const onSelectCash = () => {
+      setMethod('CASH');
+      setTimeout(() => {
+        const inp = document.querySelector('[data-received-input="true"]') as HTMLInputElement;
+        inp?.focus();
+        inp?.select();
+      }, 50);
+    };
+    const onSelectQris = () => setMethod('QRIS');
+    const onSelectSplit = () => {
+      setMethod('SPLIT');
+      setTimeout(() => {
+        const inp = document.querySelector('[data-received-input="true"]') as HTMLInputElement;
+        inp?.focus();
+        inp?.select();
+      }, 50);
+    };
+    const onSelectDebt = () => {
+      setMethod('DEBT');
+      setTimeout(() => {
+        const inp = document.getElementById('customer-search-input') as HTMLInputElement;
+        inp?.focus();
+        inp?.select();
+      }, 50);
+    };
+    const onFocusPayment = () => {
+      const inp = document.querySelector('[data-received-input="true"]') as HTMLInputElement;
+      if (inp && (method === 'CASH' || method === 'SPLIT')) {
+        inp.focus();
+        inp.select();
+      } else if (method === 'DEBT') {
+        const custInp = document.getElementById('customer-search-input') as HTMLInputElement;
+        custInp?.focus();
+      }
+    };
+    const onTriggerPay = () => {
+      if (canPay) {
+        handlePay();
+      }
+    };
+
+    window.addEventListener('hotkey-pay-cash', onSelectCash);
+    window.addEventListener('hotkey-pay-qris', onSelectQris);
+    window.addEventListener('hotkey-pay-split', onSelectSplit);
+    window.addEventListener('hotkey-pay-debt', onSelectDebt);
+    window.addEventListener('hotkey-focus-payment', onFocusPayment);
+    window.addEventListener('hotkey-trigger-pay', onTriggerPay);
+
+    return () => {
+      window.removeEventListener('hotkey-pay-cash', onSelectCash);
+      window.removeEventListener('hotkey-pay-qris', onSelectQris);
+      window.removeEventListener('hotkey-pay-split', onSelectSplit);
+      window.removeEventListener('hotkey-pay-debt', onSelectDebt);
+      window.removeEventListener('hotkey-focus-payment', onFocusPayment);
+      window.removeEventListener('hotkey-trigger-pay', onTriggerPay);
+    };
+  }, [method, canPay, handlePay]);
+
   return (
     <section className="w-96 shrink-0 flex flex-col h-full overflow-hidden">
       <div className="flex-1 overflow-y-auto flex flex-col gap-2 pr-1.5 pb-1">
@@ -543,6 +602,7 @@ export default function PaymentPanel({
             ) : (
               <div className="relative">
                 <input
+                  id="customer-search-input"
                   type="text"
                   placeholder="Cari nama pelanggan..."
                   value={customerSearch}
