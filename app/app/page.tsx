@@ -467,6 +467,7 @@ export default function PosDashboard() {
       onCloseSession={() => setShowCloseSessionModal(true)}
       isAiOpen={isAiOpen}
       onToggleAi={() => setIsAiOpen(prev => !prev)}
+      onCancel={() => setCart([])}
     >
       {/* Toast overlay */}
       {toast && (

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { RefreshCw, Settings, Store, Printer, BarChart3, Sun, Moon, LogOut, Sparkles } from 'lucide-react';
+import { RefreshCw, Store, Printer, BarChart3, Sun, Moon, LogOut, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 type AppShellProps = {
@@ -12,6 +12,7 @@ type AppShellProps = {
   onCloseSession?: () => void;
   isAiOpen?: boolean;
   onToggleAi?: () => void;
+  onCancel?: () => void;
 };
 
 export default function AppShell({ 
@@ -23,11 +24,32 @@ export default function AppShell({
   activeSession, 
   onCloseSession,
   isAiOpen = false,
-  onToggleAi
+  onToggleAi,
+  onCancel
 }: AppShellProps) {
   const [time, setTime] = useState<string>('');
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
   const router = useRouter();
+
+  const handleLogout = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/logout', { method: 'POST' });
+      if (res.ok) {
+        router.push('/login');
+        router.refresh();
+      }
+    } catch (err) {
+      console.error('Gagal logout:', err);
+    }
+  }, [router]);
+
+  useEffect(() => {
+    if (!showUserDropdown) return;
+    const handleClose = () => setShowUserDropdown(false);
+    window.addEventListener('click', handleClose);
+    return () => window.removeEventListener('click', handleClose);
+  }, [showUserDropdown]);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
@@ -161,9 +183,6 @@ export default function AppShell({
                 <Sparkles size={15} className={isAiOpen ? 'animate-pulse' : ''} />
               </button>
             )}
-            <button className="p-2 hover:bg-surface-container-highest rounded-full hover:text-primary transition-all duration-150 cursor-pointer" title="Settings">
-              <Settings size={15} />
-            </button>
           </div>
           
           {activeSession && onCloseSession && (
@@ -182,14 +201,31 @@ export default function AppShell({
           
           <div className="h-5 w-px bg-outline-variant/40"></div>
           
-          <div className="flex items-center gap-2 bg-surface-container-lowest border border-outline-variant/40 rounded-full pl-1.5 pr-3 py-1 hover:border-outline/80 transition-all cursor-pointer shadow-sm">
-            <div className="w-6.5 h-6.5 rounded-full bg-primary-container/20 border border-primary/30 text-primary flex items-center justify-center font-bold text-[10px] shadow-inner">
-              {userRole === 'owner' ? 'OW' : 'CA'}
+          <div className="relative">
+            <div 
+              onClick={(e) => { e.stopPropagation(); setShowUserDropdown(prev => !prev); }}
+              className="flex items-center gap-2 bg-surface-container-lowest border border-outline-variant/40 rounded-full pl-1.5 pr-3 py-1 hover:border-outline/80 transition-all cursor-pointer shadow-sm"
+            >
+              <div className="w-6.5 h-6.5 rounded-full bg-primary-container/20 border border-primary/30 text-primary flex items-center justify-center font-bold text-[10px] shadow-inner">
+                {userRole === 'owner' ? 'OW' : 'CA'}
+              </div>
+              <div className="flex flex-col text-left">
+                <span className="font-semibold text-xs leading-none text-on-surface capitalize">{userRole || 'Cashier'}</span>
+                <span className="text-[8px] leading-none text-on-surface-variant/75 mt-0.5 font-medium font-sans">Online</span>
+              </div>
             </div>
-            <div className="flex flex-col text-left">
-              <span className="font-semibold text-xs leading-none text-on-surface capitalize">{userRole || 'Cashier'}</span>
-              <span className="text-[8px] leading-none text-on-surface-variant/75 mt-0.5 font-medium font-sans">Online</span>
-            </div>
+
+            {showUserDropdown && (
+              <div className="absolute right-0 mt-2 w-48 bg-surface-container-highest border border-outline-variant rounded-xl shadow-xl py-1.5 z-50">
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-left hover:bg-error-container/20 hover:text-error text-on-surface-variant font-label-md text-label-md transition-colors"
+                >
+                  <LogOut size={14} />
+                  <span>Keluar (Logout)</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -213,7 +249,16 @@ export default function AppShell({
               <span className="bg-surface-container-highest border border-outline-variant px-1 rounded text-on-surface">F3</span> Admin
             </button>
           ) : (
-            <button className="hover:text-primary transition-colors flex items-center gap-1 cursor-pointer">
+            <button 
+              onClick={() => {
+                const discountInput = document.getElementById('input-discount') as HTMLInputElement | null;
+                if (discountInput) {
+                  discountInput.focus();
+                  discountInput.select();
+                }
+              }}
+              className="hover:text-primary transition-colors flex items-center gap-1 cursor-pointer"
+            >
               <span className="bg-surface-container-highest border border-outline-variant px-1 rounded text-on-surface">F3</span> Discount
             </button>
           )}
@@ -224,7 +269,11 @@ export default function AppShell({
           >
             <span className="bg-surface-container-highest border border-outline-variant px-1 rounded text-on-surface">F10</span> Print
           </button>
-          <button className="hover:text-primary transition-colors flex items-center gap-1 cursor-pointer ml-4">
+          <button 
+            onClick={onCancel}
+            disabled={!onCancel}
+            className="hover:text-primary transition-colors flex items-center gap-1 cursor-pointer ml-4 disabled:opacity-30"
+          >
             <span className="bg-surface-container-highest border border-outline-variant px-1 rounded text-on-surface">ESC</span> Cancel
           </button>
         </div>
