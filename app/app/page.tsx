@@ -489,7 +489,7 @@ export default function PosDashboard() {
     onF2:     handleF2,
     onF3:     handleF3,
     onF4:     () => setShowKasDetail(prev => !prev),
-    onF5:     () => setIsCalculatorOpen(prev => !prev),
+    onAltC:   () => setIsCalculatorOpen(prev => !prev),
     onF6:     () => { if (userRole === 'owner') setIsAiOpen(prev => !prev); },
     onF7:     handleF7,
     onF8:     () => setIsShortcutsOpen(prev => !prev),

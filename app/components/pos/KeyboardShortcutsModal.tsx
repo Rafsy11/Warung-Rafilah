@@ -46,7 +46,7 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShor
       icon: <Wrench className="w-5 h-5 text-purple-400" />,
       items: [
         { key: 'F4', desc: 'Tampilkan / Tutup Detail Status Kas & Laci' },
-        { key: 'F5', desc: 'Buka / Tutup Kalkulator POS' },
+        { key: 'Alt + C', desc: 'Buka / Tutup Kalkulator POS' },
         { key: 'F6', desc: 'Buka / Tutup Asisten AI (Velo) *Owner Only*' },
         { key: 'F8', desc: 'Tampilkan / Tutup Panduan Shortcut Keyboard ini' },
       ]

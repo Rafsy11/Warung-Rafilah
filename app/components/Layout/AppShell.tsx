@@ -199,7 +199,7 @@ export default function AppShell({
                     ? 'bg-secondary text-on-secondary shadow-sm' 
                     : 'hover:bg-surface-container-highest hover:text-primary'
                 }`}
-                title="Kalkulator POS [F5]"
+                title="Kalkulator POS [Alt + C]"
               >
                 <Calculator size={15} />
               </button>

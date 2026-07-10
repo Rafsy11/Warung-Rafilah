@@ -6,7 +6,6 @@ type HotkeysConfig = {
   onF2:      () => void;
   onF3?:     () => void;
   onF4?:     () => void;
-  onF5?:     () => void;
   onF6?:     () => void;
   onF7?:     () => void;
   onF8?:     () => void;
@@ -17,6 +16,7 @@ type HotkeysConfig = {
   onAlt2?:   () => void;
   onAlt3?:   () => void;
   onAlt4?:   () => void;
+  onAltC?:   () => void;
 };
 
 export function useGlobalHotkeys(config: HotkeysConfig) {
@@ -49,12 +49,7 @@ export function useGlobalHotkeys(config: HotkeysConfig) {
             config.onF4();
           }
           return;
-        case 'F5':
-          if (config.onF5) {
-            e.preventDefault();
-            config.onF5();
-          }
-          return;
+
         case 'F6':
           if (config.onF6) {
             e.preventDefault();
@@ -113,6 +108,11 @@ export function useGlobalHotkeys(config: HotkeysConfig) {
         if (e.key === '4' && config.onAlt4) {
           e.preventDefault();
           config.onAlt4();
+          return;
+        }
+        if ((e.key === 'c' || e.key === 'C') && config.onAltC) {
+          e.preventDefault();
+          config.onAltC();
           return;
         }
       }
