@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Loader2, XCircle, RefreshCw, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Loader2, XCircle, CheckCircle, Smartphone } from 'lucide-react';
 
 type QrisPaymentModalProps = {
   sale: {
@@ -25,9 +25,7 @@ export default function QrisPaymentModal({
 }: QrisPaymentModalProps) {
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
   const [cancelling, setCancelling] = useState(false);
-  const [checking, setChecking] = useState(false);
   const [confirming, setConfirming] = useState(false);
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleConfirmManual = useCallback(async () => {
     if (confirming || cancelling) return;
@@ -40,7 +38,6 @@ export default function QrisPaymentModal({
       });
       if (res.ok) {
         showToast('Pembayaran berhasil dikonfirmasi secara manual!', 'success');
-        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
         onSuccess();
       } else {
         const data = await res.json();
@@ -54,7 +51,6 @@ export default function QrisPaymentModal({
   }, [confirming, cancelling, sale.id, onSuccess, showToast]);
 
   const handleAutoCancel = useCallback(async () => {
-    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     try {
       await fetch('/api/sales/cancel', {
         method: 'POST',
@@ -90,41 +86,6 @@ export default function QrisPaymentModal({
     }
   }, [cancelling, sale.id, onCancel, showToast]);
 
-  // Poll transaction status
-  useEffect(() => {
-    const checkStatus = async () => {
-      if (cancelling) return;
-      try {
-        setChecking(true);
-        const res = await fetch(`/api/sales/status?id=${sale.id}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.status === 'completed') {
-            clearInterval(pollIntervalRef.current!);
-            onSuccess();
-          } else if (data.status === 'voided') {
-            clearInterval(pollIntervalRef.current!);
-            onCancel('Transaksi telah dibatalkan.');
-          }
-        }
-      } catch (err) {
-        console.error('Error checking sale status:', err);
-      } finally {
-        setChecking(false);
-      }
-    };
-
-    // Run initial check and then interval
-    checkStatus();
-    pollIntervalRef.current = setInterval(checkStatus, 2500);
-
-    return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-      }
-    };
-  }, [sale.id, onSuccess, onCancel, cancelling]);
-
   // Countdown timer
   useEffect(() => {
     if (timeLeft <= 0) {
@@ -147,7 +108,7 @@ export default function QrisPaymentModal({
         
         {/* Header */}
         <div className="w-full text-center">
-          <h2 className="text-headline-md font-bold text-on-surface">Menunggu Pembayaran</h2>
+          <h2 className="text-headline-md font-bold text-on-surface">Pembayaran QRIS</h2>
           <p className="text-body-sm text-on-surface-variant font-medium mt-1">Kode Transaksi: {sale.transaction_code}</p>
         </div>
 
@@ -157,7 +118,6 @@ export default function QrisPaymentModal({
           {/* QRIS Logo area */}
           <div className="w-full flex justify-between items-center border-b border-gray-100 pb-2 mb-3">
             <div className="flex items-center gap-1">
-              {/* Fake red/blue logo block for QRIS brand feel */}
               <span className="text-[14px] font-black tracking-tighter text-red-600">QR</span>
               <span className="text-[14px] font-black tracking-tighter text-blue-600">IS</span>
               <span className="text-[9px] bg-red-600 text-white font-bold px-1 rounded ml-1">GPN</span>
@@ -174,7 +134,7 @@ export default function QrisPaymentModal({
             Jl. Mawar No.2335, RT 08, RW 02, Sukajaya
           </div>
 
-          {/* SVG Stylized QR Code Pattern */}
+          {/* SVG Stylized QR Code Pattern (No Spinner) */}
           <div className="relative w-48 h-48 bg-white border border-gray-200 rounded-lg p-2 flex items-center justify-center">
             <svg width="100%" height="100%" viewBox="0 0 100 100" className="text-gray-900">
               {/* Corner anchors */}
@@ -201,11 +161,6 @@ export default function QrisPaymentModal({
               <path d="M 30,80 h 5 v 15 h -5 z M 40,80 h 15 v 5 h -15 z M 60,85 h 5 v 5 h -5 z M 75,80 h 5 v 10 h -5 z" fill="currentColor" />
               <path d="M 35,90 h 15 v 5 h -15 z M 55,90 h 15 v 5 h -15 z M 80,90 h 15 v 5 h -15 z" fill="currentColor" />
             </svg>
-            <div className="absolute inset-0 bg-white/20 backdrop-blur-[0.5px] flex items-center justify-center rounded-lg">
-              <div className="bg-white p-2 rounded-lg shadow-md border border-gray-100 flex flex-col items-center justify-center">
-                <Loader2 size={32} className="text-blue-600 animate-spin" />
-              </div>
-            </div>
           </div>
 
           {/* Amount to pay */}
@@ -234,22 +189,18 @@ export default function QrisPaymentModal({
               </>
             )}
             
-            {/* Unique Suffix alert */}
+            {/* Direct Instructions */}
             <div className="bg-blue-50 border border-blue-100 rounded-lg p-2 mt-2 text-[11px] text-blue-800 font-semibold leading-relaxed">
-              PENTING: Pelanggan wajib men-transfer nominal presisi (termasuk 3 digit terakhir) agar terbaca otomatis!
+              Minta pelanggan untuk men-scan QRIS statis di kasir dan bayar sesuai nominal di atas.
             </div>
           </div>
         </div>
 
-        {/* Polling Spinner & Timer info */}
+        {/* Manual Verification Info */}
         <div className="flex flex-col items-center gap-1 text-center w-full">
           <div className="flex items-center gap-2 text-on-surface-variant font-label-md text-label-md">
-            {checking ? (
-              <RefreshCw size={16} className="animate-spin text-primary" />
-            ) : (
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-            )}
-            <span>Menunggu pembayaran masuk...</span>
+            <Smartphone size={16} className="text-secondary animate-pulse" />
+            <span>Periksa mutasi di HP Anda, kemudian klik konfirmasi:</span>
           </div>
           <div className="text-display-price text-[28px] font-bold text-error tracking-tight font-mono">
             {formattedTime}
