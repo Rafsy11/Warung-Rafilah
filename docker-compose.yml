@@ -99,20 +99,20 @@ services:
     networks:
       - pos_internal
 
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    container_name: pos_cloudflared
-    restart: always
-    command: tunnel run
-    environment:
-      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
-    mem_limit: 96m
-    mem_reservation: 32m
-    cpus: 0.3
-    depends_on:
-      - pos_nextjs
-    networks:
-      - pos_internal
+#   cloudflared:
+#     image: cloudflare/cloudflared:latest
+#     container_name: pos_cloudflared
+#     restart: always
+#     command: tunnel run
+#     environment:
+#       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+#     mem_limit: 96m
+#     mem_reservation: 32m
+#     cpus: 0.3
+#     depends_on:
+#       - pos_nextjs
+#     networks:
+#       - pos_internal
 
   waha:
     image: devlikeapro/waha

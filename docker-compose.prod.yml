@@ -120,25 +120,25 @@ services:
           cpus: '1'
           memory: 512M
 
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    container_name: pos_cloudflared
-    restart: unless-stopped
-    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
-    depends_on:
-      app:
-        condition: service_healthy
-    networks:
-      - pos_network
-    # Minimal resource untuk tunnel
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
-        reservations:
-          cpus: '0.25'
-          memory: 128M
+#   cloudflared:
+#     image: cloudflare/cloudflared:latest
+#     container_name: pos_cloudflared
+#     restart: unless-stopped
+#     command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+#     depends_on:
+#       app:
+#         condition: service_healthy
+#     networks:
+#       - pos_network
+#     # Minimal resource untuk tunnel
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: '0.5'
+#           memory: 256M
+#         reservations:
+#           cpus: '0.25'
+#           memory: 128M
 
   # Backup service (optional - runs once daily)
   backup:
