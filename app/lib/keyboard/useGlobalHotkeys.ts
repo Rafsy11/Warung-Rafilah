@@ -21,15 +21,45 @@ type HotkeysConfig = {
   onAsterisk?: () => void;
 };
 
+/**
+ * Mengubah nilai input secara programmatik dengan memicu pembaruan state internal React.
+ */
+function setInputValueReact(input: HTMLInputElement | HTMLTextAreaElement, value: string) {
+  const prototype = input instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+  const setter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
+  if (setter) {
+    setter.call(input, value);
+  } else {
+    input.value = value;
+  }
+  const event = new Event('input', { bubbles: true });
+  input.dispatchEvent(event);
+}
+
 export function useGlobalHotkeys(config: HotkeysConfig) {
   const bufferRef = useRef<string>('');
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // State pelacakan interval untuk mendeteksi scanner
+  const lastKeyTimeRef = useRef<number>(0);
+  const lastCharRef = useRef<string>('');
+  const lastInputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  const isScanningRef = useRef<boolean>(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Allow default behavior for inputs if needed, but usually POS overrides globally.
-      // We will avoid preventing default on inputs unless it's a function key or Enter in scanner context.
-      
+      if (e.repeat) return;
+
+      const activeElement = document.activeElement as HTMLInputElement | HTMLTextAreaElement | null;
+      const isInputFocused = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA');
+
+      const now = performance.now();
+      const interval = now - lastKeyTimeRef.current;
+      lastKeyTimeRef.current = now;
+
+      // Ambang batas kecepatan pengetikan scanner (35 milidetik)
+      const isRapid = interval < 35;
+
       switch (e.key) {
         case 'F1':
           e.preventDefault();
@@ -83,11 +113,13 @@ export function useGlobalHotkeys(config: HotkeysConfig) {
           }
           return;
         case '*':
-          if (config.onAsterisk) {
+          // Buka laci hanya jika tidak sedang mengetik di input field
+          if (!isInputFocused && config.onAsterisk) {
             e.preventDefault();
             config.onAsterisk();
+            return;
           }
-          return;
+          break;
         case 'Escape':
           if (config.onEscape) {
             e.preventDefault();
@@ -130,37 +162,74 @@ export function useGlobalHotkeys(config: HotkeysConfig) {
         }
       }
 
-      // Abort global scanner buffer if the user is typing in an input field
-      const activeElement = document.activeElement;
-      const isInputFocused = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA');
-      if (isInputFocused) return;
-
-      // Scanner Logic
-      if (e.key === 'Enter') {
-        if (bufferRef.current.length > 0 && config.onScan) {
-          e.preventDefault();
-          e.stopPropagation(); // Hentikan agar tidak men-trigger event keydown di PaymentPanel
-          config.onScan(bufferRef.current);
-          bufferRef.current = '';
-        }
-        return;
-      }
-
-      // Append to buffer
+      // Intersepsi pengetikan scanner vs manusia
       if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        bufferRef.current += e.key;
+        if (isInputFocused) {
+          if (isRapid) {
+            // Scanner terdeteksi mengetik sangat cepat di dalam input!
+            e.preventDefault();
 
-        // Reset buffer if typing is slow (not a scanner)
+            if (!isScanningRef.current) {
+              isScanningRef.current = true;
+              
+              // Hapus karakter pertama yang terlanjur terketik di input (slipped character)
+              if (lastInputRef.current && lastInputRef.current === activeElement && lastCharRef.current) {
+                const val = lastInputRef.current.value;
+                if (val.endsWith(lastCharRef.current)) {
+                  setInputValueReact(lastInputRef.current, val.slice(0, -lastCharRef.current.length));
+                }
+              }
+
+              // Masukkan karakter pertama dan kedua ke buffer scanner
+              bufferRef.current = lastCharRef.current + e.key;
+            } else {
+              bufferRef.current += e.key;
+            }
+          } else {
+            // Pengetikan manual manusia (lambat)
+            isScanningRef.current = false;
+            bufferRef.current = '';
+            
+            // Catat karakter ini sebagai kandidat karakter awal pemindaian scanner
+            lastCharRef.current = e.key;
+            lastInputRef.current = activeElement;
+          }
+        } else {
+          // Input sedang tidak fokus, kumpulkan langsung ke buffer scanner
+          bufferRef.current += e.key;
+          isScanningRef.current = true;
+        }
+
+        // Reset buffer jika terputus/berhenti mengetik (di atas 50ms berarti bukan scanner)
         if (timeoutRef.current) {
           clearTimeout(timeoutRef.current);
         }
         timeoutRef.current = setTimeout(() => {
           bufferRef.current = '';
+          isScanningRef.current = false;
+          lastCharRef.current = '';
+          lastInputRef.current = null;
         }, 50);
+
+        return;
+      }
+
+      // Intersepsi tombol Enter dari Scanner vs Manusia
+      if (e.key === 'Enter') {
+        if (isScanningRef.current || bufferRef.current.length > 0) {
+          if (config.onScan && bufferRef.current.length > 0) {
+            e.preventDefault();
+            e.stopPropagation();
+            config.onScan(bufferRef.current);
+            bufferRef.current = '';
+            isScanningRef.current = false;
+          }
+          return;
+        }
       }
     };
 
-    // Gunakan capture phase (true) agar interseptor barcode berjalan paling awal
+    // Daftarkan event listener di capture phase (true) untuk mendahului element input browser
     window.addEventListener('keydown', handleKeyDown, true);
 
     return () => {
