@@ -17,6 +17,8 @@ type HotkeysConfig = {
   onAlt3?:   () => void;
   onAlt4?:   () => void;
   onAltC?:   () => void;
+  onAltP?:   () => void;
+  onAsterisk?: () => void;
 };
 
 export function useGlobalHotkeys(config: HotkeysConfig) {
@@ -80,6 +82,12 @@ export function useGlobalHotkeys(config: HotkeysConfig) {
             config.onF10();
           }
           return;
+        case '*':
+          if (config.onAsterisk) {
+            e.preventDefault();
+            config.onAsterisk();
+          }
+          return;
         case 'Escape':
           if (config.onEscape) {
             e.preventDefault();
@@ -113,6 +121,11 @@ export function useGlobalHotkeys(config: HotkeysConfig) {
         if ((e.key === 'c' || e.key === 'C') && config.onAltC) {
           e.preventDefault();
           config.onAltC();
+          return;
+        }
+        if ((e.key === 'p' || e.key === 'P') && config.onAltP) {
+          e.preventDefault();
+          config.onAltP();
           return;
         }
       }

@@ -206,75 +206,113 @@ function buildAgentHtml(d: AgentReceiptData): string {
 </div>`;
 }
 
+const RECEIPT_STYLE_ID = 'receipt-print-style';
+
+/**
+ * CSS struk — seluruhnya di dalam @media print agar tidak mempengaruhi tampilan POS di layar.
+ * Lebar 48mm sesuai printable area driver HaoYin DT-58D (Printer POS58 v2.1).
+ */
 const RECEIPT_STYLE = `
-  @page { margin: 0; size: 58mm auto; }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { 
-    font-family: Arial, Helvetica, sans-serif; 
-    font-size: 9.5px; 
-    width: 58mm; 
-    color: #000;
-    line-height: 1.3;
-    background-color: #fff;
+  #receipt-print-area {
+    display: none !important;
   }
-  .receipt { padding: 2mm 7mm; width: 58mm; overflow: hidden; display: flex; flex-direction: column; }
-  .center { text-align: center; }
-  .bold { font-weight: bold; }
-  .title { font-size: 11.5px; font-weight: bold; text-transform: uppercase; margin-bottom: 2px; letter-spacing: 0.5px; }
-  .subtitle { font-size: 8px; opacity: 0.8; margin-bottom: 2px; }
-  .divider { border-top: 1px dashed #000; margin: 1.5mm 0; }
-  .divider-double { border-top: 3px double #000; margin: 1.5mm 0; }
-  .row { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 0.8mm; }
-  .row-item { display: flex; flex-direction: column; margin-bottom: 1.5mm; }
-  .item-name { word-break: break-word; font-weight: bold; }
-  .item-details { display: flex; justify-content: space-between; font-size: 8.5px; margin-top: 0.3mm; }
-  .feed { height: 10mm; }
   @media print {
-    body { width: 58mm; }
-    .receipt { width: 58mm; }
+    @page {
+      margin: 0;
+      size: 48mm auto;
+    }
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 48mm !important;
+      height: auto !important;
+      overflow: visible !important;
+      background: #fff !important;
+    }
+    #pos-main-layout {
+      display: none !important;
+    }
+    #receipt-print-area {
+      display: block !important;
+      margin: 0;
+      padding: 0;
+      width: 48mm;
+    }
+    #receipt-print-area * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    #receipt-print-area .receipt {
+      padding: 1mm 2mm;
+      width: 48mm;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 9.5px;
+      color: #000;
+      line-height: 1.3;
+    }
+    #receipt-print-area .center { text-align: center; }
+    #receipt-print-area .bold  { font-weight: bold; }
+    #receipt-print-area .title {
+      font-size: 11.5px;
+      font-weight: bold;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+      letter-spacing: 0.5px;
+    }
+    #receipt-print-area .subtitle { font-size: 8px; opacity: 0.8; margin-bottom: 2px; }
+    #receipt-print-area .divider  { border-top: 1px dashed #000; margin: 1.5mm 0; }
+    #receipt-print-area .divider-double { border-top: 3px double #000; margin: 1.5mm 0; }
+    #receipt-print-area .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      margin-bottom: 0.8mm;
+    }
+    #receipt-print-area .row-item {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 1.5mm;
+    }
+    #receipt-print-area .item-name    { word-break: break-word; font-weight: bold; }
+    #receipt-print-area .item-details {
+      display: flex;
+      justify-content: space-between;
+      font-size: 8.5px;
+      margin-top: 0.3mm;
+    }
+    #receipt-print-area .feed { height: 10mm; }
   }
 `;
 
 /**
- * Print a receipt to the configured thermal printer via browser window.print().
- * Opens a small popup, injects styled HTML, triggers print, then closes.
+ * Cetak struk ke thermal printer dengan mengirimkan data ke backend API /api/print.
+ * Backend akan memproses data menjadi teks terformat 32 karakter dan mencetaknya
+ * langsung menggunakan CUPS (lp) di host Linux Mint.
+ *
+ * Ini adalah solusi terbaik dan paling andal karena:
+ * 1. Bekerja secara otomatis dan senyap (silent printing) tanpa membuka dialog cetak browser.
+ * 2. Menghindari pemblokiran popup/print dialog di Firefox secara permanen.
+ * 3. Menghindari bug konversi file grafis/PDF di CUPS (karena kita mencetak teks mentah langsung).
  *
  * @param data - Typed receipt data (warung or agent)
  */
 export function printReceipt(data: ReceiptData): void {
-  const html = data.type === 'warung' ? buildWarungHtml(data) : buildAgentHtml(data);
-
-  const popup = window.open('', '_blank', 'width=320,height=600,toolbar=0,menubar=0,location=0');
-  if (!popup) {
-    console.warn('printReceipt: popup blocked — check browser settings');
-    return;
-  }
-
-  popup.document.write(`<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8" />
-  <title>Struk</title>
-  <style>${RECEIPT_STYLE}</style>
-</head>
-<body>
-  ${html}
-</body>
-</html>`);
-  popup.document.close();
-
-  let hasPrinted = false;
-  const triggerPrint = () => {
-    if (hasPrinted) return;
-    hasPrinted = true;
-    popup.focus();
-    popup.print();
-    popup.onafterprint = () => popup.close();
-  };
-
-  // Wait for fonts/layout then print
-  popup.onload = triggerPrint;
-
-  // Fallback if onload already fired
-  setTimeout(triggerPrint, 300);
+  fetch('/api/print', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  .then(res => {
+    if (!res.ok) {
+      console.error('printReceipt: Gagal mengirim perintah cetak ke server API');
+    }
+  })
+  .catch(err => {
+    console.error('printReceipt error:', err);
+  });
 }

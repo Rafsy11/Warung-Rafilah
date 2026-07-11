@@ -338,18 +338,20 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
         'success'
       );
 
-      printReceipt({
-        type:             'agent',
-        transaction_code: txCode,
-        operator:         operatorRef.current || 'Operator',
-        service_label:    selectedProd.product_name,
-        customer_phone:   phone.trim() || undefined,
-        amount,
-        admin_fee:        adminFee,
-        total_charge:     amount + adminFee,
-        commission,
-        timestamp:        new Date(),
-      });
+      if (window.confirm('Cetak struk belanja?')) {
+        printReceipt({
+          type:             'agent',
+          transaction_code: txCode,
+          operator:         operatorRef.current || 'Operator',
+          service_label:    selectedProd.product_name,
+          customer_phone:   phone.trim() || undefined,
+          amount,
+          admin_fee:        adminFee,
+          total_charge:     amount + adminFee,
+          commission,
+          timestamp:        new Date(),
+        });
+      }
 
       setAmountStr('');
       setPhone('');

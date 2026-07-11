@@ -94,7 +94,7 @@ export default function AppShell({
   }, []);
 
   return (
-    <div className="bg-background text-on-background h-screen w-screen overflow-hidden flex flex-col font-body-md select-none">
+    <div id="pos-main-layout" className="bg-background text-on-background h-screen w-screen overflow-hidden flex flex-col font-body-md select-none">
       {/* Top Navigation Anchor */}
       <header className="bg-surface-container flex justify-between items-center w-full px-margin-edge h-16 border-b border-outline-variant shrink-0 z-50 shadow-sm">
         <div className="flex items-center gap-4">

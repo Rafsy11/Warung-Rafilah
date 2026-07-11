@@ -120,29 +120,8 @@ export async function POST(request: NextRequest) {
 
       if (payment_method === 'QRIS' || payment_method === 'SPLIT') {
         saleStatus = 'pending';
-        let isUnique = false;
-        let attempts = 0;
-        const qrisPart = payment_method === 'QRIS' ? (total_amount - discount) : (split_qris_amount || 0);
-        const cashPart = payment_method === 'SPLIT' ? (split_cash_amount || 0) : 0;
-
-        while (!isUnique && attempts < 10) {
-          qrisSuffix = Math.floor(Math.random() * 900) + 100; // 100 - 999
-          const candidateQrisAmount = qrisPart + qrisSuffix;
-          const candidateTotalAmount = cashPart + candidateQrisAmount;
-
-          const checkRes = await client.query(
-            "SELECT id FROM warung.sales WHERE status = 'pending' AND total_amount = $1",
-            [candidateTotalAmount]
-          );
-          if (checkRes.rows.length === 0) {
-            finalAmount = candidateTotalAmount;
-            isUnique = true;
-          }
-          attempts++;
-        }
-        if (!isUnique) {
-          finalAmount = (total_amount - discount) + Math.floor(Math.random() * 1000);
-        }
+        qrisSuffix = 0;
+        finalAmount = total_amount - discount;
       }
 
       if (payment_method.toLowerCase() === 'debt') {

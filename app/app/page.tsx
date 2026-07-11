@@ -407,14 +407,15 @@ export default function PosDashboard() {
         timestamp:        new Date(),
       };
       lastReceiptRef.current = receiptData;
-      printReceipt(receiptData);
-
-      // Buka laci kasir untuk pembayaran tunai (CASH / SPLIT)
-      // QRIS & DEBT tidak perlu buka laci
-      if (method === 'CASH' || method === 'SPLIT') {
-        fetch('/api/cash-drawer', { method: 'POST' }).catch(() => {
-          // Gagal diam-diam — transaksi sudah berhasil dicatat
-        });
+      
+      const shouldPrint = window.confirm('Cetak struk belanja?');
+      if (shouldPrint) {
+        printReceipt(receiptData);
+      } else {
+        // Buka laci kasir secara manual jika tidak dicetak (hanya untuk CASH/SPLIT)
+        if (method === 'CASH' || method === 'SPLIT') {
+          fetch('/api/cash-drawer', { method: 'POST' }).catch(() => {});
+        }
       }
 
       setCart([]);
@@ -448,6 +449,18 @@ export default function PosDashboard() {
       });
     }
   }, []);
+
+  const handleManualKickDrawer = useCallback(() => {
+    fetch('/api/cash-drawer', { method: 'POST' })
+      .then(res => {
+        if (res.ok) {
+          showToast('✓ Laci kasir terbuka', 'success');
+        } else {
+          showToast('Gagal membuka laci', 'error');
+        }
+      })
+      .catch(() => showToast('Gagal koneksi ke laci', 'error'));
+  }, [showToast]);
 
   const handleF7 = useCallback(() => {
     let element: HTMLInputElement | null = null;
@@ -501,6 +514,8 @@ export default function PosDashboard() {
     onAlt2:   () => window.dispatchEvent(new CustomEvent('hotkey-pay-qris')),
     onAlt3:   () => window.dispatchEvent(new CustomEvent('hotkey-pay-split')),
     onAlt4:   () => window.dispatchEvent(new CustomEvent('hotkey-pay-debt')),
+    onAltP:   () => window.dispatchEvent(new CustomEvent('hotkey-trigger-pay')),
+    onAsterisk: handleManualKickDrawer,
   });
 
   const cartSubtotal = cart.reduce((s, i) => s + i.subtotal, 0);
@@ -682,7 +697,9 @@ export default function PosDashboard() {
               timestamp:        new Date(),
             };
             lastReceiptRef.current = receiptData;
-            printReceipt(receiptData);
+            if (window.confirm('Cetak struk belanja?')) {
+              printReceipt(receiptData);
+            }
 
             setCart([]);
             setPendingQrisSale(null);
