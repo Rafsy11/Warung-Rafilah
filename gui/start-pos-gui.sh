@@ -135,16 +135,12 @@ fi
   echo "# Checking Docker..."
   sleep 1
 
-  echo "30"
-  echo "# Updating service images..."
-  docker compose "${COMPOSE_FILES[@]}" pull --ignore-pull-failures >>"$LOG_FILE" 2>&1
-
-  echo "65"
-  echo "# Starting POS services..."
-  docker compose "${COMPOSE_FILES[@]}" up -d --build >>"$LOG_FILE" 2>&1
+  echo "40"
+  echo "# Building POS services (using local images)..."
+  docker compose "${COMPOSE_FILES[@]}" up -d --build --pull never >>"$LOG_FILE" 2>&1
 
   echo "90"
-  echo "# Waiting for services..."
+  echo "# Waiting for services to become healthy..."
   sleep 5
 
   echo "100"
