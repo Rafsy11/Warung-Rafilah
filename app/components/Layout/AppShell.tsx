@@ -96,67 +96,91 @@ export default function AppShell({
   return (
     <div id="pos-main-layout" className="bg-background text-on-background h-screen w-screen overflow-hidden flex flex-col font-body-md select-none">
       {/* Top Navigation Anchor */}
-      <header className="bg-surface-container flex justify-between items-center w-full px-margin-edge h-16 border-b border-outline-variant shrink-0 z-50 shadow-sm">
+      <header className="backdrop-blur-md bg-surface-container/90 flex justify-between items-center w-full px-margin-edge h-16 border-b border-outline-variant shrink-0 z-50 shadow-md transition-all duration-200">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 bg-white border border-outline-variant rounded-xl flex items-center justify-center p-1 overflow-hidden shadow-sm shrink-0">
+            <div className="w-10 h-10 bg-white dark:bg-slate-900 border border-outline-variant/60 rounded-xl flex items-center justify-center p-1.5 overflow-hidden shadow-sm shrink-0 transition-transform duration-200 hover:scale-105">
               <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
             </div>
             <div className="flex flex-col">
-              <h1 className="text-sm font-black tracking-wider leading-none bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent">
+              <h1 className="text-sm font-black tracking-wider leading-none bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                 WARUNG RAFILAH
               </h1>
               <div className="flex items-center gap-1.5 mt-1">
                 <span className="text-[9px] text-on-surface-variant/65 tracking-widest uppercase font-semibold font-mono leading-none">POS SYSTEM</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-sm shadow-emerald-500/50"></span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-sm shadow-emerald-500/50"></span>
               </div>
             </div>
           </div>
           <div className="h-8 w-px bg-outline-variant/50 mx-1"></div>
-          <div className="flex bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-1 gap-1 shadow-inner">
+          <div className="flex bg-surface-container-low border border-outline-variant/20 rounded-xl p-1 gap-1 shadow-inner">
             <button 
               onClick={() => onModeChange('warung')}
-              className={`font-label-md text-label-md px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all active:scale-[0.97] cursor-pointer ${mode === 'warung' ? 'bg-secondary-container text-on-secondary-container shadow-md border border-secondary/25' : 'text-on-surface-variant hover:bg-surface-container-high/50'}`}
+              className={`font-label-md text-label-md px-3.5 py-1.5 rounded-lg flex items-center gap-2 transition-all cursor-pointer ${
+                mode === 'warung' 
+                  ? 'bg-secondary-container text-on-secondary-container shadow-sm border border-primary/20 font-bold' 
+                  : 'text-on-surface-variant hover:bg-surface-container-high/60 font-medium'
+              }`}
             >
-              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${mode === 'warung' ? 'bg-black/15 text-on-secondary-container border border-black/10' : 'bg-surface-container-highest/60 text-on-surface-variant/80 border border-outline-variant/20'}`}>F1</span>
+              <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold ${
+                mode === 'warung' 
+                  ? 'bg-primary text-white' 
+                  : 'bg-surface-container-highest/60 text-on-surface-variant/80 border border-outline-variant/20'
+              }`}>F1</span>
               WARUNG
             </button>
             <button 
               onClick={() => onModeChange('agent')}
-              className={`font-label-md text-label-md px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all active:scale-[0.97] cursor-pointer ${mode === 'agent' ? 'bg-primary-container text-on-primary-container shadow-md border border-primary/25' : 'text-on-surface-variant hover:bg-surface-container-high/50'}`}
+              className={`font-label-md text-label-md px-3.5 py-1.5 rounded-lg flex items-center gap-2 transition-all cursor-pointer ${
+                mode === 'agent' 
+                  ? 'bg-primary-container text-on-primary-container shadow-sm border border-secondary/20 font-bold' 
+                  : 'text-on-surface-variant hover:bg-surface-container-high/60 font-medium'
+              }`}
             >
-              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${mode === 'agent' ? 'bg-black/15 text-on-primary-container border border-black/10' : 'bg-surface-container-highest/60 text-on-surface-variant/80 border border-outline-variant/20'}`}>F2</span>
+              <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold ${
+                mode === 'agent' 
+                  ? 'bg-secondary text-white' 
+                  : 'bg-surface-container-highest/60 text-on-surface-variant/80 border border-outline-variant/20'
+              }`}>F2</span>
               AGENT
             </button>
             {userRole === 'owner' && (
               <button 
                 onClick={() => onModeChange('admin')}
-                className={`font-label-md text-label-md px-3 py-1.5 rounded-lg flex items-center gap-2 transition-all active:scale-[0.97] cursor-pointer ${mode === 'admin' ? 'bg-tertiary-container text-on-tertiary-container shadow-md border border-tertiary/25' : 'text-on-surface-variant hover:bg-surface-container-high/50'}`}
+                className={`font-label-md text-label-md px-3.5 py-1.5 rounded-lg flex items-center gap-2 transition-all cursor-pointer ${
+                  mode === 'admin' 
+                    ? 'bg-tertiary-container text-on-tertiary-container shadow-sm border border-tertiary/20 font-bold' 
+                    : 'text-on-surface-variant hover:bg-surface-container-high/60 font-medium'
+                }`}
               >
-                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${mode === 'admin' ? 'bg-black/15 text-on-tertiary-container border border-black/10' : 'bg-surface-container-highest/60 text-on-surface-variant/80 border border-outline-variant/20'}`}>F3</span>
+                <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold ${
+                  mode === 'admin' 
+                    ? 'bg-tertiary text-on-tertiary' 
+                    : 'bg-surface-container-highest/60 text-on-surface-variant/80 border border-outline-variant/20'
+                }`}>F3</span>
                 ADMIN
               </button>
             )}
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="font-mono text-on-surface-variant/85 text-xs font-semibold select-none leading-none">
+          <div className="font-mono text-on-surface-variant/85 text-xs font-semibold select-none leading-none bg-surface-container-low px-3 py-1.5 rounded-lg border border-outline-variant/10 shadow-sm">
             {time}
           </div>
           
           <div className="h-5 w-px bg-outline-variant/40"></div>
  
-          <div className="flex items-center gap-1 text-on-surface-variant">
+          <div className="flex items-center gap-1.5 text-on-surface-variant">
             <button
               onClick={toggleTheme}
-              className="p-2 hover:bg-surface-container-highest rounded-full hover:text-primary transition-all duration-150 cursor-pointer"
+              className="p-2 hover:bg-surface-container-high rounded-lg hover:text-primary transition-all duration-150 cursor-pointer shadow-sm border border-transparent hover:border-outline-variant/30"
               title={theme === 'dark' ? 'Mode Terang' : 'Mode Gelap'}
             >
               {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
             </button>
             <button
               onClick={() => window.location.reload()}
-              className="p-2 hover:bg-surface-container-highest rounded-full hover:text-primary transition-all duration-150 cursor-pointer"
+              className="p-2 hover:bg-surface-container-high rounded-lg hover:text-primary transition-all duration-150 cursor-pointer shadow-sm border border-transparent hover:border-outline-variant/30"
               title="Refresh"
             >
               <RefreshCw size={15} />
@@ -164,7 +188,7 @@ export default function AppShell({
             <button
               onClick={onReprint}
               disabled={!onReprint}
-              className="p-2 hover:bg-surface-container-highest rounded-full hover:text-primary transition-all duration-150 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-2 hover:bg-surface-container-high rounded-lg hover:text-primary transition-all duration-150 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed shadow-sm border border-transparent hover:border-outline-variant/30"
               title="Print Struk [F10]"
             >
               <Printer size={15} />
@@ -172,7 +196,7 @@ export default function AppShell({
             {userRole === 'owner' && (
               <button
                 onClick={() => router.push('/pos/reports')}
-                className="p-2 hover:bg-surface-container-highest rounded-full hover:text-primary transition-all duration-150 cursor-pointer"
+                className="p-2 hover:bg-surface-container-high rounded-lg hover:text-primary transition-all duration-150 cursor-pointer shadow-sm border border-transparent hover:border-outline-variant/30"
                 title="Laporan Harian"
               >
                 <BarChart3 size={15} />
@@ -181,10 +205,10 @@ export default function AppShell({
             {onToggleShortcuts && (
               <button
                 onClick={onToggleShortcuts}
-                className={`p-2 rounded-full transition-all duration-150 cursor-pointer relative ${
+                className={`p-2 rounded-lg transition-all duration-150 cursor-pointer shadow-sm border border-transparent ${
                   isShortcutsOpen 
-                    ? 'bg-secondary text-on-secondary shadow-sm' 
-                    : 'hover:bg-surface-container-highest hover:text-primary'
+                    ? 'bg-primary text-white hover:bg-primary/90' 
+                    : 'hover:bg-surface-container-high hover:text-primary hover:border-outline-variant/30'
                 }`}
                 title="Panduan Keyboard Shortcuts [F8]"
               >
@@ -194,10 +218,10 @@ export default function AppShell({
             {onToggleCalculator && (
               <button
                 onClick={onToggleCalculator}
-                className={`p-2 rounded-full transition-all duration-150 cursor-pointer relative ${
+                className={`p-2 rounded-lg transition-all duration-150 cursor-pointer shadow-sm border border-transparent ${
                   isCalculatorOpen 
-                    ? 'bg-secondary text-on-secondary shadow-sm' 
-                    : 'hover:bg-surface-container-highest hover:text-primary'
+                    ? 'bg-primary text-white hover:bg-primary/90' 
+                    : 'hover:bg-surface-container-high hover:text-primary hover:border-outline-variant/30'
                 }`}
                 title="Kalkulator POS [Alt + C]"
               >
@@ -207,10 +231,10 @@ export default function AppShell({
             {userRole === 'owner' && onToggleAi && (
               <button
                 onClick={onToggleAi}
-                className={`p-2 rounded-full transition-all duration-150 cursor-pointer relative ${
+                className={`p-2 rounded-lg transition-all duration-150 cursor-pointer shadow-sm border border-transparent ${
                   isAiOpen 
-                    ? 'bg-secondary text-on-secondary shadow-sm' 
-                    : 'hover:bg-surface-container-highest hover:text-primary'
+                    ? 'bg-primary text-white hover:bg-primary/90 shadow-glow-primary' 
+                    : 'hover:bg-surface-container-high hover:text-primary hover:border-outline-variant/30'
                 }`}
                 title="Asisten AI (Velo)"
               >
@@ -224,7 +248,7 @@ export default function AppShell({
               <div className="h-5 w-px bg-outline-variant/40"></div>
               <button
                 onClick={onCloseSession}
-                className="px-3.5 py-2 bg-error-container hover:bg-error-container/85 text-on-error-container font-label-md text-label-md font-bold rounded-xl flex items-center gap-1.5 transition-all shadow-sm active:scale-[0.98] border border-error/25 cursor-pointer"
+                className="px-4 py-2 bg-error-container hover:bg-error-container/85 text-on-error-container font-label-md text-label-md font-bold rounded-xl flex items-center gap-1.5 transition-all shadow-sm active:scale-95 border border-error/20 cursor-pointer"
                 title="Tutup Sesi (Rekonsiliasi Kas Laci)"
               >
                 <LogOut size={14} />
@@ -238,22 +262,24 @@ export default function AppShell({
           <div className="relative">
             <div 
               onClick={(e) => { e.stopPropagation(); setShowUserDropdown(prev => !prev); }}
-              className="flex items-center gap-2 bg-surface-container-lowest border border-outline-variant/40 rounded-full pl-1.5 pr-3 py-1 hover:border-outline/80 transition-all cursor-pointer shadow-sm"
+              className="flex items-center gap-2.5 bg-surface-container-low border border-outline-variant/40 rounded-full pl-1.5 pr-3.5 py-1 hover:border-outline/80 transition-all cursor-pointer shadow-sm hover:bg-surface-container-high/60"
             >
-              <div className="w-6.5 h-6.5 rounded-full bg-primary-container/20 border border-primary/30 text-primary flex items-center justify-center font-bold text-[10px] shadow-inner">
+              <div className="w-7 h-7 rounded-full bg-primary-container text-primary flex items-center justify-center font-bold text-[10px] shadow-sm border border-primary/20">
                 {userRole === 'owner' ? 'OW' : 'CA'}
               </div>
               <div className="flex flex-col text-left">
-                <span className="font-semibold text-xs leading-none text-on-surface capitalize">{userRole || 'Cashier'}</span>
-                <span className="text-[8px] leading-none text-on-surface-variant/75 mt-0.5 font-medium font-sans">Online</span>
+                <span className="font-bold text-xs leading-none text-on-surface capitalize">{userRole || 'Cashier'}</span>
+                <span className="text-[8px] leading-none text-emerald-500 mt-0.5 font-bold font-sans flex items-center gap-0.5">
+                  <span className="w-1 h-1 rounded-full bg-emerald-500"></span> Online
+                </span>
               </div>
             </div>
-
+            
             {showUserDropdown && (
-              <div className="absolute right-0 mt-2 w-48 bg-surface-container-highest border border-outline-variant rounded-xl shadow-xl py-1.5 z-50">
+              <div className="absolute right-0 mt-2 w-48 bg-surface-container border border-outline-variant rounded-xl shadow-xl py-1.5 z-50 animate-in fade-in-50 slide-in-from-top-2 duration-150">
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-2.5 px-4 py-2 text-left hover:bg-error-container/20 hover:text-error text-on-surface-variant font-label-md text-label-md transition-colors"
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left hover:bg-error-container hover:text-on-error-container text-on-surface-variant font-label-md text-label-md transition-colors"
                 >
                   <LogOut size={14} />
                   <span>Keluar (Logout)</span>

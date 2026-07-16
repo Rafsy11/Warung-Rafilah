@@ -1,118 +1,121 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0');
 @import "tailwindcss";
 
 :root {
   color-scheme: light;
-  --background: #e2e8f0;
-  --on-background: #0f172a;
+  --background: #f8fafc; /* Clean slate-50 background */
+  --on-background: #0f172a; /* Slate 900 */
   --on-tertiary: #ffffff;
-  --on-primary-fixed-variant: #1e40af;
+  --on-primary-fixed-variant: #1d4ed8;
   --inverse-surface: #0f172a;
   --on-secondary-fixed: #1e3a8a;
-  --outline: #94a3b8;
-  --primary: #1d4ed8;
+  --outline: #cbd5e1; /* Slate 200 outline */
+  --primary: #2563eb; /* Vibrant primary blue */
   --surface-bright: #ffffff;
   --on-primary: #ffffff;
   --on-primary-fixed: #1e3a8a;
-  --on-tertiary-container: #115e59;
+  --on-tertiary-container: #0f766e;
   --on-secondary: #ffffff;
-  --secondary-container: #e0e7ff;
+  --secondary-container: #eff6ff; /* Very soft primary blue container */
   --error-container: #fee2e2;
-  --on-surface-variant: #334155;
-  --surface-container-low: #f8fafc;
-  --surface-container-high: #f1f5f9;
-  --on-secondary-container: #312e81;
+  --on-surface-variant: #475569; /* Slate 600 */
+  --surface-container-low: #f1f5f9; /* Slate 100 */
+  --surface-container-high: #e2e8f0; /* Slate 200 */
+  --on-secondary-container: #1e40af;
   --secondary-fixed-dim: #3b82f6;
   --primary-fixed: #dbeafe;
-  --secondary: #4338ca;
+  --secondary: #4f46e5; /* Indigo for secondary actions */
   --tertiary-fixed: #ccfbf1;
   --primary-container: #eff6ff;
-  --on-tertiary-fixed: #115e59;
-  --surface-container: #ffffff;
+  --on-tertiary-fixed: #0f766e;
+  --surface-container: #ffffff; /* White card backgrounds */
   --on-surface: #0f172a;
-  --surface-dim: #f8fafc;
+  --surface-dim: #f1f5f9;
   --surface-container-lowest: #ffffff;
   --surface-container-highest: #cbd5e1;
-  --error: #dc2626;
+  --error: #ef4444; /* Standard Red */
   --secondary-fixed: #eff6ff;
-  --on-error-container: #7f1d1d;
+  --on-error-container: #991b1b;
   --inverse-on-surface: #f8fafc;
-  --on-secondary-fixed-variant: #1e40af;
+  --on-secondary-fixed-variant: #2563eb;
   --primary-fixed-dim: #60a5fa;
   --on-primary-container: #1e3a8a;
   --on-error: #ffffff;
   --tertiary-container: #ccfbf1;
   --surface-variant: #f8fafc;
-  --outline-variant: #cbd5e1;
-  --surface-tint: #1d4ed8;
-  --tertiary-fixed-dim: #818cf8;
+  --outline-variant: #e2e8f0; /* Slate 200 */
+  --surface-tint: #2563eb;
+  --tertiary-fixed-dim: #a5b4fc;
   --on-tertiary-fixed-variant: #0d9488;
-  --inverse-primary: #1d4ed8;
-  --tertiary: #0d9488;
-  --warung: #1d4ed8;
-  --agentmode: #0284c7;
+  --inverse-primary: #2563eb;
+  --tertiary: #0d9488; /* Teal */
+  --warung: #2563eb;
+  --agentmode: #0ea5e9;
   --accent-amber: #d97706;
   --accent-orange: #ea580c;
-  --accent-red: #dc2626;
-  --accent-green: #059669;
+  --accent-red: #ef4444;
+  --accent-green: #10b981;
+
+  --spacing-base: 4px;
+  --spacing-gutter: 1rem;
+  --spacing-margin-edge: 1.5rem;
 }
 
 .dark {
   color-scheme: dark;
-  --background: #0b0f19;
-  --on-background: #f1f5f9;
+  --background: #090d16; /* Dark Obsidian Blue */
+  --on-background: #f8fafc;
   --on-tertiary: #0f172a;
   --on-primary-fixed-variant: #dbeafe;
-  --inverse-surface: #f1f5f9;
+  --inverse-surface: #f8fafc;
   --on-secondary-fixed: #eff6ff;
-  --outline: #475569;
-  --primary: #3b82f6;
-  --surface-bright: #1e293b;
+  --outline: #334155; /* Slate 700 */
+  --primary: #3b82f6; /* Lighter primary blue */
+  --surface-bright: #1e293b; /* Slate 800 */
   --on-primary: #ffffff;
   --on-primary-fixed: #eff6ff;
-  --on-tertiary-container: #e0e7ff;
+  --on-tertiary-container: #f0fdfa;
   --on-secondary: #0f172a;
-  --secondary-container: #1e3a8a;
+  --secondary-container: #1e293b;
   --error-container: #7f1d1d;
-  --on-surface-variant: #cbd5e1;
+  --on-surface-variant: #cbd5e1; /* Slate 300 */
   --surface-container-low: #0f172a;
-  --surface-container-high: #334155;
+  --surface-container-high: #1e293b;
   --on-secondary-container: #eff6ff;
   --secondary-fixed-dim: #60a5fa;
   --primary-fixed: #1e3a8a;
-  --secondary: #60a5fa;
-  --tertiary-fixed: #312e81;
-  --primary-container: #1d4ed8;
-  --on-tertiary-fixed: #e0e7ff;
-  --surface-container: #1e293b;
-  --on-surface: #f1f5f9;
-  --surface-dim: #0b0f19;
-  --surface-container-lowest: #080c14;
-  --surface-container-highest: #475569;
+  --secondary: #818cf8; /* Light Indigo */
+  --tertiary-fixed: #1e1b4b;
+  --primary-container: #1e3a8a;
+  --on-tertiary-fixed: #eff6ff;
+  --surface-container: #111827; /* Dark Grey Surface */
+  --on-surface: #f8fafc;
+  --surface-dim: #090d16;
+  --surface-container-lowest: #05070c;
+  --surface-container-highest: #334155;
   --error: #f87171;
   --secondary-fixed: #1e3a8a;
   --on-error-container: #fca5a5;
-  --inverse-on-surface: #0b0f19;
+  --inverse-on-surface: #090d16;
   --on-secondary-fixed-variant: #60a5fa;
   --primary-fixed-dim: #3b82f6;
   --on-primary-container: #dbeafe;
   --on-error: #450a0a;
-  --tertiary-container: #312e81;
-  --on-tertiary-container: #e0e7ff;
-  --surface-variant: #1e293b;
-  --outline-variant: #334155;
+  --tertiary-container: #115e59;
+  --surface-variant: #111827;
+  --outline-variant: #1f2937; /* Slate 800 */
   --surface-tint: #3b82f6;
   --tertiary-fixed-dim: #818cf8;
-  --on-tertiary-fixed-variant: #312e81;
-  --inverse-primary: #2563eb;
-  --tertiary: #818cf8;
+  --on-tertiary-fixed-variant: #115e59;
+  --inverse-primary: #3b82f6;
+  --tertiary: #34d399; /* Light Teal */
   --warung: #3b82f6;
-  --agentmode: #0ea5e9;
-  --accent-amber: #3b82f6;
-  --accent-orange: #60a5fa;
+  --agentmode: #38bdf8;
+  --accent-amber: #fbbf24;
+  --accent-orange: #fb923c;
   --accent-red: #f87171;
-  --accent-green: #10b981;
+  --accent-green: #34d399;
 }
 
 @theme {
@@ -182,7 +185,7 @@
   --color-tertiary: var(--tertiary);
 
   /* Font Families */
-  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
   --font-body-md: 'Inter', sans-serif;
@@ -245,7 +248,7 @@
 @custom-variant dark (&:is(.dark *));
 
 body {
-  @apply bg-background text-on-background antialiased h-screen w-screen overflow-hidden flex flex-col font-sans select-none;
+  @apply bg-background text-on-background antialiased h-screen w-screen overflow-hidden flex flex-col font-sans select-none transition-colors duration-200;
 }
 
 /* Material Symbols Rules */
@@ -267,9 +270,10 @@ body {
 ::-webkit-scrollbar-thumb {
   background: var(--outline);
   border-radius: 9999px;
+  transition: background 0.15s ease-in-out;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--outline-variant);
+  background: var(--surface-container-high);
 }
 
 /* Hide scrollbars utility */
@@ -289,6 +293,15 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid theme('colors.primary');
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
+
+/* High-quality UI additions */
+button, input, select {
+  @apply transition-all duration-150 ease-in-out;
+}
+button:active {
+  transform: scale(0.97);
+}
+
