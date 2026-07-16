@@ -709,6 +709,34 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
     }
   };
 
+  const handleInlineRestock = async (product: Product, qty: number) => {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/products/adjust-stock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: product.id,
+          movementType: 'restock',
+          qtyChange: qty,
+          note: 'Restock cepat dari tabel produk',
+        }),
+      });
+
+      if (res.ok) {
+        onToast(`✓ Stok "${product.name}" berhasil ditambah sebanyak ${qty} ${product.unit}.`, 'success');
+        fetchProducts(searchQuery);
+      } else {
+        const err = await res.json();
+        onToast(err.error?.message || 'Gagal menambah stok.', 'error');
+      }
+    } catch {
+      onToast('Koneksi database bermasalah.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!barcode.trim() || !name.trim() || !sellPrice || !stockQty) {
@@ -1437,6 +1465,8 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
     <div className="flex-1 flex flex-row gap-gutter overflow-hidden h-full">
       {/* Side Navbar / Tab Switcher */}
       <div className="w-60 bg-surface-container border border-outline-variant/30 rounded-xl p-2 gap-1 flex flex-col shrink-0 overflow-y-auto scrollbar-hide h-full">
+        <span className="font-bold text-[9px] text-on-surface-variant/65 uppercase tracking-widest px-3 pt-2.5 pb-1 select-none shrink-0">Operasional Toko</span>
+        
         <button
           onClick={() => setActiveTab('products')}
           className={`font-label-md text-label-md px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all cursor-pointer shrink-0 w-full text-left ${
@@ -1449,70 +1479,15 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
           Manajemen Produk
         </button>
         <button
-          onClick={() => setActiveTab('adjust')}
+          onClick={() => setActiveTab('discounts')}
           className={`font-label-md text-label-md px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all cursor-pointer shrink-0 w-full text-left ${
-            activeTab === 'adjust'
+            activeTab === 'discounts'
               ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
               : 'text-on-surface-variant hover:bg-surface-container-high/50'
           }`}
         >
-          <Scale size={16} />
-          Penyesuaian Stok
-        </button>
-        <button
-          onClick={() => setActiveTab('convert')}
-          className={`font-label-md text-label-md px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all cursor-pointer shrink-0 w-full text-left ${
-            activeTab === 'convert'
-              ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
-              : 'text-on-surface-variant hover:bg-surface-container-high/50'
-          }`}
-        >
-          <RefreshCw size={14} />
-          Konversi Produk
-        </button>
-        <button
-          onClick={() => setActiveTab('customers')}
-          className={`font-label-md text-label-md px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all cursor-pointer shrink-0 w-full text-left ${
-            activeTab === 'customers'
-              ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
-              : 'text-on-surface-variant hover:bg-surface-container-high/50'
-          }`}
-        >
-          <Users size={16} />
-          Kelola Pelanggan
-        </button>
-        <button
-          onClick={() => setActiveTab('sessions')}
-          className={`font-label-md text-label-md px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all cursor-pointer shrink-0 w-full text-left ${
-            activeTab === 'sessions'
-              ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
-              : 'text-on-surface-variant hover:bg-surface-container-high/50'
-          }`}
-        >
-          <Wallet size={16} />
-          Rekonsiliasi Kasir
-        </button>
-        <button
-          onClick={() => setActiveTab('history')}
-          className={`font-label-md text-label-md px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all cursor-pointer shrink-0 w-full text-left ${
-            activeTab === 'history'
-              ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
-              : 'text-on-surface-variant hover:bg-surface-container-high/50'
-          }`}
-        >
-          <History size={16} />
-          Riwayat Stok
-        </button>
-        <button
-          onClick={() => setActiveTab('float')}
-          className={`font-label-md text-label-md px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all cursor-pointer shrink-0 w-full text-left ${
-            activeTab === 'float'
-              ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
-              : 'text-on-surface-variant hover:bg-surface-container-high/50'
-          }`}
-        >
-          <Wallet size={16} />
-          Kelola Saldo Agen
+          <Percent size={16} />
+          Manajemen Diskon
         </button>
         <button
           onClick={() => setActiveTab('consignment')}
@@ -1536,16 +1511,77 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
           <Tag size={16} />
           Daftar Kulakan
         </button>
+
+        <span className="font-bold text-[9px] text-on-surface-variant/65 uppercase tracking-widest px-3 pt-3.5 pb-1 select-none shrink-0">Kas & Keuangan</span>
+
         <button
-          onClick={() => setActiveTab('discounts')}
+          onClick={() => setActiveTab('sessions')}
           className={`font-label-md text-label-md px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all cursor-pointer shrink-0 w-full text-left ${
-            activeTab === 'discounts'
+            activeTab === 'sessions'
               ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
               : 'text-on-surface-variant hover:bg-surface-container-high/50'
           }`}
         >
-          <Percent size={16} />
-          Manajemen Diskon
+          <Wallet size={16} />
+          Rekonsiliasi Kasir
+        </button>
+        <button
+          onClick={() => setActiveTab('float')}
+          className={`font-label-md text-label-md px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all cursor-pointer shrink-0 w-full text-left ${
+            activeTab === 'float'
+              ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
+              : 'text-on-surface-variant hover:bg-surface-container-high/50'
+          }`}
+        >
+          <Wallet size={16} />
+          Kelola Saldo Agen
+        </button>
+        <button
+          onClick={() => setActiveTab('customers')}
+          className={`font-label-md text-label-md px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all cursor-pointer shrink-0 w-full text-left ${
+            activeTab === 'customers'
+              ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
+              : 'text-on-surface-variant hover:bg-surface-container-high/50'
+          }`}
+        >
+          <Users size={16} />
+          Kelola Pelanggan
+        </button>
+
+        <span className="font-bold text-[9px] text-on-surface-variant/65 uppercase tracking-widest px-3 pt-3.5 pb-1 select-none shrink-0">Inventori & Logistik</span>
+
+        <button
+          onClick={() => setActiveTab('adjust')}
+          className={`font-label-md text-label-md px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all cursor-pointer shrink-0 w-full text-left ${
+            activeTab === 'adjust'
+              ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
+              : 'text-on-surface-variant hover:bg-surface-container-high/50'
+          }`}
+        >
+          <Scale size={16} />
+          Penyesuaian Stok
+        </button>
+        <button
+          onClick={() => setActiveTab('convert')}
+          className={`font-label-md text-label-md px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all cursor-pointer shrink-0 w-full text-left ${
+            activeTab === 'convert'
+              ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
+              : 'text-on-surface-variant hover:bg-surface-container-high/50'
+          }`}
+        >
+          <RefreshCw size={14} />
+          Konversi Produk
+        </button>
+        <button
+          onClick={() => setActiveTab('history')}
+          className={`font-label-md text-label-md px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all cursor-pointer shrink-0 w-full text-left ${
+            activeTab === 'history'
+              ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
+              : 'text-on-surface-variant hover:bg-surface-container-high/50'
+          }`}
+        >
+          <History size={16} />
+          Riwayat Stok
         </button>
       </div>
 
@@ -1687,13 +1723,33 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
                             </div>
                           </td>
                           <td className="p-3 text-center">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                              Number(prod.stock_qty) <= Number(prod.reorder_threshold || 5)
-                                ? 'bg-error-container text-on-error-container animate-pulse'
-                                : 'bg-secondary-container/50 text-on-secondary-container'
-                            }`}>
-                              {Number(prod.stock_qty)} {prod.unit}
-                            </span>
+                            <div className="flex flex-col items-center gap-1.5">
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                                Number(prod.stock_qty) <= Number(prod.reorder_threshold || 5)
+                                  ? 'bg-error-container text-on-error-container animate-pulse'
+                                  : 'bg-secondary-container/50 text-on-secondary-container'
+                              }`}>
+                                {Number(prod.stock_qty)} {prod.unit}
+                              </span>
+                              <input
+                                type="number"
+                                min="1"
+                                placeholder="+Stok"
+                                onKeyDown={async (e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    const inputVal = (e.target as HTMLInputElement).value;
+                                    const qtyNum = Number(inputVal);
+                                    if (qtyNum > 0) {
+                                      await handleInlineRestock(prod, qtyNum);
+                                      (e.target as HTMLInputElement).value = '';
+                                    }
+                                  }
+                                }}
+                                className="w-12 bg-surface-container-highest border border-outline-variant/60 rounded px-1.5 py-0.5 text-center font-bold font-mono text-[9px] text-on-surface focus:border-primary outline-none"
+                                title="Masukkan jumlah & tekan Enter untuk restock cepat"
+                              />
+                            </div>
                           </td>
                           <td className="p-3 text-center">
                             <div className="flex items-center justify-center gap-1">
