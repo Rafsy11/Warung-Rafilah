@@ -96,14 +96,14 @@ export default function AppShell({
   return (
     <div id="pos-main-layout" className="bg-background text-on-background h-screen w-screen overflow-hidden flex flex-col font-body-md select-none">
       {/* Top Navigation Anchor */}
-      <header className="backdrop-blur-md bg-surface-container/90 flex justify-between items-center w-full px-margin-edge h-16 border-b border-outline-variant shrink-0 z-50 shadow-md transition-all duration-200">
+      <header className="bg-surface-container flex justify-between items-center w-full px-margin-edge h-16 border-b border-outline-variant shrink-0 z-50 shadow-md transition-all duration-200">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 bg-white dark:bg-slate-900 border border-outline-variant/60 rounded-xl flex items-center justify-center p-1.5 overflow-hidden shadow-sm shrink-0 transition-transform duration-200 hover:scale-105">
               <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
             </div>
             <div className="flex flex-col">
-              <h1 className="text-sm font-black tracking-wider leading-none bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              <h1 className="text-sm font-black tracking-wider leading-none text-primary">
                 WARUNG RAFILAH
               </h1>
               <div className="flex items-center gap-1.5 mt-1">

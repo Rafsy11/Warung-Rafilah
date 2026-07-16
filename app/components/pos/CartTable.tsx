@@ -188,10 +188,10 @@ export default function CartTable({
           items.map((item, index) => (
             <div
               key={item.id}
-              className={`grid grid-cols-12 gap-2 p-3 px-5 items-center hover:bg-primary-container/10 transition-all duration-150 group border-l-4 ${
+              className={`grid grid-cols-12 gap-2 p-3 px-5 items-center hover:bg-primary-container/10 transition-all duration-150 group border rounded-xl ${
                 item.isAgent
-                  ? 'border-l-secondary bg-secondary-container/5'
-                  : 'border-l-transparent'
+                  ? 'bg-secondary-container/10 border-outline-variant/60 shadow-inner'
+                  : 'border-transparent'
               }`}
             >
               <div className="col-span-1 text-center flex items-center justify-center">
