@@ -140,6 +140,7 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
   const [mapSourceSuggestions, setMapSourceSuggestions] = useState<Product[]>([]);
   const [mapDestSearch, setMapDestSearch] = useState('');
   const [mapDestSuggestions, setMapDestSuggestions] = useState<Product[]>([]);
+  const [quickConvertQtys, setQuickConvertQtys] = useState<Record<string, string>>({});
 
   // Customer management states
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -888,6 +889,68 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
 
     return () => clearTimeout(timer);
   }, [destSearch]);
+
+  // Auto-fill destination product and ratio if source product is already mapped in conversionMaps
+  useEffect(() => {
+    if (selectedSourceProduct && conversionMaps.length > 0) {
+      const match = conversionMaps.find(m => m.source_product_id === selectedSourceProduct.id);
+      if (match) {
+        setSelectedDestProduct({
+          id: match.dest_product_id,
+          name: match.dest_name,
+          barcode: match.dest_barcode,
+          unit: match.dest_unit,
+          stock_qty: match.dest_stock,
+        } as any);
+        setConvertRatio(match.conversion_ratio.toString());
+      }
+    }
+  }, [selectedSourceProduct, conversionMaps]);
+
+  const handleQuickConvert = async (map: any) => {
+    const qtyStr = quickConvertQtys[map.id] || '1';
+    const sourceQtyNum = Number(qtyStr);
+    const ratioNum = Number(map.conversion_ratio);
+
+    if (isNaN(sourceQtyNum) || sourceQtyNum <= 0) {
+      onToast('Jumlah harus lebih besar dari 0.', 'error');
+      return;
+    }
+
+    if (Number(map.source_stock) < sourceQtyNum) {
+      onToast(`Stok ${map.source_name} tidak mencukupi (Tersedia: ${map.source_stock}).`, 'error');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch('/api/products/convert-stock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sourceProductId: map.source_product_id,
+          destProductId: map.dest_product_id,
+          sourceQty: sourceQtyNum,
+          ratio: ratioNum,
+          note: 'Konversi cepat dari tabel peta',
+        }),
+      });
+
+      if (res.ok) {
+        onToast(`✓ Berhasil mengonversi ${sourceQtyNum} ${map.source_name} menjadi ${sourceQtyNum * ratioNum} ${map.dest_name}.`, 'success');
+        setQuickConvertQtys(prev => ({ ...prev, [map.id]: '1' }));
+        fetchProducts(searchQuery);
+        fetchConversionMaps();
+      } else {
+        const err = await res.json();
+        onToast(err.error?.message || 'Gagal memproses konversi.', 'error');
+      }
+    } catch {
+      onToast('Koneksi database bermasalah.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
 
 
@@ -2428,6 +2491,7 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
                         <th className="p-2.5">Rasio</th>
                         <th className="p-2.5">Produk Ritel</th>
                         <th className="p-2.5 text-center">Auto-Split</th>
+                        <th className="p-2.5 text-center">Konversi Cepat</th>
                         <th className="p-2.5 text-center w-16">Aksi</th>
                       </tr>
                     </thead>
@@ -2436,19 +2500,40 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
                         <tr key={m.id} className="hover:bg-surface-container-high/40 transition-colors">
                           <td className="p-2.5 pl-4">
                             <div className="font-semibold text-on-surface text-xs">{m.source_name}</div>
-                            <div className="text-[10px] text-on-surface-variant/70 font-mono">Stok: {Number(m.source_stock)} {m.source_unit}</div>
+                            <div className="text-[10px] text-on-surface-variant/70 font-mono">Stok: <strong className="text-secondary">{Number(m.source_stock)}</strong> {m.source_unit}</div>
                           </td>
-                          <td className="p-2.5 font-mono text-xs font-bold text-secondary">
+                          <td className="p-2.5 font-mono text-xs font-bold text-primary">
                             1 → {m.conversion_ratio}
                           </td>
                           <td className="p-2.5">
                             <div className="font-semibold text-on-surface text-xs">{m.dest_name}</div>
-                            <div className="text-[10px] text-on-surface-variant/70 font-mono">Stok: {Number(m.dest_stock)} {m.dest_unit}</div>
+                            <div className="text-[10px] text-on-surface-variant/70 font-mono">Stok: <strong className="text-secondary">{Number(m.dest_stock)}</strong> {m.dest_unit}</div>
                           </td>
                           <td className="p-2.5 text-center">
                             <span className="bg-emerald-950/40 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider leading-none">
                               Aktif
                             </span>
+                          </td>
+                          <td className="p-2.5">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <input
+                                type="number"
+                                min="1"
+                                value={quickConvertQtys[m.id] || '1'}
+                                onChange={e => setQuickConvertQtys(prev => ({ ...prev, [m.id]: e.target.value }))}
+                                className="w-14 bg-surface-container border border-outline-variant/60 rounded px-1.5 py-1 text-center font-bold font-mono text-xs text-on-surface focus:border-primary outline-none"
+                                title="Jumlah bungkus yang ingin dikonversi"
+                              />
+                              <button
+                                onClick={() => handleQuickConvert(m)}
+                                disabled={saving}
+                                className="bg-primary hover:bg-primary/85 text-white rounded px-2.5 py-1 font-bold text-[9px] uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                                title="Konversi instan"
+                              >
+                                <RefreshCw size={10} className={saving ? 'animate-spin' : ''} />
+                                Split
+                              </button>
+                            </div>
                           </td>
                           <td className="p-2.5 text-center">
                             <button
