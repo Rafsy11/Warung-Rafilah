@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-16T19:46:00Z",
+  "title": "Design System: Warung Rafilah POS",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Vibrant Blue",
+        "canonical": "oklch(65% 0.25 250)",
+        "tonalRamp": ["#1d4ed8", "#2563eb", "#3b82f6", "#60a5fa", "#93c5fd", "#bfdbfe", "#dbeafe", "#eff6ff"]
+      },
+      "secondary": {
+        "role": "secondary",
+        "displayName": "Indigo Accent",
+        "canonical": "oklch(60% 0.22 280)",
+        "tonalRamp": ["#4f46e5", "#6366f1", "#818cf8", "#a5b4fc", "#c7d2fe", "#e0e7ff", "#eef2ff", "#f5f7ff"]
+      },
+      "neutral-bg": {
+        "role": "neutral",
+        "displayName": "Midnight Obsidian",
+        "canonical": "oklch(12% 0.01 240)",
+        "tonalRamp": ["#05070c", "#090d16", "#0f172a", "#111827", "#1e293b", "#334155", "#475569", "#64748b"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Mono Display",
+        "purpose": "Angka nominal kasir, stok, total harga, dan kodes."
+      },
+      "body": {
+        "displayName": "Body Text",
+        "purpose": "Tulisan deskripsi produk dan kores biasa."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "ease-standard",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Default transition for buttons and input focuses."
+      }
+    ],
+    "breakpoints": [
+      {"name": "sm", "value": "640px"},
+      {"name": "md", "value": "768px"},
+      {"name": "lg", "value": "1024px"}
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Tombol aksi utama untuk checkout, simpan, atau konfirmasi.",
+      "html": "<button class=\"ds-btn-primary\">SIMPAN</button>",
+      "css": ".ds-btn-primary { background: #3b82f6; color: #fff; padding: 10px 16px; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: bold; border: none; border-radius: 12px; cursor: pointer; transition: background 0.15s; } .ds-btn-primary:hover { background: #2563eb; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input-text",
+      "description": "Kolom pencarian produk, barcode, dan input teks nominal.",
+      "html": "<input type=\"text\" class=\"ds-input-text\" placeholder=\"Barcode...\" />",
+      "css": ".ds-input-text { background: #111827; color: #fff; border: 1px solid #334155; padding: 10px 16px; border-radius: 12px; font-family: 'Inter', sans-serif; font-size: 14px; outline: none; transition: border-color 0.15s; } .ds-input-text:focus { border-color: #3b82f6; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Midnight Ritel Studio (Blue Edition)",
+    "overview": "Midnight Ritel Studio memadukan nuansa malam yang tenang dengan fungsionalitas tinggi. Mengandalkan basis warna gelap slate/charcoal gelap yang dipadukan dengan aksen warna biru obsidian, indigo, dan cyan cerah, sistem ini dirancang untuk mengurangi ketegangan mata kasir selama shift kerja yang panjang.",
+    "keyCharacteristics": [
+      "High-Performance Dark Mode",
+      "Biru/Cyan Accents",
+      "Keyboard-First Affordances"
+    ],
+    "rules": [
+      {
+        "name": "The Contrast Rule",
+        "body": "Warna teks utama wajib memiliki rasio kontras minimal 4.5:1 terhadap latar belakang gelap.",
+        "section": "colors"
+      },
+      {
+        "name": "The Price Monospace Rule",
+        "body": "Semua angka harga, nominal tunai, kembalian, dan stok wajib menggunakan font JetBrains Mono.",
+        "section": "typography"
+      }
+    ],
+    "dos": [
+      "Do gunakan font JetBrains Mono pada semua angka nominal.",
+      "Do gunakan tonal layering untuk kedalaman dimensi visual.",
+      "Do pastikan ring fokus terlihat jelas."
+    ],
+    "donts": [
+      "Don't gunakan latar belakang cream/beige hangat.",
+      "Don't gunakan drop shadow hitam pekat.",
+      "Don't gunakan teks abu-abu di atas abu-abu gelap."
+    ]
+  }
+}
