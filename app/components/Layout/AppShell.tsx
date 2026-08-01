@@ -329,7 +329,7 @@ export default function AppShell({
       {/* Footer Hotkey Status Bar */}
       <footer id="pos-footer" role="contentinfo" aria-label="Status Pintasan Keyboard" className="bg-surface-container-lowest border-t border-outline-variant h-10 shrink-0 flex items-center justify-between px-margin-edge z-50">
         <nav id="footer-shortcut-list" aria-label="Pintasan Tombol Cepat" className="flex items-center gap-6 text-on-surface-variant text-xs font-medium">
-          <button id="btn-footer-f1" onClick={() => onModeChange('warung')} className="hover:text-primary transition-colors flex items-center gap-1.5 cursor-pointer">
+          <button id="btn-footer-f1" onClick={() => onModeChange('warung')} className="ml-3 hover:text-primary transition-colors flex items-center gap-1.5 cursor-pointer">
             <kbd className="bg-surface-container-highest border border-outline-variant px-1.5 py-0.5 rounded-md font-mono font-bold text-on-surface text-[11px]">F1</kbd> Warung
           </button>
           <button id="btn-footer-f2" onClick={() => onModeChange('agent')} className="hover:text-primary transition-colors flex items-center gap-1.5 cursor-pointer">
