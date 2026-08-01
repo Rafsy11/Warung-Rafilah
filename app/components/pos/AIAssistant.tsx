@@ -320,28 +320,31 @@ export default function AIAssistant({ userRole, userId, isOpen = false, onClose 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed top-20 right-4 z-40 flex flex-col items-end">
+    <aside id="ai-assistant-drawer" className="fixed top-20 right-4 z-40 flex flex-col items-end">
       {/* Chat Window */}
-      <div className="bg-surface-container rounded-2xl border border-outline-variant shadow-2xl w-80 md:w-96 h-[520px] flex flex-col overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200">
+      <section id="ai-chat-window" aria-label="Asisten AI Velo" className="bg-surface-container rounded-2xl border border-outline-variant shadow-2xl w-80 md:w-96 h-[520px] flex flex-col overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200">
           {/* Header */}
-          <div className="bg-primary text-on-primary px-4 py-3 flex items-center justify-between shadow-sm flex-shrink-0">
+          <header id="ai-assistant-header" className="bg-primary text-on-primary px-4 py-3 flex items-center justify-between shadow-sm flex-shrink-0">
             <div className="flex items-center gap-2">
               <Sparkles size={18} className="animate-pulse" />
-              <span className="font-bold text-sm tracking-wide">Velo — Asisten AI</span>
+              <h3 id="ai-assistant-title" className="font-bold text-sm tracking-wide">Velo — Asisten AI</h3>
             </div>
             <button
+              id="btn-close-ai-assistant"
               onClick={onClose}
-              className="text-on-primary/80 hover:text-on-primary transition-colors cursor-pointer"
+              className="text-on-primary/80 hover:text-on-primary transition-colors cursor-pointer p-1 rounded-lg"
+              aria-label="Tutup Asisten AI Velo"
             >
               <X size={18} />
             </button>
-          </div>
+          </header>
 
           {/* Messages */}
-          <div className="flex-1 p-4 overflow-y-auto flex flex-col gap-3 scrollbar-thin bg-surface-dim">
+          <section id="ai-messages-container" className="flex-1 p-4 overflow-y-auto flex flex-col gap-3 scrollbar-thin bg-surface-dim">
             {messages.map(msg => (
-              <div
+              <article
                 key={msg.id}
+                id={`ai-message-${msg.id}`}
                 className={`flex flex-col max-w-[88%] ${msg.sender === 'user' ? 'self-end items-end' : 'self-start items-start'}`}
               >
                 <div
@@ -402,42 +405,45 @@ export default function AIAssistant({ userRole, userId, isOpen = false, onClose 
                   </div>
                 )}
 
-                <span className="text-[9px] text-on-surface-variant/50 mt-1 px-1">
+                <time className="text-[9px] text-on-surface-variant/50 mt-1 px-1 block">
                   {msg.timestamp.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
+                </time>
+              </article>
             ))}
 
             {loading && (
-              <div className="self-start flex items-center gap-2 bg-surface-container-highest text-on-surface border border-outline-variant/30 rounded-xl rounded-tl-none px-3 py-2 text-xs font-semibold">
+              <div id="ai-loading-indicator" className="self-start flex items-center gap-2 bg-surface-container-highest text-on-surface border border-outline-variant/30 rounded-xl rounded-tl-none px-3 py-2 text-xs font-semibold">
                 <Loader2 size={12} className="animate-spin text-primary" />
                 <span>Berpikir...</span>
               </div>
             )}
             <div ref={messagesEndRef} />
-          </div>
+          </section>
 
           {/* Input */}
-          <form onSubmit={handleSubmit} className="border-t border-outline-variant p-2 flex gap-2 bg-surface-container flex-shrink-0">
+          <form id="ai-prompt-form" onSubmit={handleSubmit} className="border-t border-outline-variant p-2 flex gap-2 bg-surface-container flex-shrink-0">
             <input
+              id="input-ai-prompt"
               ref={inputRef}
               type="text"
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
-              placeholder="Tulis perintah..."
+              placeholder="Tulis perintah AI..."
               maxLength={500}
               className="flex-1 bg-surface-dim border border-outline-variant rounded-xl px-3 py-2 text-xs text-on-surface focus:border-primary outline-none transition-colors"
               disabled={loading}
             />
             <button
+              id="btn-send-ai-prompt"
               type="submit"
               disabled={loading || !prompt.trim()}
               className="p-2 bg-primary text-on-primary rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+              aria-label="Kirim Perintah ke AI"
             >
               <Send size={14} />
             </button>
           </form>
-        </div>
-    </div>
+        </section>
+    </aside>
   );
 }

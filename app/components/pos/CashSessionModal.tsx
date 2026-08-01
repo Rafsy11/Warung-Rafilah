@@ -76,26 +76,27 @@ export default function CashSessionModal({ mode, onSuccess, onClose }: CashSessi
   };
 
   return (
-    <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
-      <div className="bg-surface-container rounded-2xl border border-outline-variant p-6 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
-        <div className="flex items-center gap-2.5 mb-4 border-b border-outline-variant/30 pb-3">
+    <dialog id="cash-session-dialog" open aria-modal="true" aria-labelledby="cash-session-title" className="fixed inset-0 bg-black/75 backdrop-blur-md z-[9999] flex items-center justify-center p-4 w-full h-full border-none">
+      <section id="cash-session-card" className="bg-surface-container rounded-2xl border border-outline-variant p-6 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
+        <header id="cash-session-header" className="flex items-center gap-2.5 mb-4 border-b border-outline-variant/30 pb-3">
           <div className="p-2 bg-secondary-container text-on-secondary-container rounded-lg">
             <Wallet size={20} />
           </div>
-          <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+          <h3 id="cash-session-title" className="font-headline-sm text-headline-sm text-on-surface font-bold">
             {mode === 'open' ? 'Buka Sesi Kasir' : 'Tutup Sesi (Rekonsiliasi Kas)'}
           </h3>
-        </div>
+        </header>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form id="cash-session-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
           {mode === 'open' ? (
             <div className="flex flex-col gap-1.5">
-              <label className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
+              <label htmlFor="input-starting-cash" className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
                 Modal Awal di Laci Kasir (Cash Float) *
               </label>
               <div className="relative">
-                <span className="absolute left-3.5 top-3 text-sm text-on-surface-variant">Rp</span>
+                <span className="absolute left-3.5 top-3 text-sm text-on-surface-variant font-bold">Rp</span>
                 <input
+                  id="input-starting-cash"
                   type="text"
                   placeholder="Misal: 100.000"
                   value={amount ? Number(amount.replace(/[^0-9]/g, '')).toLocaleString('id-ID') : ''}
@@ -112,12 +113,13 @@ export default function CashSessionModal({ mode, onSuccess, onClose }: CashSessi
           ) : (
             <>
               <div className="flex flex-col gap-1.5">
-                <label className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
+                <label htmlFor="input-actual-cash" className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
                   Hitungan Uang Fisik Aktual di Laci *
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-3 text-sm text-on-surface-variant">Rp</span>
+                  <span className="absolute left-3.5 top-3 text-sm text-on-surface-variant font-bold">Rp</span>
                   <input
+                    id="input-actual-cash"
                     type="text"
                     placeholder="Hitung semua uang tunai saat ini"
                     value={amount ? Number(amount.replace(/[^0-9]/g, '')).toLocaleString('id-ID') : ''}
@@ -133,10 +135,11 @@ export default function CashSessionModal({ mode, onSuccess, onClose }: CashSessi
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
+                <label htmlFor="textarea-closing-notes" className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
                   Catatan / Keterangan
                 </label>
                 <textarea
+                  id="textarea-closing-notes"
                   placeholder="Opsional: Tulis alasan jika terjadi selisih kas..."
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
@@ -148,24 +151,26 @@ export default function CashSessionModal({ mode, onSuccess, onClose }: CashSessi
           )}
 
           {error && (
-            <div className="flex items-center gap-2 bg-error-container text-on-error-container rounded-lg p-3 font-body-md text-body-md">
+            <div id="cash-session-error" className="flex items-center gap-2 bg-error-container text-on-error-container rounded-lg p-3 font-body-md text-body-md">
               <AlertCircle size={16} className="shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
-          <div className="flex justify-end gap-2 border-t border-outline-variant/30 pt-4 mt-2">
+          <footer id="cash-session-footer" className="flex justify-end gap-2 border-t border-outline-variant/30 pt-4 mt-2">
             {mode === 'close' && onClose && (
               <button
+                id="btn-cancel-cash-session"
                 type="button"
                 onClick={onClose}
-                className="bg-surface-container-highest border border-outline-variant text-on-surface font-label-md text-label-md rounded-lg px-4 py-2 hover:bg-surface-container-high transition-colors"
+                className="bg-surface-container-highest border border-outline-variant text-on-surface font-label-md text-label-md rounded-lg px-4 py-2 hover:bg-surface-container-high transition-colors cursor-pointer"
                 disabled={loading}
               >
                 Batal
               </button>
             )}
             <button
+              id="btn-submit-cash-session"
               type="submit"
               disabled={loading}
               className="bg-secondary-container hover:bg-secondary-container/85 text-on-secondary-container font-label-md text-label-md font-bold rounded-lg px-5 py-2.5 flex items-center gap-1.5 transition-all shadow-md cursor-pointer ml-auto"
@@ -180,9 +185,9 @@ export default function CashSessionModal({ mode, onSuccess, onClose }: CashSessi
                 </>
               )}
             </button>
-          </div>
+          </footer>
         </form>
-      </div>
-    </div>
+      </section>
+    </dialog>
   );
 }

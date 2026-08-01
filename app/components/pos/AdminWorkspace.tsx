@@ -924,9 +924,9 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
   };
 
   return (
-    <div className="flex-1 flex flex-row gap-3.5 overflow-hidden h-full">
+    <section id="admin-workspace-section" aria-label="Operasional & Manajemen Toko Admin" className="flex-1 flex flex-row gap-3.5 overflow-hidden h-full w-full">
       {/* Side Navbar / Tab Switcher */}
-      <div className="w-60 bg-surface-container border border-outline-variant/30 rounded-xl p-2 gap-1 flex flex-col shrink-0 overflow-y-auto scrollbar-hide h-full">
+      <nav id="admin-sidebar-nav" aria-label="Navigasi Menu Admin" className="w-60 bg-surface-container border border-outline-variant/30 rounded-xl p-2 gap-1 flex flex-col shrink-0 overflow-y-auto scrollbar-hide h-full">
         <span className="font-bold text-[9px] text-on-surface-variant/65 uppercase tracking-widest px-3 pt-2.5 pb-1 select-none shrink-0">Operasional Toko</span>
         
         <button
@@ -1045,10 +1045,10 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
           <History size={16} />
           Riwayat Stok
         </button>
-      </div>
+      </nav>
 
       {/* Tab Contents */}
-      <div className="flex-1 flex gap-gutter overflow-hidden h-full">
+      <main id="admin-main-content-area" className="flex-1 flex gap-3.5 overflow-hidden h-full">
         {activeTab === 'products' && (
           <ProductManagementTab
             products={products}
@@ -2625,7 +2625,6 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
             )}
           </div>
         )}
-      </div>
 
       {/* Harga Grosir (Pricing Tiers) Management Modal */}
       {selectedTiersProduct && (
@@ -2735,10 +2734,11 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
               >
                 {saving ? <><Loader2 size={14} className="animate-spin" /> Menyimpan...</> : 'Simpan Perubahan'}
               </button>
-            </div>
           </div>
         </div>
-      )}
-    </div>
-  );
+      </div>
+    )}
+  </main>
+</section>
+);
 }

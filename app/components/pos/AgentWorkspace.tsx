@@ -364,16 +364,16 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
   }, [canSubmit, selectedProd, phone, amount, adminFee, commission, onToast, fetchRecent]);
 
   return (
-    <div className="flex-1 flex gap-3.5 overflow-hidden">
+    <section id="agent-workspace-section" aria-label="Layanan Digital Agen" className="flex-1 flex gap-3.5 overflow-hidden w-full h-full">
 
       {/* ── Closing Modal ─────────────────────────────────────────────────── */}
       {showClosingModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-surface-container rounded-2xl border border-outline-variant p-6 w-full max-w-sm mx-4 flex flex-col gap-4 shadow-2xl">
-            <div className="flex items-center gap-2">
+        <dialog id="agent-closing-dialog" open aria-modal="true" aria-labelledby="agent-closing-title" className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm w-full h-full border-none p-0">
+          <section id="agent-closing-card" className="bg-surface-container rounded-2xl border border-outline-variant p-6 w-full max-w-sm mx-4 flex flex-col gap-4 shadow-2xl">
+            <header className="flex items-center gap-2">
               <LogOut size={18} className="text-secondary" />
-              <h3 className="font-label-lg text-label-lg font-bold text-on-surface">Tutup Kas Agen</h3>
-            </div>
+              <h3 id="agent-closing-title" className="font-label-lg text-label-lg font-bold text-on-surface">Tutup Kas Agen</h3>
+            </header>
 
             {loadingClosing ? (
               <div className="flex items-center justify-center py-8 text-on-surface-variant">
@@ -385,24 +385,24 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
                 <span className="font-body-md text-body-md">Kas agen hari ini sudah ditutup.</span>
               </div>
             ) : dailySummary ? (
-              <div className="flex flex-col gap-2 bg-surface-dim rounded-xl border border-outline-variant/50 p-4">
+              <article id="agent-daily-summary-card" className="flex flex-col gap-2 bg-surface-dim rounded-xl border border-outline-variant/50 p-4">
                 <div className="flex justify-between font-label-sm text-label-sm text-on-surface-variant">
                   <span>Total Transaksi</span>
-                  <span className="text-on-surface font-semibold">{dailySummary.transaction_count}x</span>
+                  <output className="text-on-surface font-semibold">{dailySummary.transaction_count}x</output>
                 </div>
                 <div className="flex justify-between font-label-sm text-label-sm text-on-surface-variant">
                   <span>Gross Volume</span>
-                  <span className="text-on-surface">Rp {Number(dailySummary.gross_volume).toLocaleString('id-ID')}</span>
+                  <output className="text-on-surface">Rp {Number(dailySummary.gross_volume).toLocaleString('id-ID')}</output>
                 </div>
                 <div className="flex justify-between font-label-sm text-label-sm text-on-surface-variant">
                   <span>Total Admin Fee</span>
-                  <span className="text-on-surface">Rp {Number(dailySummary.total_admin_fee).toLocaleString('id-ID')}</span>
+                  <output className="text-on-surface">Rp {Number(dailySummary.total_admin_fee).toLocaleString('id-ID')}</output>
                 </div>
                 <div className="border-t border-outline-variant/40 pt-2 flex justify-between font-label-md text-label-md">
                   <span className="text-on-surface-variant">Total Komisi Kamu</span>
-                  <span className="text-emerald-400 font-bold">+ Rp {Number(dailySummary.total_commission).toLocaleString('id-ID')}</span>
+                  <output className="text-emerald-400 font-bold">+ Rp {Number(dailySummary.total_commission).toLocaleString('id-ID')}</output>
                 </div>
-              </div>
+              </article>
             ) : null}
 
             <div className="flex gap-2">
@@ -422,25 +422,25 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
                 </button>
               )}
             </div>
-          </div>
-        </div>
+          </section>
+        </dialog>
       )}
 
       {/* ── LEFT: Catalog + Form ──────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col gap-gutter overflow-y-auto pr-1">
+      <main id="agent-main-catalog-area" className="flex-1 flex flex-col gap-3.5 overflow-y-auto pr-1">
 
         {/* Float Balance */}
         <FloatBalanceWidget onBalanceLoad={setFloatBalance} />
 
         {/* Category / Product selector */}
-        <div className="bg-surface-container rounded-xl border border-outline-variant p-4 flex flex-col gap-3">
+        <section id="agent-category-selector-card" className="bg-surface-container rounded-xl border border-outline-variant p-4 flex flex-col gap-3">
 
           {!selectedCat ? (
             <>
               {/* ── Level 1: Pilih Kategori ── */}
-              <div className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
+              <header className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-bold">
                 Pilih Kategori Layanan
-              </div>
+              </header>
               {loadingCatalog ? (
                 <div className="flex items-center justify-center py-8 text-on-surface-variant">
                   <Loader2 size={20} className="animate-spin mr-2" /> Memuat katalog...
@@ -450,7 +450,7 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
                   Belum ada produk digital. Jalankan migrasi database terlebih dahulu.
                 </div>
               ) : (
-                <div className="grid grid-cols-5 gap-2">
+                <nav id="agent-category-grid-nav" aria-label="Grid Kategori Layanan Agen" className="grid grid-cols-5 gap-2">
                   {categories.map(cat => (
                     <CategoryTile
                       key={cat.category}
@@ -458,28 +458,30 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
                       onClick={() => selectCategory(cat)}
                     />
                   ))}
-                </div>
+                </nav>
               )}
             </>
           ) : (
             <>
               {/* ── Level 2: Pilih Produk ── */}
-              <div className="flex items-center gap-2">
+              <header className="flex items-center gap-2">
                 <button
+                  id="btn-back-to-agent-categories"
                   onClick={goBackToCategories}
-                  className="p-1.5 rounded-lg bg-surface-container-highest hover:bg-surface-dim border border-outline-variant transition-colors"
+                  className="p-1.5 rounded-lg bg-surface-container-highest hover:bg-surface-dim border border-outline-variant transition-colors cursor-pointer"
+                  aria-label="Kembali ke Kategori Layanan"
                 >
                   <ChevronLeft size={16} className="text-on-surface-variant" />
                 </button>
                 <div className="text-lg leading-none">{selectedCat.icon}</div>
-                <div className="font-label-md text-label-md text-on-surface font-semibold">
+                <h3 className="font-label-md text-label-md text-on-surface font-semibold">
                   {CATEGORY_LABELS[selectedCat.category] ?? selectedCat.category}
-                </div>
-                <div className="font-label-sm text-label-sm text-on-surface-variant">
+                </h3>
+                <span className="font-label-sm text-label-sm text-on-surface-variant">
                   — Pilih produk
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
+                </span>
+              </header>
+              <section id="agent-products-grid" aria-label="Daftar Produk Digital" className="grid grid-cols-3 gap-2">
                 {selectedCat.products.map(prod => (
                   <ProductTile
                     key={prod.id}
@@ -488,27 +490,28 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
                     onClick={() => selectProduct(prod)}
                   />
                 ))}
-              </div>
+              </section>
             </>
           )}
-        </div>
+        </section>
 
         {/* Transaction form — only show when product is selected */}
         {selectedProd && (
           <form
+            id="agent-transaction-form"
             onSubmit={handleSubmit}
             className="bg-surface-container rounded-xl border border-outline-variant p-4 flex flex-col gap-4"
           >
-            <div className="flex items-center gap-2">
+            <header className="flex items-center gap-2">
               <span className="text-lg">{selectedProd.icon_emoji}</span>
-              <span className="font-label-md text-label-md text-on-surface font-semibold">
+              <h4 className="font-label-md text-label-md text-on-surface font-semibold">
                 {selectedProd.product_name}
-              </span>
-            </div>
+              </h4>
+            </header>
 
             {/* Phone / Customer ID */}
             <div className="flex flex-col gap-1.5">
-              <label className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5">
+              <label htmlFor="agent-customer-phone-input" className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5">
                 <Phone size={12} />
                 No. HP / ID Pelanggan <span className="normal-case text-on-surface-variant/50">(opsional)</span>
               </label>
@@ -525,56 +528,60 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
 
             {/* Amount */}
             <div className="flex flex-col gap-1.5">
-              <label className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5">
+              <label htmlFor="agent-amount-input" className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5">
                 <DollarSign size={12} />
                 Nominal Transaksi
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant font-label-md text-label-md">Rp</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant font-label-md text-label-md font-bold">Rp</span>
                 <input
+                  id="agent-amount-input"
                   ref={amountRef}
                   type="text"
                   value={amountStr ? Number(amountStr.replace(/[^0-9]/g, '')).toLocaleString('id-ID') : ''}
                   onChange={e => setAmountStr(e.target.value.replace(/[^0-9]/g, ''))}
                   placeholder="0"
-                  className="w-full bg-surface-dim border border-outline-variant rounded-lg px-3 py-2.5 pl-10 text-on-surface font-label-md text-label-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors placeholder:text-on-surface-variant/40"
+                  className="w-full bg-surface-dim border border-outline-variant rounded-lg px-3 py-2.5 pl-10 text-on-surface font-label-md text-label-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors placeholder:text-on-surface-variant/40 font-mono font-bold"
                   disabled={submitting}
+                  required
                 />
               </div>
             </div>
 
             {/* Fee breakdown */}
             {amount > 0 && (
-              <div className="bg-surface-dim rounded-lg border border-outline-variant/50 p-3 flex flex-col gap-2">
+              <fieldset id="agent-fee-breakdown-fieldset" className="bg-surface-dim rounded-lg border border-outline-variant/50 p-3 flex flex-col gap-2">
+                <legend className="sr-only">Rincian Biaya Layanan Agen</legend>
                 <div className="flex justify-between font-label-sm text-label-sm text-on-surface-variant">
                   <span>Modal (keluar dari float)</span>
-                  <span className="text-on-surface">Rp {amount.toLocaleString('id-ID')}</span>
+                  <output className="text-on-surface font-mono">Rp {amount.toLocaleString('id-ID')}</output>
                 </div>
                 <div className="flex justify-between font-label-sm text-label-sm text-on-surface-variant">
                   <span>Biaya Admin (ditagih ke pelanggan)</span>
-                  <span className="text-on-surface">Rp {adminFee.toLocaleString('id-ID')}</span>
+                  <output className="text-on-surface font-mono">Rp {adminFee.toLocaleString('id-ID')}</output>
                 </div>
                 <div className="border-t border-outline-variant/30 pt-2 flex justify-between font-label-md text-label-md">
                   <span className="text-on-surface-variant">Total diterima dari pelanggan</span>
-                  <span className="text-secondary font-bold">Rp {totalCharge.toLocaleString('id-ID')}</span>
+                  <output className="text-secondary font-bold font-mono">Rp {totalCharge.toLocaleString('id-ID')}</output>
                 </div>
                 <div className="flex justify-between font-label-sm text-label-sm">
                   <span className="text-on-surface-variant">Komisi kamu</span>
-                  <span className="text-emerald-400 font-semibold">+ Rp {commission.toLocaleString('id-ID')}</span>
+                  <output className="text-emerald-400 font-semibold font-mono">+ Rp {commission.toLocaleString('id-ID')}</output>
                 </div>
                 {floatBalance < amount && (
-                  <div className="text-error font-label-sm text-label-sm mt-1">
+                  <div id="agent-float-warning-badge" className="text-error font-label-sm text-label-sm mt-1 font-bold">
                     ⚠ Saldo float tidak cukup (tersedia Rp {floatBalance.toLocaleString('id-ID')})
                   </div>
                 )}
-              </div>
+              </fieldset>
             )}
 
             {/* Submit */}
             <button
+              id="btn-submit-agent-transaction"
               type="submit"
               disabled={!canSubmit}
-              className="w-full bg-primary-container hover:bg-primary-container/80 text-on-primary-container font-label-lg text-label-lg rounded-xl py-3.5 flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-md shadow-primary/10 border border-primary/30 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full bg-primary-container hover:bg-primary-container/80 text-on-primary-container font-label-lg text-label-lg font-bold rounded-xl py-3.5 flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-md shadow-primary/10 border border-primary/30 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               {submitting ? (
                 <><Loader2 size={18} className="animate-spin" /> Memproses...</>
@@ -584,29 +591,30 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
             </button>
           </form>
         )}
-      </div>
+      </main>
 
-      {/* ── RIGHT: Recent transactions ─────────────────────────────────────── */}
-      <div className="w-72 shrink-0 flex flex-col gap-gutter">
+      {/* ── RIGHT: Recent transactions Sidebar ─────────────────────────────── */}
+      <aside id="agent-right-sidebar" className="w-72 shrink-0 flex flex-col gap-3.5">
 
         {/* Tutup Kas button */}
         <button
+          id="btn-open-agent-closing-modal"
           onClick={handleOpenClosing}
-          className="w-full bg-surface-container border border-outline-variant hover:bg-error-container/20 hover:border-error/40 text-on-surface-variant hover:text-error font-label-md text-label-md rounded-xl py-2.5 flex items-center justify-center gap-2 transition-all"
+          className="w-full bg-surface-container border border-outline-variant hover:bg-error-container/20 hover:border-error/40 text-on-surface-variant hover:text-error font-label-md text-label-md rounded-xl py-2.5 flex items-center justify-center gap-2 transition-all font-bold cursor-pointer"
         >
           <LogOut size={15} />
           TUTUP KAS HARIAN
         </button>
 
-        <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-4 flex flex-col gap-3 flex-1 overflow-hidden">
-          <div className="flex items-center justify-between shrink-0">
-            <div className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
+        <section id="agent-recent-transactions-card" className="bg-surface-container-lowest rounded-xl border border-outline-variant p-4 flex flex-col gap-3 flex-1 overflow-hidden">
+          <header className="flex items-center justify-between shrink-0">
+            <h4 className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-bold">
               Transaksi Terakhir
-            </div>
+            </h4>
             <User size={14} className="text-on-surface-variant" />
-          </div>
+          </header>
 
-          <div className="flex-1 overflow-y-auto">
+          <div id="agent-recent-transactions-list" className="flex-1 overflow-y-auto">
             {loadingTxs ? (
               <div className="flex items-center justify-center h-24 text-on-surface-variant">
                 <Loader2 size={18} className="animate-spin" />
@@ -619,8 +627,8 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
               recentTxs.map(tx => <RecentRow key={tx.id} tx={tx} />)
             )}
           </div>
-        </div>
-      </div>
-    </div>
+        </section>
+      </aside>
+    </section>
   );
 }
