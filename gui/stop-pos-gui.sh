@@ -71,9 +71,7 @@ if ! docker info >/dev/null 2>&1; then
 fi
 
 COMPOSE_FILES=(-f docker-compose.yml)
-CASH_DRAWER_PATH="$(get_env_value CASH_DRAWER_DEVICE)"
-CASH_DRAWER_PATH="${CASH_DRAWER_PATH:-/dev/usb/lp0}"
-if [ -f "$APP_DIR/docker-compose.linux.yml" ] && [ -e "$CASH_DRAWER_PATH" ]; then
+if [ -f "$APP_DIR/docker-compose.linux.yml" ]; then
   COMPOSE_FILES+=(-f docker-compose.linux.yml)
 fi
 
@@ -84,8 +82,8 @@ fi
 
 (
   echo "25"
-  echo "# Stopping POS services..."
-  docker compose "${COMPOSE_FILES[@]}" down >>"$LOG_FILE" 2>&1
+  echo "# Gracefully stopping POS services..."
+  docker compose "${COMPOSE_FILES[@]}" down --remove-orphans --timeout 10 >>"$LOG_FILE" 2>&1
 
   echo "100"
   echo "# Done."

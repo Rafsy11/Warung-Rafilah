@@ -88,32 +88,55 @@ if [ -f "docker-compose.linux.yml" ]; then
     fi
 fi
 
-# ── 6. Stop container lama (graceful) ────────────────────────
+# ── 6. Cek status koneksi internet (Hybrid Online/Offline) ────
+FORCE_OFFLINE=false
+for arg in "$@"; do
+    if [ "$arg" == "--offline" ] || [ "$arg" == "-o" ]; then
+        FORCE_OFFLINE=true
+    fi
+done
+
+IS_ONLINE=false
+if [ "$FORCE_OFFLINE" = false ]; then
+    echo "🔍 Memeriksa koneksi internet..."
+    if ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1 || curl -s --connect-timeout 2 https://1.1.1.1 >/dev/null 2>&1; then
+        IS_ONLINE=true
+        echo "   🌐 Mode: ONLINE (Koneksi terdeteksi)"
+    else
+        echo "   🌐 Mode: OFFLINE (Tidak ada koneksi internet)"
+    fi
+else
+    echo "   🌐 Mode: OFFLINE (Opsi --offline diaktifkan)"
+fi
+
+# ── 7. Stop container lama (graceful) ────────────────────────
 echo ""
 echo "🛑 Menghentikan container lama (jika ada)..."
 docker compose $COMPOSE_FILES down --remove-orphans 2>/dev/null || true
 echo "   ✅ Selesai"
 
-# ── 7. Pull image terbaru ─────────────────────────────────────
-echo ""
-echo "📥 Memperbarui image Docker..."
-docker compose $COMPOSE_FILES pull
-echo "   ✅ Image up-to-date"
+# ── 8. Pull & Build (Online/Offline handling) ────────────────
+if [ "$IS_ONLINE" = true ]; then
+    echo ""
+    echo "📥 Memperbarui image Docker..."
+    if docker compose $COMPOSE_FILES pull; then
+        echo "   ✅ Image up-to-date"
+    else
+        echo "   ⚠️ Warning: Gagal mendownload update image, tetap melanjutkan dengan image lokal."
+    fi
 
-# ── 8. Build pos_nextjs ───────────────────────────────────────
-echo ""
-echo "🔨 Build aplikasi POS (NextJS)..."
-if ! docker compose $COMPOSE_FILES build pos_nextjs; then
     echo ""
-    echo "❌  Build GAGAL!"
+    echo "🔨 Build aplikasi POS (NextJS)..."
+    if ! docker compose $COMPOSE_FILES build pos_nextjs; then
+        echo "   ⚠️ Warning: Build online gagal, menggunakan image lokal yang ada."
+    else
+        echo "   ✅ Build berhasil"
+    fi
+else
     echo ""
-    echo "   Troubleshooting:"
-    echo "   1. Pastikan koneksi internet stabil"
-    echo "   2. Coba: docker builder prune -f  lalu jalankan ulang"
-    echo "   3. Coba: docker system prune -a   (reset total)"
-    exit 1
+    echo "⚡ Mode Offline Aktif — Melewati pull & online build."
+    echo "   Menggunakan image Docker & data lokal yang tersimpan."
 fi
-echo "   ✅ Build berhasil"
 
 # ── 9. Start semua services ───────────────────────────────────
 echo ""

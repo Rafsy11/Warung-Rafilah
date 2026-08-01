@@ -11,6 +11,9 @@ const pool = new Pool({
     ? requireProductionEnv('POSTGRES_PASSWORD')
     : (process.env.POSTGRES_PASSWORD || 'pos_password_123'),
   database: process.env.POSTGRES_DB || 'pos_production',
+  max: 20, // Maximum pool size for POS local server
+  idleTimeoutMillis: 30000, // Close idle clients after 30s
+  connectionTimeoutMillis: 5000, // Timeout connection attempts after 5s
 });
 
 // Singleton pattern for pg.Pool to prevent connection leaks during HMR

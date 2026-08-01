@@ -91,14 +91,15 @@ function buildWarungHtml(d: WarungReceiptData): string {
       ` : ''}
     `;
   } else {
+    const isQrisOverpaid = isQris && d.change > 0;
     paymentDetailsHtml = `
       <div class="row">
-        <span>Bayar:</span>
-        <span>${isQris ? 'QRIS' : formatRp(d.payment_received)}</span>
+        <span>Bayar (${isQris ? 'QRIS' : 'TUNAI'}):</span>
+        <span>${isQris ? (isQrisOverpaid ? formatRp(d.payment_received) : 'QRIS') : formatRp(d.payment_received)}</span>
       </div>
-      ${!isQris ? `
+      ${(!isQris || isQrisOverpaid) ? `
       <div class="row bold">
-        <span>Kembali:</span>
+        <span>Kembalian ${isQrisOverpaid ? '(Tunai)' : ''}:</span>
         <span>${formatRp(d.change)}</span>
       </div>` : ''}
     `;

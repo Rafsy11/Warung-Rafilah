@@ -924,7 +924,7 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
   };
 
   return (
-    <div className="flex-1 flex flex-row gap-gutter overflow-hidden h-full">
+    <div className="flex-1 flex flex-row gap-3.5 overflow-hidden h-full">
       {/* Side Navbar / Tab Switcher */}
       <div className="w-60 bg-surface-container border border-outline-variant/30 rounded-xl p-2 gap-1 flex flex-col shrink-0 overflow-y-auto scrollbar-hide h-full">
         <span className="font-bold text-[9px] text-on-surface-variant/65 uppercase tracking-widest px-3 pt-2.5 pb-1 select-none shrink-0">Operasional Toko</span>

@@ -44,36 +44,29 @@ echo ""
 echo "🛑 Menghentikan container lama..."
 docker compose -f docker-compose.yml -f docker-compose.linux.yml down 2>/dev/null || true
 
-# 5. Bersihkan credential cache (fix error GPG)
-echo ""
-echo "🧹 Membersihkan cache Docker..."
-docker builder prune -f >/dev/null 2>&1 || true
-
-# 6. Build image dengan error handling
-echo ""
-echo "🔨 Building POS NextJS image..."
-echo "   (Ini mungkin memakan waktu 2-5 menit...)"
-
-# Build dengan flag yang aman
-if docker compose -f docker-compose.yml build --no-cache pos_nextjs; then
-    echo "✅ Build berhasil!"
+# 5. Cek koneksi internet
+IS_ONLINE=false
+if ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1 || curl -s --connect-timeout 2 https://1.1.1.1 >/dev/null 2>&1; then
+    IS_ONLINE=true
+    echo "🌐 Mode: ONLINE"
 else
-    echo "❌ Build gagal!"
-    echo ""
-    echo "Troubleshooting:"
-    echo "1. Pastikan internet stabil (untuk download dependencies)"
-    echo "2. Cek apakah ada Docker Desktop update yang pending"
-    echo "3. Coba restart Docker Desktop"
-    echo "4. Jalankan: docker system prune -a (untuk reset total)"
-    exit 1
+    echo "🌐 Mode: OFFLINE (Tidak ada koneksi internet)"
 fi
 
-# 7. Pull image lainnya
-echo ""
-echo "📥 Downloading service images lainnya..."
-docker compose -f docker-compose.yml pull
+if [ "$IS_ONLINE" = true ]; then
+    echo ""
+    echo "🔨 Building POS NextJS image (Online)..."
+    docker compose -f docker-compose.yml build pos_nextjs || echo "⚠️ Build online gagal, menggunakan image lokal."
 
-# 8. Start semua services
+    echo ""
+    echo "📥 Downloading service images lainnya..."
+    docker compose -f docker-compose.yml pull || echo "⚠️ Pull online gagal, menggunakan image lokal."
+else
+    echo ""
+    echo "⚡ Mode Offline: Melewati build & pull online. Menggunakan image lokal."
+fi
+
+# 6. Start semua services
 echo ""
 echo "▶️  Memulai semua services..."
 docker compose -f docker-compose.yml -f docker-compose.linux.yml up -d

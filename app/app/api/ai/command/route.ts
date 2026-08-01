@@ -722,6 +722,16 @@ Kembalikan HANYA JSON (tanpa markdown, tanpa komentar):
   } catch (err) {
     const error = err as Error;
     console.error('AI command error:', error);
-    return NextResponse.json({ error: { code: 'internal_error', message: error.message || 'Gagal memproses perintah.' } }, { status: 500 });
+    const isNetworkErr = 
+      error.message?.includes('fetch failed') || 
+      error.message?.includes('ENOTFOUND') || 
+      error.message?.includes('ETIMEDOUT') ||
+      error.message?.includes('ECONNREFUSED');
+      
+    const msg = isNetworkErr
+      ? '🌐 Asisten AI (Velo) membutuhkan koneksi internet. Sistem saat ini beroperasi dalam Mode Offline — transaksi POS & data lokal tetap berjalan normal!'
+      : (error.message || 'Gagal memproses perintah.');
+
+    return NextResponse.json({ error: { code: 'internal_error', message: msg } }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Zap, X, ScanBarcode, Plus, Minus, Trash2, AlertCircle } from 'lucide-react';
 import type { CartItem } from '@/types/pos';
+import { refreshProductCache, searchProductsLocal } from '@/lib/cache/product-cache';
 
 const SERVICES = [
   { type: 'e_wallet_topup',  label: 'E-Wallet Topup',  adminFee: 1000, commission: 1500 },
@@ -46,6 +47,13 @@ export default function CartTable({
   const [digitalAmountStr, setDigitalAmountStr] = useState('');
   const [digitalError, setDigitalError] = useState('');
 
+  // Item Non-Barcode states
+  const [showCustomModal, setShowCustomModal] = useState(false);
+  const [customName, setCustomName] = useState('');
+  const [customPriceStr, setCustomPriceStr] = useState('');
+  const [customQtyStr, setCustomQtyStr] = useState('1');
+  const [customError, setCustomError] = useState('');
+
   // Keep selection state in sync with items list
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -54,7 +62,12 @@ export default function CartTable({
     return () => clearTimeout(timer);
   }, [items]);
 
-  // Debounced search for manual product lookup
+  // Warm up product cache on mount
+  useEffect(() => {
+    refreshProductCache();
+  }, []);
+
+  // Fast debounced search for manual product lookup
   useEffect(() => {
     if (mode !== 'warung' || inputValue.trim().length < 2) {
       const timer = setTimeout(() => {
@@ -63,6 +76,16 @@ export default function CartTable({
       }, 0);
       return () => clearTimeout(timer);
     }
+
+    // Try instant local cache first
+    const localMatches = searchProductsLocal(inputValue, 5);
+    if (localMatches.length > 0) {
+      setSearchResults(localMatches);
+      setSelectedIndex(0);
+      return;
+    }
+
+    // Fallback to API search if local cache misses
     const timer = setTimeout(async () => {
       try {
         const res = await fetch(`/api/products?search=${encodeURIComponent(inputValue)}&limit=5`);
@@ -74,7 +97,7 @@ export default function CartTable({
       } catch (err) {
         console.error('Error searching products:', err);
       }
-    }, 300);
+    }, 150);
 
     return () => clearTimeout(timer);
   }, [inputValue, mode]);
@@ -139,16 +162,18 @@ export default function CartTable({
   };
 
   return (
-    <section className="flex-1 flex flex-col bg-surface-container border border-outline-variant/50 rounded-2xl overflow-hidden shadow-md transition-all duration-200">
+    <section id="cart-table-section" aria-label="Tabel Keranjang Belanja" className="flex-1 flex flex-col bg-surface-container border border-outline-variant/50 rounded-2xl overflow-hidden shadow-md transition-all duration-200">
       {/* Cart Header */}
-      <div className="grid grid-cols-12 gap-2 p-3 px-5 border-b border-outline-variant/40 bg-surface-container-low font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider items-center">
+      <header id="cart-table-header" className="grid grid-cols-12 gap-2 p-3 px-5 border-b border-outline-variant/40 bg-surface-container-low font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider items-center">
         <div className="col-span-1 text-center flex items-center justify-center">
           {items.length > 0 && onBulkRemove && (
             <input
+              id="checkbox-select-all-cart"
               type="checkbox"
               checked={selectedCartIds.length === items.length}
               onChange={handleToggleSelectAll}
               className="w-4.5 h-4.5 accent-primary rounded-md cursor-pointer transition-all hover:scale-105"
+              aria-label="Pilih Semua Baris Keranjang"
             />
           )}
         </div>
@@ -160,193 +185,268 @@ export default function CartTable({
           <span>Subtotal</span>
           {selectedCartIds.length > 0 && onBulkRemove && (
             <button
+              id="btn-bulk-remove-cart"
               onClick={handleBulkRemoveClick}
               className="bg-error-container hover:bg-error text-on-error-container hover:text-on-error p-1.5 rounded-lg transition-colors cursor-pointer active:scale-95 shadow-sm"
               title="Hapus Terpilih"
+              aria-label="Hapus Item Terpilih"
             >
               <Trash2 size={13} />
             </button>
           )}
         </div>
-      </div>
+      </header>
 
-      {/* Cart Items */}
-      <div className="flex-1 overflow-y-auto bg-surface-dim/40 divide-y divide-outline-variant/30">
+      {/* Cart Item Scroll List */}
+      <div id="cart-item-list" role="region" aria-label="Daftar Barang Kasir" className="flex-1 overflow-y-auto bg-surface-dim/40 divide-y divide-outline-variant/30">
         {items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-on-surface-variant/40 gap-4.5 p-6 select-none animate-in fade-in duration-300">
+          <div id="cart-empty-state" className="flex flex-col items-center justify-center h-full text-on-surface-variant/40 gap-4.5 p-6 select-none animate-in fade-in duration-300">
             <div className="p-5 rounded-2xl bg-surface-container-high border border-outline-variant/20 text-on-surface-variant/30 shadow-inner">
               <ScanBarcode size={52} className="stroke-[1.25] text-primary/70" />
             </div>
             <div className="text-center">
-              <p className="font-bold text-on-surface text-base">Keranjang Belanja Kosong</p>
-              <p className="text-xs text-on-surface-variant/60 mt-1.5 max-w-[240px] leading-relaxed">
-                Scan barcode produk di laci scan atau cari nama produk di input bawah.
-              </p>
+              <p className="font-label-md text-label-md font-bold text-on-surface-variant/70 tracking-wide uppercase">Keranjang Masih Kosong</p>
+              <p className="text-body-md text-on-surface-variant/50 mt-1">Scan barcode atau masukkan nama produk untuk memulai transaksi</p>
             </div>
           </div>
         ) : (
-          items.map((item, index) => (
-            <div
-              key={item.id}
-              className={`grid grid-cols-12 gap-2 p-3 px-5 items-center hover:bg-primary-container/10 transition-all duration-150 group border rounded-xl ${
-                item.isAgent
-                  ? 'bg-secondary-container/10 border-outline-variant/60 shadow-inner'
-                  : 'border-transparent'
-              }`}
-            >
-              <div className="col-span-1 text-center flex items-center justify-center">
-                {onBulkRemove ? (
-                  <input
-                    type="checkbox"
-                    checked={selectedCartIds.includes(item.id)}
-                    onChange={() => handleToggleSelect(item.id)}
-                    className="w-4 h-4 accent-primary rounded cursor-pointer transition-all hover:scale-105"
-                  />
-                ) : (
-                  <span className="font-label-sm text-label-sm text-on-surface-variant font-bold">{index + 1}</span>
-                )}
-              </div>
-              <div className="col-span-2 font-label-sm text-label-sm text-on-surface-variant flex items-center gap-2 min-w-0">
-                {item.isAgent && <Zap size={14} className="text-secondary shrink-0" />}
-                <span className="truncate font-medium">{item.barcode}</span>
-              </div>
-              <div
-                className={`col-span-3 font-body-md text-body-md truncate pr-2 min-w-0 flex items-center gap-1.5 ${
-                  item.isAgent ? 'text-secondary font-bold' : 'text-on-surface font-semibold'
+          items.map((item, idx) => {
+            const isSelected = selectedCartIds.includes(item.id);
+            return (
+              <article
+                key={item.id}
+                id={`cart-item-${item.id}`}
+                className={`grid grid-cols-12 gap-2 p-3 px-5 items-center transition-colors font-body-md text-body-md ${
+                  isSelected
+                    ? 'bg-primary/10 border-l-4 border-l-primary'
+                    : idx % 2 === 0
+                    ? 'bg-surface-container-low/40 hover:bg-surface-container-high/40'
+                    : 'bg-surface-container/20 hover:bg-surface-container-high/40'
                 }`}
               >
-                <span className="truncate">{item.name}</span>
-                {item.appliedTierName && (
-                  <span className="bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md border border-emerald-500/20 uppercase tracking-wide shrink-0">
-                    {item.appliedTierName}
-                  </span>
-                )}
-                {item.activeDiscount && (
-                  <span className="bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md border border-rose-500/20 uppercase tracking-wide shrink-0">
-                    DISC {item.activeDiscount.value_type === 'percentage' 
-                      ? `${item.activeDiscount.discount_value}%` 
-                      : `Rp ${(Number(item.activeDiscount.discount_value)).toLocaleString('id-ID')}`
-                    }
-                  </span>
-                )}
-              </div>
-              <div className="col-span-2 flex justify-center items-center gap-2 min-w-0">
-                <button
-                  type="button"
-                  onClick={() => onChangeQty && onChangeQty(item.id, item.qty - 1)}
-                  className="w-7 h-7 bg-surface-container hover:bg-surface-container-high text-on-surface-variant border border-outline-variant/65 transition-all flex items-center justify-center shrink-0 rounded-full cursor-pointer shadow-sm"
-                  aria-label="Kurangi"
-                >
-                  <Minus size={12} className="stroke-[2.5]" />
-                </button>
-                <div className="bg-surface-container-highest/80 px-2.5 py-0.5 rounded-lg border border-outline-variant font-label-md text-label-md text-on-surface min-w-[32px] text-center font-mono font-bold">
-                  {item.qty}
+                <div className="col-span-1 text-center flex items-center justify-center">
+                  {onBulkRemove && (
+                    <input
+                      id={`checkbox-cart-item-${item.id}`}
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => handleToggleSelect(item.id)}
+                      className="w-4 h-4 accent-primary rounded cursor-pointer transition-all"
+                      aria-label={`Pilih item ${item.name}`}
+                    />
+                  )}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => onChangeQty && onChangeQty(item.id, item.qty + 1)}
-                  className="w-7 h-7 bg-surface-container hover:bg-surface-container-high text-on-surface-variant border border-outline-variant/65 transition-all flex items-center justify-center shrink-0 rounded-full cursor-pointer shadow-sm"
-                  aria-label="Tambah"
-                >
-                  <Plus size={12} className="stroke-[2.5]" />
-                </button>
-              </div>
-              <div className="col-span-2 text-right font-label-md text-label-md text-on-surface-variant truncate min-w-0 font-mono font-medium">
-                {item.price.toLocaleString('id-ID')}
-              </div>
-              <div className="col-span-2 flex justify-end items-center gap-2 min-w-0 font-mono">
-                <span className="font-label-md text-label-md text-on-surface truncate font-bold">
-                  {item.subtotal.toLocaleString('id-ID')}
-                </span>
-                <button
-                  onClick={() => onRemove(item.id)}
-                  aria-label={`Hapus ${item.name}`}
-                  className="bg-error-container/40 text-error p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-error hover:text-white flex items-center justify-center shrink-0 cursor-pointer active:scale-95 shadow-sm ml-1"
-                >
-                  <X size={13} className="stroke-[2.5]" />
-                </button>
-              </div>
-            </div>
-          ))
+                <div className="col-span-2 min-w-0 font-mono text-xs text-on-surface-variant/70 truncate flex items-center gap-1.5">
+                  <span className="truncate">{item.barcode}</span>
+                  {item.isAgent && (
+                    <span className="px-1 py-0.2 rounded text-[9px] font-bold bg-secondary/10 text-secondary border border-secondary/20 shrink-0">AGEN</span>
+                  )}
+                </div>
+                <div className="col-span-3 min-w-0 font-medium text-on-surface flex flex-col">
+                  <span className="truncate font-semibold">{item.name}</span>
+                  {item.appliedTierName && (
+                    <span className="text-[10px] text-emerald-500 font-bold tracking-wide">
+                      ★ {item.appliedTierName}
+                    </span>
+                  )}
+                </div>
+                <div className="col-span-2 flex items-center justify-center gap-1">
+                  {onChangeQty && !item.isAgent ? (
+                    <div className="flex items-center bg-surface-container-low border border-outline-variant/60 rounded-lg p-0.5 shadow-sm">
+                      <button
+                        id={`btn-decrease-qty-${item.id}`}
+                        onClick={() => onChangeQty(item.id, Math.max(1, item.qty - 1))}
+                        className="w-6 h-6 rounded flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer"
+                        title="Kurangi Qty"
+                        aria-label={`Kurangi kuantitas ${item.name}`}
+                      >
+                        <Minus size={12} />
+                      </button>
+                      <input
+                        id={`input-qty-${item.id}`}
+                        type="number"
+                        min="1"
+                        value={item.qty}
+                        onChange={e => {
+                          const val = parseInt(e.target.value, 10);
+                          if (!isNaN(val) && val > 0) onChangeQty(item.id, val);
+                        }}
+                        className="w-10 text-center font-mono font-bold text-xs bg-transparent text-on-surface focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <button
+                        id={`btn-increase-qty-${item.id}`}
+                        onClick={() => onChangeQty(item.id, item.qty + 1)}
+                        className="w-6 h-6 rounded flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer"
+                        title="Tambah Qty"
+                        aria-label={`Tambah kuantitas ${item.name}`}
+                      >
+                        <Plus size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="font-mono font-bold text-on-surface bg-surface-container-high px-2 py-0.5 rounded-md text-xs">{item.qty}</span>
+                  )}
+                </div>
+                <div className="col-span-2 text-right font-mono text-on-surface-variant text-xs font-semibold">
+                  Rp {item.price.toLocaleString('id-ID')}
+                </div>
+                <div className="col-span-2 text-right font-mono font-bold text-primary flex items-center justify-between pr-2">
+                  <span className="w-full text-right">Rp {item.subtotal.toLocaleString('id-ID')}</span>
+                  <button
+                    id={`btn-remove-item-${item.id}`}
+                    onClick={() => onRemove(item.id)}
+                    className="text-on-surface-variant/40 hover:text-error transition-colors p-1 rounded-lg hover:bg-error-container/30 cursor-pointer ml-2 shrink-0"
+                    title="Hapus barang"
+                    aria-label={`Hapus item ${item.name}`}
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+              </article>
+            );
+          })
         )}
       </div>
 
-      {/* Cart Footer / Scanner Input */}
-      <div className="bg-surface-container border-t border-outline-variant/45 p-4 flex flex-col gap-3">
-        <div className="flex gap-3 w-full items-stretch">
-          <div className="relative flex-1">
-            {searchResults.length > 0 && (
-              <div className="absolute bottom-full mb-3 left-0 right-0 z-50 bg-surface-container border border-outline-variant/65 rounded-2xl shadow-2xl py-1.5 max-h-64 overflow-y-auto backdrop-blur-md animate-in fade-in slide-in-from-bottom-3 duration-200">
-                {searchResults.map((prod, idx) => (
-                  <div
-                    key={prod.id}
-                    onClick={() => handleSelectProduct(prod.barcode)}
-                    className={`flex justify-between items-center px-4 py-2.5 cursor-pointer font-label-md text-label-md transition-colors ${
-                      idx === selectedIndex
-                        ? 'bg-primary-container text-on-primary-container font-semibold'
-                        : 'text-on-surface hover:bg-surface-container-high/60'
-                    }`}
-                  >
-                    <div className="flex flex-col text-left">
-                      <span className="font-bold text-sm text-on-surface">{prod.name}</span>
-                      <span className="text-[10px] opacity-65 font-mono mt-0.5">{prod.barcode}</span>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold font-mono text-primary">Rp {Number(prod.sell_price).toLocaleString('id-ID')}</div>
-                      <div className="text-[10px] opacity-65 font-medium mt-0.5">Stok: {Number(prod.stock_qty)}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+      {/* Footer Barcode Scan Bar */}
+      <footer id="cart-table-footer" className="p-3 bg-surface-container-low border-t border-outline-variant/50 flex flex-col gap-2 shrink-0">
+        <div id="barcode-input-container" className="flex items-center gap-2 relative">
+          <form id="barcode-scan-form" onSubmit={(e) => e.preventDefault()} className="flex-1 relative">
+            <ScanBarcode size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/60" />
             <input
-              id="main-barcode-search-input"
+              id="input-barcode-scan"
               ref={inputRef}
-              autoFocus
               type="text"
               value={inputValue}
               onChange={e => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="w-full bg-surface-dim border border-outline-variant/70 rounded-xl p-3 pl-11 text-on-surface font-label-md text-label-md focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm outline-none"
-              placeholder={
-                mode === 'warung'
-                  ? 'Scan barcode atau ketik nama produk...'
-                  : 'Ketik kode layanan digital agen...'
-              }
+              placeholder={mode === 'warung' ? "Scan Barcode / Cari Produk [F1]..." : "Input Transaksi Agen [F2]..."}
+              className="w-full bg-surface-container border border-outline-variant/60 rounded-xl pl-10 pr-10 py-2.5 text-on-surface font-label-md text-label-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-on-surface-variant/40 shadow-inner font-mono font-semibold"
+              autoFocus
+              aria-label="Scan atau Cari Barcode Produk"
             />
-            <div className="absolute left-3.5 top-3.5 text-on-surface-variant flex items-center justify-center">
-              {mode === 'warung' ? <ScanBarcode size={18} className="text-primary" /> : <Zap size={18} className="text-secondary" />}
-            </div>
-          </div>
+            {inputValue && (
+              <button
+                id="btn-clear-barcode-input"
+                type="button"
+                onClick={() => {
+                  setInputValue('');
+                  setSearchResults([]);
+                  setSelectedIndex(-1);
+                  inputRef.current?.focus();
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors p-1"
+                aria-label="Bersihkan Input Barcode"
+              >
+                <X size={14} />
+              </button>
+            )}
+
+            {/* Fast Autocomplete Dropdown */}
+            {searchResults.length > 0 ? (
+              <div id="barcode-search-results-dropdown" role="listbox" className="absolute left-0 bottom-full mb-2 w-full bg-surface-container border border-outline-variant rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                <div className="px-3 py-1.5 bg-surface-container-high font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider flex justify-between items-center border-b border-outline-variant/30">
+                  <span>Hasil Pencarian ({searchResults.length})</span>
+                  <span className="text-[10px] text-on-surface-variant/60">Gunakan ↑↓ & Enter</span>
+                </div>
+                <div className="max-h-48 overflow-y-auto divide-y divide-outline-variant/20">
+                  {searchResults.map((p, index) => {
+                    const isSelected = index === selectedIndex;
+                    return (
+                      <div
+                        key={p.id}
+                        id={`search-result-item-${p.id}`}
+                        role="option"
+                        aria-selected={isSelected}
+                        onClick={() => handleSelectProduct(p.barcode)}
+                        className={`px-3 py-2 cursor-pointer transition-colors flex justify-between items-center ${
+                          isSelected
+                            ? 'bg-primary text-white'
+                            : 'hover:bg-surface-container-high text-on-surface'
+                        }`}
+                      >
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-semibold text-xs truncate">{p.name}</span>
+                          <span className={`font-mono text-[10px] ${isSelected ? 'text-white/80' : 'text-on-surface-variant'}`}>
+                            {p.barcode} • Stok: {p.stock_qty}
+                          </span>
+                        </div>
+                        <span className={`font-mono font-bold text-xs shrink-0 ${isSelected ? 'text-white' : 'text-primary'}`}>
+                          Rp {Number(p.sell_price).toLocaleString('id-ID')}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : inputValue.trim().length >= 2 ? (
+              <div id="barcode-no-results-dropdown" className="absolute left-0 bottom-full mb-2 w-full bg-surface-container border border-outline-variant rounded-xl shadow-2xl p-2 z-50 animate-in fade-in duration-150">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomName(inputValue.trim());
+                    setShowCustomModal(true);
+                  }}
+                  className="w-full text-left p-2.5 bg-primary/10 hover:bg-primary hover:text-white rounded-lg transition-colors flex items-center justify-between cursor-pointer"
+                >
+                  <div className="flex flex-col">
+                    <span className="font-bold text-xs">Produk "{inputValue.trim()}" Tidak Ditemukan</span>
+                    <span className="text-[10px] opacity-80">Klik untuk tambah sebagai Item Non-Barcode / Manual</span>
+                  </div>
+                  <Plus size={16} />
+                </button>
+              </div>
+            ) : null}
+          </form>
+
           {mode === 'warung' && onAddDigitalItem && (
-            <button
-              type="button"
-              onClick={() => setShowDigitalModal(true)}
-              className="bg-secondary-container hover:bg-secondary hover:text-white text-on-secondary-container font-label-md text-label-md rounded-xl px-4 py-2.5 flex items-center gap-1.5 transition-all border border-secondary/20 shrink-0 font-bold cursor-pointer active:scale-95 shadow-sm"
-            >
-              <Zap size={14} className="shrink-0" />
-              + LAYANAN DIGITAL
-            </button>
+            <div className="flex gap-1.5 shrink-0">
+              <button
+                id="btn-open-custom-item-modal"
+                type="button"
+                onClick={() => {
+                  setCustomName(inputValue.trim());
+                  setShowCustomModal(true);
+                }}
+                className="bg-primary/10 hover:bg-primary hover:text-white text-primary font-label-md text-label-md rounded-xl px-3 py-2.5 flex items-center gap-1.5 transition-all border border-primary/20 shrink-0 font-bold cursor-pointer active:scale-95 shadow-sm"
+                title="Tambah barang tanpa barcode / item manual"
+                aria-label="Tambah Item Non-Barcode"
+              >
+                <Plus size={14} className="shrink-0" />
+                + ITEM NON-BARCODE
+              </button>
+              <button
+                id="btn-open-digital-modal"
+                type="button"
+                onClick={() => setShowDigitalModal(true)}
+                className="bg-secondary-container hover:bg-secondary hover:text-white text-on-secondary-container font-label-md text-label-md rounded-xl px-3.5 py-2.5 flex items-center gap-1.5 transition-all border border-secondary/20 shrink-0 font-bold cursor-pointer active:scale-95 shadow-sm"
+                aria-label="Buka Tambah Layanan Digital"
+              >
+                <Zap size={14} className="shrink-0" />
+                + LAYANAN DIGITAL
+              </button>
+            </div>
           )}
         </div>
-        <div className="text-center font-label-sm text-label-sm text-primary font-bold tracking-widest uppercase animate-pulse text-[10px] leading-none mt-0.5">
+        <div id="barcode-scan-status-indicator" className="text-center font-label-sm text-label-sm text-primary font-bold tracking-widest uppercase animate-pulse text-[10px] leading-none mt-0.5">
           {mode === 'warung' ? '✓ SIAP SCAN BARCODE PRODUK' : '⚡ SIAP TRANSAKSI DIGITAL AGEN'}
         </div>
-      </div>
+      </footer>
 
       {/* Add Digital Service Modal */}
       {showDigitalModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-surface-container rounded-2xl border border-outline-variant/50 p-6 w-full max-w-sm mx-4 flex flex-col gap-4.5 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex items-center gap-2 border-b border-outline-variant/30 pb-3">
+        <div id="digital-service-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="digital-modal-title" className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div id="digital-service-modal-card" className="bg-surface-container rounded-2xl border border-outline-variant/50 p-6 w-full max-w-sm mx-4 flex flex-col gap-4.5 shadow-2xl animate-in zoom-in-95 duration-200">
+            <header className="flex items-center gap-2 border-b border-outline-variant/30 pb-3">
               <Zap size={18} className="text-secondary" />
-              <h3 className="font-label-lg text-label-lg font-extrabold text-on-surface">Tambah Layanan Digital</h3>
-            </div>
+              <h3 id="digital-modal-title" className="font-label-lg text-label-lg font-extrabold text-on-surface">Tambah Layanan Digital</h3>
+            </header>
 
             {/* Service selector */}
             <div className="flex flex-col gap-1.5">
-              <label className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold text-[10px]">Pilih Layanan</label>
+              <label htmlFor="select-digital-service" className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold text-[10px]">Pilih Layanan</label>
               <select
+                id="select-digital-service"
                 value={selectedService.type}
                 onChange={e => {
                   const s = SERVICES.find(x => x.type === e.target.value);
@@ -474,6 +574,136 @@ export default function CartTable({
                 className="flex-1 bg-secondary-container hover:bg-secondary hover:text-white text-on-secondary-container font-label-md text-label-md rounded-xl py-2.5 border border-secondary/20 transition-all font-bold cursor-pointer"
               >
                 Tambahkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Custom / Non-Barcode Item Modal */}
+      {showCustomModal && (
+        <div id="custom-item-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="custom-modal-title" className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div id="custom-item-modal-card" className="bg-surface-container rounded-2xl border border-outline-variant/50 p-6 w-full max-w-sm mx-4 flex flex-col gap-4 shadow-2xl animate-in zoom-in-95 duration-200">
+            <header className="flex items-center justify-between border-b border-outline-variant/30 pb-3">
+              <div className="flex items-center gap-2">
+                <Plus size={18} className="text-primary" />
+                <h3 id="custom-modal-title" className="font-label-lg text-label-lg font-extrabold text-on-surface">Item Non-Barcode / Manual</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCustomModal(false)}
+                className="text-on-surface-variant hover:text-on-surface p-1 rounded-lg transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </header>
+
+            {/* Product Name */}
+            <div className="flex flex-col gap-1.5">
+              <label className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold text-[10px]">Nama Barang / Produk *</label>
+              <input
+                type="text"
+                value={customName}
+                onChange={e => setCustomName(e.target.value)}
+                placeholder="contoh: Es Lilin, Gorengan, Kerupuk"
+                className="bg-surface-dim border border-outline-variant/65 rounded-xl px-3 py-2.5 text-on-surface font-label-md text-label-md focus:border-primary outline-none transition-all w-full font-semibold"
+                autoFocus
+                required
+              />
+            </div>
+
+            {/* Price & Quantity Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold text-[10px]">Harga (Rp) *</label>
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant font-label-md text-label-md font-bold text-xs">Rp</span>
+                  <input
+                    type="text"
+                    placeholder="0"
+                    value={customPriceStr ? Number(customPriceStr.replace(/[^0-9]/g, '')).toLocaleString('id-ID') : ''}
+                    onChange={e => setCustomPriceStr(e.target.value.replace(/[^0-9]/g, ''))}
+                    className="w-full bg-surface-dim border border-outline-variant/65 rounded-xl py-2 pl-8 pr-2 text-on-surface font-mono font-bold text-xs focus:border-primary outline-none transition-all"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold text-[10px]">Kuantitas *</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={customQtyStr}
+                  onChange={e => setCustomQtyStr(e.target.value)}
+                  className="w-full bg-surface-dim border border-outline-variant/65 rounded-xl py-2 px-3 text-on-surface font-mono font-bold text-xs focus:border-primary outline-none transition-all"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Error display */}
+            {customError && (
+              <div className="flex items-center gap-2 bg-error-container/40 text-on-error-container rounded-xl p-2.5 text-xs border border-error/15">
+                <AlertCircle size={14} className="shrink-0" />
+                <span>{customError}</span>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-3 border-t border-outline-variant/30 pt-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCustomModal(false);
+                  setCustomError('');
+                }}
+                className="flex-1 bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/50 text-on-surface text-xs rounded-xl py-2.5 transition-all cursor-pointer font-semibold"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!customName.trim()) {
+                    setCustomError('Nama barang harus diisi.');
+                    return;
+                  }
+                  const price = parseInt(customPriceStr.replace(/\D/g, ''), 10) || 0;
+                  if (price <= 0) {
+                    setCustomError('Harga barang harus lebih dari 0.');
+                    return;
+                  }
+                  const qty = parseInt(customQtyStr, 10) || 1;
+                  if (qty <= 0) {
+                    setCustomError('Kuantitas harus minimal 1.');
+                    return;
+                  }
+                  if (!onAddDigitalItem) return;
+
+                  const timestamp = Date.now();
+                  const newItem: CartItem = {
+                    id: `custom-${timestamp}`,
+                    barcode: `NOBC-${timestamp}`,
+                    name: customName.trim(),
+                    qty: qty,
+                    price: price,
+                    subtotal: price * qty,
+                    isAgent: false,
+                  };
+
+                  onAddDigitalItem(newItem);
+                  
+                  // reset form
+                  setCustomName('');
+                  setCustomPriceStr('');
+                  setCustomQtyStr('1');
+                  setCustomError('');
+                  setShowCustomModal(false);
+                }}
+                className="flex-1 bg-primary hover:bg-primary/90 text-white text-xs rounded-xl py-2.5 transition-all font-bold cursor-pointer shadow-sm"
+              >
+                + Tambah Item
               </button>
             </div>
           </div>

@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
           discount,
           finalAmount, // total_amount
           payment_method.toLowerCase(), 
-          payment_method === 'SPLIT' ? dbSplitCash : (payment_method === 'QRIS' ? 0 : payment_received), 
+          payment_method === 'SPLIT' ? dbSplitCash : (payment_method === 'QRIS' ? (payment_received > 0 ? payment_received : finalAmount) : payment_received), 
           change_given, 
           saleStatus,
           dbSplitCash,

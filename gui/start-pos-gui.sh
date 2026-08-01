@@ -132,12 +132,23 @@ fi
 
 (
   echo "10"
-  echo "# Checking Docker..."
+  echo "# Checking Docker status..."
   sleep 1
 
   echo "40"
-  echo "# Building POS services (using local images)..."
-  docker compose "${COMPOSE_FILES[@]}" up -d --build --pull never >>"$LOG_FILE" 2>&1
+  echo "# Starting POS services..."
+  
+  IS_ONLINE=false
+  if ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1 || curl -s --connect-timeout 2 https://1.1.1.1 >/dev/null 2>&1; then
+    IS_ONLINE=true
+  fi
+
+  if [ "$IS_ONLINE" = true ]; then
+    docker compose "${COMPOSE_FILES[@]}" up -d --build >>"$LOG_FILE" 2>&1 || docker compose "${COMPOSE_FILES[@]}" up -d >>"$LOG_FILE" 2>&1
+  else
+    # Offline mode: Up directly using cached local image without hitting Docker Hub metadata lookup
+    docker compose "${COMPOSE_FILES[@]}" up -d >>"$LOG_FILE" 2>&1 || docker compose "${COMPOSE_FILES[@]}" up -d --build --pull never >>"$LOG_FILE" 2>&1
+  fi
 
   echo "90"
   echo "# Waiting for services to become healthy..."
@@ -158,7 +169,7 @@ if [ "$STATUS" -ne 0 ]; then
   exit 1
 fi
 
-if docker compose "${COMPOSE_FILES[@]}" ps --status running | grep -q 'pos_nextjs\|pos_app'; then
+if docker compose "${COMPOSE_FILES[@]}" ps 2>/dev/null | grep -E 'pos_nextjs|pos_app' | grep -iE 'running|up' >/dev/null 2>&1 || docker ps 2>/dev/null | grep -q 'pos_nextjs'; then
   if command -v xdg-open >/dev/null 2>&1; then
     xdg-open "http://localhost:3000" >/dev/null 2>&1 || true
   fi

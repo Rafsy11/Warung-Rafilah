@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
         `SELECT payment_method, 
                 SUM(total_amount) as total, 
                 SUM(payment_received) as payment_received,
+                SUM(change_given) as change_given,
                 SUM(split_cash_amount) as split_cash, 
                 SUM(split_qris_amount) as split_qris 
          FROM warung.sales 
@@ -57,18 +58,21 @@ export async function POST(req: NextRequest) {
       let cashSales = 0;
       let qrisSales = 0;
       let debtSales = 0;
+      let qrisCashChange = 0;
 
       for (const row of salesRes.rows) {
         const method = row.payment_method;
         const total = Number(row.total);
         const paymentReceived = Number(row.payment_received || 0);
+        const changeGiven = Number(row.change_given || 0);
         const splitCash = Number(row.split_cash || 0);
         const splitQris = Number(row.split_qris || 0);
 
         if (method === 'cash') {
           cashSales += total;
         } else if (method === 'qris') {
-          qrisSales += total;
+          qrisSales += (paymentReceived > 0 ? paymentReceived : total);
+          qrisCashChange += changeGiven;
         } else if (method === 'split') {
           cashSales += splitCash;
           qrisSales += splitQris;
@@ -87,7 +91,7 @@ export async function POST(req: NextRequest) {
       );
       const totalDebtPaid = Number(debtPaidRes.rows[0].total);
 
-      const expectedCash = startingCash + cashSales + totalDebtPaid;
+      const expectedCash = startingCash + cashSales + totalDebtPaid - qrisCashChange;
       const cashDifference = actualCashNum - expectedCash;
 
       // 3. Update session

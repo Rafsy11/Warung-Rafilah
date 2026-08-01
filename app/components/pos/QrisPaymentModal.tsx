@@ -9,6 +9,8 @@ type QrisPaymentModalProps = {
     transaction_code: string;
     total_amount: number;
     original_amount: number;
+    payment_received?: number;
+    change_given?: number;
     split_cash_amount?: number;
     split_qris_amount?: number;
   };
@@ -178,6 +180,26 @@ export default function QrisPaymentModal({
                 <div className="text-[10px] text-gray-500 uppercase tracking-wide">Nominal Transfer QRIS</div>
                 <div className="font-mono text-3xl font-extrabold text-blue-600 mt-1 tracking-tight">
                   Rp {sale.split_qris_amount.toLocaleString('id-ID')}
+                </div>
+              </>
+            ) : sale.change_given !== undefined && sale.change_given > 0 ? (
+              <>
+                <div className="flex justify-between items-center text-xs text-gray-600 mb-1">
+                  <span>Total Belanja:</span>
+                  <span className="font-bold text-gray-800">Rp {sale.total_amount.toLocaleString('id-ID')}</span>
+                </div>
+                <div className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">Nominal Transfer QRIS</div>
+                <div className="font-mono text-3xl font-extrabold text-blue-600 mt-0.5 tracking-tight">
+                  Rp {(sale.payment_received || sale.total_amount).toLocaleString('id-ID')}
+                </div>
+                <div className="mt-2 bg-emerald-50 border border-emerald-200 rounded-lg p-2 flex flex-col items-center">
+                  <div className="flex items-center justify-between w-full text-xs font-bold text-emerald-800">
+                    <span>💵 Kembalian Tunai:</span>
+                    <span className="font-mono text-base font-extrabold text-emerald-700">Rp {sale.change_given.toLocaleString('id-ID')}</span>
+                  </div>
+                  <span className="text-[10px] text-emerald-700 font-medium mt-0.5 text-center">
+                    Serahkan Rp {sale.change_given.toLocaleString('id-ID')} uang tunai dari laci kasir ke pelanggan.
+                  </span>
                 </div>
               </>
             ) : (

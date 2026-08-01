@@ -127,11 +127,15 @@ function buildRawReceiptText(d: any): Buffer {
         addLine(alignLeftRight('  - Sisa Bon', d.total.toLocaleString('id-ID'), width));
       }
     } else {
+      const isQrisOverpaid = method === 'QRIS' && (d.change > 0 || d.payment_received > d.total);
       const label = method === 'QRIS' ? 'Bayar (QRIS)' : 'Bayar (TUNAI)';
-      const receivedVal = method === 'QRIS' ? 'QRIS' : d.payment_received.toLocaleString('id-ID');
+      const receivedVal = method === 'QRIS' 
+        ? (isQrisOverpaid ? d.payment_received.toLocaleString('id-ID') : 'QRIS') 
+        : d.payment_received.toLocaleString('id-ID');
       addLine(alignLeftRight(label, receivedVal, width));
-      if (method !== 'QRIS') {
-        addLine(alignLeftRight('Kembali', d.change.toLocaleString('id-ID'), width));
+      if (method !== 'QRIS' || isQrisOverpaid) {
+        const changeLabel = isQrisOverpaid ? 'Kembali (Tunai)' : 'Kembali';
+        addLine(alignLeftRight(changeLabel, d.change.toLocaleString('id-ID'), width));
       }
     }
 

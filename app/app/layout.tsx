@@ -14,6 +14,8 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased" suppressHydrationWarning>
       <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#0f172a" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -25,6 +27,12 @@ export default function RootLayout({
                   document.documentElement.classList.add('dark');
                 }
               } catch (_) {}
+
+              if ('serviceWorker' in navigator && window.location.protocol !== 'http:') {
+                window.addEventListener('load', () => {
+                  navigator.serviceWorker.register('/sw.js').catch(() => {});
+                });
+              }
             `,
           }}
         />

@@ -74,6 +74,8 @@ export default function PosDashboard() {
     total_amount: number;
     original_amount: number;
     discount?: number;
+    payment_received?: number;
+    change_given?: number;
     split_cash_amount?: number;
     split_qris_amount?: number;
     items: { name: string; qty: number; unit_price: number; subtotal: number }[];
@@ -332,7 +334,7 @@ export default function PosDashboard() {
     try {
       const total       = cart.reduce((s, i) => s + i.subtotal, 0);
       const finalTotal  = Math.max(0, total - discount);
-      const change_given = method === 'CASH' ? Math.max(0, received - finalTotal) : 0;
+      const change_given = (method === 'CASH' || method === 'QRIS') ? Math.max(0, received - finalTotal) : 0;
       const payload = {
         total_amount:     total,
         discount:         discount,
@@ -372,6 +374,8 @@ export default function PosDashboard() {
           total_amount: data.total_amount,
           original_amount: total,
           discount: discount,
+          payment_received: received > 0 ? received : data.total_amount,
+          change_given: change_given,
           split_cash_amount: data.split_cash_amount,
           split_qris_amount: data.split_qris_amount,
           items: cart.map(i => ({
@@ -643,7 +647,7 @@ export default function PosDashboard() {
           </div>
         )}
 
-        <div className="flex-1 flex gap-gutter overflow-hidden">
+        <div className="flex-1 flex gap-3.5 overflow-hidden">
           {mode === 'warung' ? (
         <>
           <CartTable

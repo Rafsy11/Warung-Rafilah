@@ -364,7 +364,7 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
   }, [canSubmit, selectedProd, phone, amount, adminFee, commission, onToast, fetchRecent]);
 
   return (
-    <div className="flex-1 flex gap-gutter overflow-hidden">
+    <div className="flex-1 flex gap-3.5 overflow-hidden">
 
       {/* ── Closing Modal ─────────────────────────────────────────────────── */}
       {showClosingModal && (

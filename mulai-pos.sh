@@ -58,8 +58,18 @@ if [ -f "docker-compose.linux.yml" ]; then
     COMPOSE_CMD="docker compose -f docker-compose.yml -f docker-compose.linux.yml"
 fi
 
-echo "📥 Menarik/memperbarui image docker..."
-$COMPOSE_CMD pull
+# Cek status koneksi internet (Hybrid Online/Offline)
+IS_ONLINE=false
+if ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1 || curl -s --connect-timeout 2 https://1.1.1.1 >/dev/null 2>&1; then
+    IS_ONLINE=true
+fi
+
+if [ "$IS_ONLINE" = true ]; then
+    echo "📥 Mode ONLINE: Menarik/memperbarui image docker..."
+    $COMPOSE_CMD pull || echo "⚠️ Gagal pull image online, menggunakan image lokal yang tersimpan."
+else
+    echo "⚡ Mode OFFLINE: Melewati update image online, menggunakan image lokal."
+fi
 
 echo "▶️  Menyalakan server POS..."
 $COMPOSE_CMD up -d

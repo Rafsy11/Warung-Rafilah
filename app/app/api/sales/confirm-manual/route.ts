@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
       // 1. Update sale status to 'completed' and set payment_received
       await client.query(
-        "UPDATE warung.sales SET status = 'completed', payment_received = total_amount WHERE id = $1",
+        "UPDATE warung.sales SET status = 'completed', payment_received = CASE WHEN payment_received > 0 THEN payment_received ELSE total_amount END WHERE id = $1",
         [saleId]
       );
 

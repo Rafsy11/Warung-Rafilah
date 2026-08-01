@@ -27,11 +27,11 @@ if [ -f "docker-compose.linux.yml" ]; then
 fi
 
 echo "🛑 Menghentikan server POS secara aman..."
-$COMPOSE_CMD down
+$COMPOSE_CMD down --remove-orphans --timeout 10
 
 if [ $? -eq 0 ]; then
-    echo "✅ POS Warung Rafilah berhasil dimatikan."
-    echo "Anda sekarang dapat mematikan PC Kasir dengan aman."
+    echo "✅ POS Warung Rafilah berhasil dimatikan secara bersih."
+    echo "Data database telah tersimpan aman. Anda dapat mematikan PC Kasir."
 else
     echo "❌ Terjadi masalah saat menghentikan server. Coba jalankan:"
     echo "   $COMPOSE_CMD down"
