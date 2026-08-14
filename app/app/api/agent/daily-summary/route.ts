@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { requireRole } from '@/lib/rbac';
 
 /**
  * GET /api/agent/daily-summary?date=YYYY-MM-DD
@@ -9,6 +10,9 @@ import { db } from '@/lib/db';
  * @example GET /api/agent/daily-summary?date=2025-06-22
  */
 export async function GET(req: NextRequest) {
+  const forbidden = requireRole(req, ['owner', 'cashier', 'agent_operator']);
+  if (forbidden) return forbidden;
+
   const { searchParams } = req.nextUrl;
   const date = searchParams.get('date') ?? new Date().toISOString().slice(0, 10);
 

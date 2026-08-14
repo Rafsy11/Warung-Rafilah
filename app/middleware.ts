@@ -66,13 +66,23 @@ export async function middleware(req: NextRequest) {
     decoded = await verifyToken(token);
   }
 
+  const requestHeaders = new Headers(req.headers);
+  // Always strip any client-supplied spoofed headers
+  requestHeaders.delete('x-user-id');
+  requestHeaders.delete('x-user-role');
+
   if (!decoded) {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json(
+        { error: { code: 'unauthorized', message: 'Sesi tidak valid atau telah berakhir.' } },
+        { status: 401 }
+      );
+    }
     const loginUrl = req.nextUrl.clone();
     loginUrl.pathname = '/login';
     return NextResponse.redirect(loginUrl);
   }
 
-  const requestHeaders = new Headers(req.headers);
   requestHeaders.set('x-user-id',   String(decoded.sub  ?? ''));
   requestHeaders.set('x-user-role', String(decoded.role ?? ''));
 

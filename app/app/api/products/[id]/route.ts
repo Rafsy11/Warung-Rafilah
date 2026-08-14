@@ -60,9 +60,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (rows.length === 0) return NextResponse.json({ error: { code: 'not_found', message: 'Product not found' } }, { status: 404 });
     
     return NextResponse.json(rows[0]);
-  } catch {
+  } catch (err) {
+    console.error('Product PUT/PATCH Error:', err);
     return NextResponse.json({ error: { code: 'internal_error', message: 'Database error' } }, { status: 500 });
   }
+}
+
+export async function PUT(req: Request, context: { params: Promise<{ id: string }> }) {
+  return PATCH(req, context);
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {

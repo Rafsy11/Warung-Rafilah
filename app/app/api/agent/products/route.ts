@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { requireRole } from '@/lib/rbac';
 
 interface DigitalProduct {
   id: string;
@@ -24,6 +25,9 @@ interface CategoryGroup {
  * Daftar semua produk digital aktif, opsional dikelompokkan per kategori.
  */
 export async function GET(req: NextRequest) {
+  const forbidden = requireRole(req, ['owner', 'cashier', 'agent_operator']);
+  if (forbidden) return forbidden;
+
   try {
     const grouped = req.nextUrl.searchParams.get('grouped') === 'true';
 
@@ -68,6 +72,9 @@ export async function GET(req: NextRequest) {
  * Tambah produk digital baru (owner only).
  */
 export async function POST(req: NextRequest) {
+  const forbidden = requireRole(req, ['owner']);
+  if (forbidden) return forbidden;
+
   try {
     const body = await req.json();
     const { category, product_name, product_code, admin_fee, agent_commission, icon_emoji, sort_order } = body;
@@ -118,6 +125,9 @@ export async function POST(req: NextRequest) {
  * Body: { id, ...fields_to_update }
  */
 export async function PUT(req: NextRequest) {
+  const forbidden = requireRole(req, ['owner']);
+  if (forbidden) return forbidden;
+
   try {
     const body = await req.json();
     const { id, ...updates } = body;

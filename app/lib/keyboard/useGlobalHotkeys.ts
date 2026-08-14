@@ -16,8 +16,11 @@ type HotkeysConfig = {
   onAlt2?:   () => void;
   onAlt3?:   () => void;
   onAlt4?:   () => void;
+  onAltA?:   () => void;
   onAltC?:   () => void;
+  onAltN?:   () => void;
   onAltP?:   () => void;
+  onAltS?:   () => void;
   onAsterisk?: () => void;
 };
 
@@ -150,14 +153,29 @@ export function useGlobalHotkeys(config: HotkeysConfig) {
           config.onAlt4();
           return;
         }
+        if ((e.key === 'a' || e.key === 'A') && config.onAltA) {
+          e.preventDefault();
+          config.onAltA();
+          return;
+        }
         if ((e.key === 'c' || e.key === 'C') && config.onAltC) {
           e.preventDefault();
           config.onAltC();
           return;
         }
+        if ((e.key === 'n' || e.key === 'N') && config.onAltN) {
+          e.preventDefault();
+          config.onAltN();
+          return;
+        }
         if ((e.key === 'p' || e.key === 'P') && config.onAltP) {
           e.preventDefault();
           config.onAltP();
+          return;
+        }
+        if ((e.key === 's' || e.key === 'S') && config.onAltS) {
+          e.preventDefault();
+          config.onAltS();
           return;
         }
       }

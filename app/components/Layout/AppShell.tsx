@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { RefreshCw, Store, Printer, BarChart3, Sun, Moon, LogOut, Sparkles, Keyboard, Calculator } from 'lucide-react';
+import { RefreshCw, Store, Printer, BarChart3, Sun, Moon, LogOut, Sparkles, Keyboard, Calculator, Wifi, WifiOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import NetworkStatusModal from '@/components/pos/NetworkStatusModal';
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -39,6 +40,7 @@ export default function AppShell({
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [isOnline, setIsOnline] = useState<boolean>(true);
+  const [showNetworkModal, setShowNetworkModal] = useState<boolean>(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -128,12 +130,19 @@ export default function AppShell({
                 <h1 id="brand-title" className="text-sm font-bold tracking-tight text-on-surface leading-none">
                   WARUNG RAFILAH
                 </h1>
-                <span id="system-online-badge" className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium leading-none ${
-                  isOnline ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                }`}>
-                  <span className={`w-1.5 h-1.5 rounded-full mr-1 ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-                  {isOnline ? 'Online' : 'Offline'}
-                </span>
+                <button 
+                  id="system-online-badge" 
+                  onClick={() => setShowNetworkModal(true)}
+                  title="Klik untuk lihat Diagnostic Monitoring Status"
+                  className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold leading-none cursor-pointer transition-all hover:scale-105 active:scale-95 border ${
+                    isOnline 
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20' 
+                      : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 hover:bg-amber-500/20'
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full mr-1 animate-pulse ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                  {isOnline ? 'Online Engine' : 'Offline Mode (Local Active)'}
+                </button>
               </div>
               <span className="text-[10px] text-on-surface-variant font-medium tracking-wide uppercase mt-0.5">POS System</span>
             </div>
@@ -375,6 +384,13 @@ export default function AppShell({
           v2.4.0-stable
         </div>
       </footer>
+
+      {/* Connectivity Diagnostic Modal */}
+      <NetworkStatusModal 
+        isOpen={showNetworkModal} 
+        onClose={() => setShowNetworkModal(false)} 
+        isOnline={isOnline} 
+      />
     </div>
   );
 }

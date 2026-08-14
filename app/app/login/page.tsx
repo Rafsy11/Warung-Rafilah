@@ -89,7 +89,7 @@ export default function LoginPage() {
 
         {/* Form card */}
         <div className="bg-surface-container rounded-2xl border border-outline-variant p-8 shadow-xl shadow-black/30">
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <form onSubmit={handleSubmit} autoComplete="off" className="flex flex-col gap-5">
             {/* Username */}
             <div className="flex flex-col gap-1.5">
               <label
@@ -102,11 +102,12 @@ export default function LoginPage() {
                 id="username"
                 ref={inputRef}
                 type="text"
-                autoComplete="username"
+                autoComplete="off"
+                name="pos_user_login"
                 value={username}
                 onChange={e => { setUsername(e.target.value); setError(''); }}
                 className="bg-surface-dim border border-outline-variant rounded-lg px-4 py-3 text-on-surface font-body-md text-body-md focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-colors placeholder:text-on-surface-variant/40"
-                placeholder="admin"
+                placeholder="Masukkan username"
                 disabled={loading}
               />
             </div>
@@ -123,7 +124,8 @@ export default function LoginPage() {
                 <input
                   id="password"
                   type={showPwd ? 'text' : 'password'}
-                  autoComplete="current-password"
+                  autoComplete="new-password"
+                  name="pos_pin_login"
                   value={password}
                   onChange={e => { setPassword(e.target.value); setError(''); }}
                   className="w-full bg-surface-dim border border-outline-variant rounded-lg px-4 py-3 pr-12 text-on-surface font-body-md text-body-md focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-colors placeholder:text-on-surface-variant/40"

@@ -336,7 +336,7 @@ export default function ProductConversionTab({
   };
 
   return (
-    <div className="flex-1 flex gap-gutter overflow-hidden h-full w-full">
+    <section id="product-conversion-tab-container" className="flex-1 flex gap-3.5 overflow-hidden h-full w-full">
       {/* LEFT: Manual Conversion */}
       <div className="w-[450px] bg-surface-container rounded-xl border border-outline-variant p-5 flex flex-col shrink-0 overflow-y-auto">
         <div className="flex items-center gap-2 mb-4 shrink-0 border-b border-outline-variant/30 pb-3">
@@ -733,6 +733,6 @@ export default function ProductConversionTab({
           )}
         </div>
       </div>
-    </div>
+    </section>
   );
 }

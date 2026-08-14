@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { requireRole } from '@/lib/rbac';
 
 const querySchema = z.object({
   barcode: z.string().min(1)
 });
 
 export async function GET(request: NextRequest) {
+  const forbidden = requireRole(request, ['owner', 'cashier']);
+  if (forbidden) return forbidden;
   try {
     const { searchParams } = new URL(request.url);
     const barcode = searchParams.get('barcode');

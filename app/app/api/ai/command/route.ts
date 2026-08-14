@@ -29,6 +29,72 @@ function sanitize(s: string): string {
   ).trim().slice(0, 500);
 }
 
+// ── Smart Fallback Intent Classifier (guarantees AI availability) ───────────
+function fallbackIntentClassifier(p: string): any {
+  const text = p.toLowerCase().trim();
+
+  if (/\b(siapa|nama|halo|hi|helo|hallo|selamat)\b/.test(text)) {
+    return {
+      action: 'GREET',
+      direct_response: 'Halo! Saya Velo, Asisten AI resmi POS Warung Rafilah. Saya siap membantu Anda mengelola stok, melihat ringkasan penjualan, mengecek hutang pelanggan, dan laporan operasional warung.'
+    };
+  }
+  if (/\b(bantuan|help|panduan|bisa apa|fitur)\b/.test(text)) {
+    return {
+      action: 'HELP',
+      direct_response: 'Saya bisa membantu Anda dengan perintah seperti:\n- "Cek stok kritis"\n- "Ringkasan penjualan hari ini"\n- "Produk kadaluarsa"\n- "Daftar hutang pelanggan"\n- "Saldo float agen"\n- "Tambah stok [nama produk] [jumlah]"'
+    };
+  }
+  if (/\b(omset|omzet|penjualan|laporan|terjual|laku)\b/.test(text) && !/\b(terlaris|top)\b/.test(text)) {
+    return { action: 'INQUIRY_SALES' };
+  }
+  if (/\b(laba|profit|keuntungan|margin)\b/.test(text)) {
+    return { action: 'INQUIRY_PROFIT' };
+  }
+  if (/\b(terlaris|top|paling laku|banyak dibeli)\b/.test(text)) {
+    return { action: 'INQUIRY_TOP_PRODUCTS' };
+  }
+  if (/\b(kritis|hampir habis|menipis|stok habis|stok sikit|stok dikit)\b/.test(text) || (/\bstok\b/.test(text) && !/\b(tambah|kurang|ubah)\b/.test(text))) {
+    return { action: 'INQUIRY_LOW_STOCK' };
+  }
+  if (/\b(exp|expired|kadaluarsa|kadaluwarsa|basi)\b/.test(text)) {
+    return { action: 'INQUIRY_EXPIRY' };
+  }
+  if (/\b(hutang|kasbon|piutang|tagihan)\b/.test(text)) {
+    return { action: 'INQUIRY_DEBT' };
+  }
+  if (/\b(float|saldo float|saldo agen)\b/.test(text)) {
+    return { action: 'INQUIRY_FLOAT' };
+  }
+  if (/\b(konsinyasi|titipan)\b/.test(text)) {
+    return { action: 'INQUIRY_CONSIGNMENT' };
+  }
+  if (/\b(diskon|promo|potongan)\b/.test(text)) {
+    return { action: 'INQUIRY_DISCOUNTS' };
+  }
+  if (/\b(sesi|shift|kasir)\b/.test(text)) {
+    return { action: 'INQUIRY_SESSION' };
+  }
+  if (/\b(pelanggan|customer|member)\b/.test(text)) {
+    return { action: 'INQUIRY_CUSTOMERS' };
+  }
+
+  const restockMatch = text.match(/(?:tambah|isi|restock)\s+(?:stok\s+)?(.+?)\s+(\d+)/i);
+  if (restockMatch) {
+    return { action: 'RESTOCK', product_query: restockMatch[1].trim(), quantity: parseInt(restockMatch[2], 10) };
+  }
+
+  const reduceMatch = text.match(/(?:kurang|kurangi|potong|rusak|shrinkage)\s+(?:stok\s+)?(.+?)\s+(\d+)/i);
+  if (reduceMatch) {
+    return { action: 'REDUCE', product_query: reduceMatch[1].trim(), quantity: parseInt(reduceMatch[2], 10) };
+  }
+
+  return {
+    action: 'UNKNOWN',
+    direct_response: `Saya Velo, Asisten AI Warung Rafilah. Coba tanya "cek stok", "penjualan hari ini", "hutang pelanggan", atau "bantuan".`
+  };
+}
+
 export async function POST(req: Request) {
   const userRole = req.headers.get('x-user-role');
   const userId   = req.headers.get('x-user-id') ?? 'unknown';
@@ -230,51 +296,78 @@ Kembalikan HANYA JSON (tanpa markdown, tanpa komentar):
   "direct_response": "<jawaban langsung untuk GREET/HELP/UNKNOWN>"
 }`;
 
-      let rawText = '';
-      if (aiBaseUrl && aiApiKey) {
-        const url = `${aiBaseUrl.replace(/\/$/, '')}/chat/completions`;
-        const aiRes = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${aiApiKey}`
-          },
-          body: JSON.stringify({
-            model: aiModel,
-            messages: [{ role: 'user', content: systemPrompt }],
-            temperature: 0.1,
-            response_format: { type: 'json_object' }
-          })
-        });
-
-        if (!aiRes.ok) {
-          throw new Error(`AI Proxy API error: ${aiRes.status} ${await aiRes.text()}`);
-        }
-        const aiJson = await aiRes.json();
-        rawText = aiJson.choices?.[0]?.message?.content || '';
-      } else {
-        const gemRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
-          {
+      let p: any = null;
+      try {
+        let rawText = '';
+        if (aiBaseUrl && aiApiKey) {
+          const url = `${aiBaseUrl.replace(/\/$/, '')}/chat/completions`;
+          const aiRes = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${aiApiKey}`
+            },
             body: JSON.stringify({
-              contents: [{ parts: [{ text: systemPrompt }] }],
-              generationConfig: { responseMimeType: 'application/json', temperature: 0.1 },
-            }),
-          }
-        );
+              model: aiModel,
+              messages: [{ role: 'user', content: systemPrompt }],
+              temperature: 0.1,
+              response_format: { type: 'json_object' }
+            })
+          });
 
-        if (!gemRes.ok) throw new Error(`Gemini API error: ${await gemRes.text()}`);
-        const gemJson = await gemRes.json();
-        rawText = gemJson.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          if (aiRes.ok) {
+            const aiJson = await aiRes.json();
+            rawText = aiJson.choices?.[0]?.message?.content || '';
+          }
+        }
+
+        if (!rawText && geminiKey) {
+          // Try gemini-2.0-flash first
+          let gemRes = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: systemPrompt }] }],
+                generationConfig: { responseMimeType: 'application/json', temperature: 0.1 },
+              }),
+            }
+          );
+
+          if (!gemRes.ok) {
+            // Fallback to gemini-1.5-flash
+            gemRes = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: systemPrompt }] }],
+                  generationConfig: { responseMimeType: 'application/json', temperature: 0.1 },
+                }),
+              }
+            );
+          }
+
+          if (gemRes.ok) {
+            const gemJson = await gemRes.json();
+            rawText = gemJson.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          }
+        }
+
+        if (rawText) {
+          const cleanJsonStr = rawText.replace(/^```json\s*/, '').replace(/```\s*$/, '').trim();
+          p = JSON.parse(cleanJsonStr);
+        }
+      } catch (e) {
+        console.warn('AI LLM call failed, engaging fallback intent classifier:', e);
       }
 
-      if (!rawText) throw new Error('Model AI tidak mengembalikan respons.');
+      if (!p) {
+        p = fallbackIntentClassifier(prompt);
+      }
 
-      // Strip markdown code blocks if present
-      const cleanJsonStr = rawText.replace(/^```json\s*/, '').replace(/```\s*$/, '').trim();
-      const p = JSON.parse(cleanJsonStr);
       const {
         action, product_query, customer_query, quantity, reason, payment_filter, direct_response,
         new_sell_price, new_cost_price, new_reorder_threshold, new_credit_limit,

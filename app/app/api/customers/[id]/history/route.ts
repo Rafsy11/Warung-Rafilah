@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { requireRole } from '@/lib/rbac';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const forbidden = requireRole(req, ['owner', 'cashier']);
+  if (forbidden) return forbidden;
+
   const { id } = await params;
   try {
     // Fetch debt ledger entries

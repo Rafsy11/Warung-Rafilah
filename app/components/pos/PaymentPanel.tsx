@@ -250,6 +250,20 @@ export default function PaymentPanel({
         handlePay();
       }
     };
+    const onExactCash = () => {
+      if (grandTotal <= 0 || paying) return;
+      setMethod('CASH');
+      setReceived(grandTotal);
+      onPay('CASH', grandTotal);
+    };
+    const onSelectCustomer = () => {
+      setMethod('DEBT');
+      setTimeout(() => {
+        const inp = document.getElementById('customer-search-input') as HTMLInputElement;
+        inp?.focus();
+        inp?.select();
+      }, 50);
+    };
 
     window.addEventListener('hotkey-pay-cash', onSelectCash);
     window.addEventListener('hotkey-pay-qris', onSelectQris);
@@ -257,6 +271,8 @@ export default function PaymentPanel({
     window.addEventListener('hotkey-pay-debt', onSelectDebt);
     window.addEventListener('hotkey-focus-payment', onFocusPayment);
     window.addEventListener('hotkey-trigger-pay', onTriggerPay);
+    window.addEventListener('hotkey-pay-exact-cash', onExactCash);
+    window.addEventListener('hotkey-select-customer', onSelectCustomer);
 
     return () => {
       window.removeEventListener('hotkey-pay-cash', onSelectCash);
@@ -265,8 +281,10 @@ export default function PaymentPanel({
       window.removeEventListener('hotkey-pay-debt', onSelectDebt);
       window.removeEventListener('hotkey-focus-payment', onFocusPayment);
       window.removeEventListener('hotkey-trigger-pay', onTriggerPay);
+      window.removeEventListener('hotkey-pay-exact-cash', onExactCash);
+      window.removeEventListener('hotkey-select-customer', onSelectCustomer);
     };
-  }, [method, canPay, handlePay]);
+  }, [method, canPay, handlePay, grandTotal, paying, onPay]);
 
   return (
     <aside id="payment-panel-sidebar" aria-label="Panel Pembayaran dan Kasir" className="w-96 shrink-0 flex flex-col h-full overflow-hidden border border-outline-variant/50 bg-surface-container-low p-3 justify-between rounded-2xl shadow-md transition-all duration-200">

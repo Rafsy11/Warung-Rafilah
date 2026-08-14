@@ -1,7 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { requireRole } from '@/lib/rbac';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const forbidden = requireRole(req, ['owner', 'cashier']);
+  if (forbidden) return forbidden;
   try {
     const { rows } = await db.query(
       `SELECT id, barcode, name, category, unit, cost_price, stock_qty, reorder_threshold,

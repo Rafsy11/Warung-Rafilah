@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { requireRole } from '@/lib/rbac';
 
 const quickAddSchema = z.object({
   barcode:    z.string().min(1),
@@ -9,16 +10,10 @@ const quickAddSchema = z.object({
   category:   z.string().max(50).optional().default('Lainnya'),
 });
 
-/**
- * POST /api/products/quick-add
- * Lightweight product creation for the checkout flow.
- * Unlike POST /api/products (owner-only), this is accessible by any cashier
- * so they can register unknown barcodes without leaving the POS screen.
- *
- * Only creates minimal records — cost_price defaults to 0, stock defaults to 999.
- * Owner can refine details later via Admin panel.
- */
 export async function POST(request: NextRequest) {
+  const forbidden = requireRole(request, ['owner', 'cashier']);
+  if (forbidden) return forbidden;
+
   try {
     const body = await request.json();
     const parsed = quickAddSchema.safeParse(body);
@@ -63,6 +58,17 @@ export async function POST(request: NextRequest) {
     const STOCK_DEFAULT    = 999;
     const COST_DEFAULT     = 0;
     const REORDER_DEFAULT  = 5;
+
+    // Simultaneously learn to local_master_products dictionary
+    await db.query(
+      `INSERT INTO warung.local_master_products (barcode, nama_barang, kategori)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (barcode) DO UPDATE SET
+         nama_barang = EXCLUDED.nama_barang,
+         kategori = EXCLUDED.kategori,
+         updated_at = now()`,
+      [barcode, name, category]
+    ).catch(err => console.warn('Failed to sync quick-add to local_master_products:', err));
 
     const { rows } = await db.query(
       `INSERT INTO warung.products

@@ -27,6 +27,7 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShor
       items: [
         { key: 'F7', desc: 'Fokus ke Input Cari & Scan Produk' },
         { key: 'F9', desc: 'Pindah ke Panel Pembayaran / Selesaikan Transaksi' },
+        { key: 'Alt + N', desc: 'Tambah Produk Tanpa Barcode / Manual' },
         { key: 'Alt + P', desc: 'Selesaikan & Proses Pembayaran (Bayar)' },
         { key: 'F10', desc: 'Cetak Ulang (Reprint) Struk Terakhir' },
         { key: 'Esc', desc: 'Kosongkan Keranjang / Tutup Dialog Aktif' },
@@ -40,6 +41,8 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShor
         { key: 'Alt + 2', desc: 'Pilih Pembayaran QRIS' },
         { key: 'Alt + 3', desc: 'Pilih Pembayaran Campuran (SPLIT)' },
         { key: 'Alt + 4', desc: 'Pilih Pembayaran Hutang / Kasbon (DEBT)' },
+        { key: 'Alt + S', desc: 'Pilih Pelanggan (Hutang / Member)' },
+        { key: 'Alt + A', desc: 'Bayar Tunai Uang Pas (Instant Exact Cash)' },
         { key: '* (Numpad)', desc: 'Buka Laci Kasir (Kick Cash Drawer) Saja' },
       ]
     },

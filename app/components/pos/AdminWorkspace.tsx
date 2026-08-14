@@ -1256,7 +1256,7 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
 
         {/* Tab Kelola Pelanggan */}
         {activeTab === 'customers' && (
-          <div className="flex-1 flex gap-gutter overflow-hidden h-full">
+          <div className="flex-1 flex gap-3.5 overflow-hidden h-full">
             {/* LEFT: Customer List & Create Form */}
             <div className="flex-1 flex flex-col bg-surface-container rounded-xl border border-outline-variant p-4 overflow-hidden">
               <div className="flex justify-between items-center mb-4 shrink-0">
@@ -1853,7 +1853,7 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
         )}
 
         {activeTab === 'float' && (
-          <div className="flex-1 flex gap-gutter overflow-hidden h-full">
+          <div className="flex-1 flex gap-3.5 overflow-hidden h-full">
             {/* LEFT: Float adjustment form */}
             <div className="w-96 shrink-0 flex flex-col bg-surface-container rounded-xl border border-outline-variant p-4 overflow-y-auto">
               <div className="flex items-center gap-2 mb-4 shrink-0">
@@ -2048,7 +2048,7 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
         )}
 
         {activeTab === 'consignment' && (
-          <div className="flex-1 flex gap-gutter overflow-hidden h-full w-full">
+          <div className="flex-1 flex gap-3.5 overflow-hidden h-full w-full">
             {/* LEFT: Summary of debts by supplier */}
             <div className="w-[380px] bg-surface-container rounded-xl border border-outline-variant p-4 flex flex-col shrink-0 overflow-y-auto">
               <div className="flex items-center gap-2 mb-4 border-b border-outline-variant/30 pb-3 shrink-0">
@@ -2178,7 +2178,7 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
         )}
 
         {activeTab === 'procurement' && (
-          <div className="flex-1 flex gap-gutter overflow-hidden h-full w-full">
+          <div className="flex-1 flex gap-3.5 overflow-hidden h-full w-full">
             {/* Main table showing procurement items */}
             <div className="flex-1 flex flex-col bg-surface-container rounded-xl border border-outline-variant p-5 overflow-hidden">
               <div className="flex justify-between items-center mb-4 shrink-0">
@@ -2277,7 +2277,7 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
 
         {/* ── Tab Manajemen Diskon ───────────────────────────────────────────── */}
         {activeTab === 'discounts' && (
-          <div className="flex-1 flex gap-gutter overflow-hidden h-full">
+          <div className="flex-1 flex gap-3.5 overflow-hidden h-full">
             {/* LEFT: Discount List */}
             <div className="flex-1 flex flex-col bg-surface-container rounded-xl border border-outline-variant p-5 overflow-hidden">
               <div className="flex justify-between items-center mb-4 shrink-0">

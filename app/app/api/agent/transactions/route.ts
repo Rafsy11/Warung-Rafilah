@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { requireRole, requireAuth } from '@/lib/rbac';
 
 /** GET /api/agent/transactions?status=pending&limit=20 */
 export async function GET(req: NextRequest) {
+  const forbidden = requireRole(req, ['owner', 'cashier', 'agent_operator']);
+  if (forbidden) return forbidden;
+
   try {
     const { searchParams } = req.nextUrl;
     const status = searchParams.get('status');
@@ -40,8 +44,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-
-
 const agentTxSchema = z.object({
   transaction_code: z.string(),
   operator_id: z.string().uuid().optional(),
@@ -59,6 +61,9 @@ const agentTxSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const { errorResponse, userId: operator_id } = requireAuth(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const body = await request.json();
     const parsed = agentTxSchema.safeParse(body);
@@ -73,13 +78,6 @@ export async function POST(request: NextRequest) {
     
     try {
       await client.query('BEGIN');
-
-      let operator_id = request.headers.get('x-user-id');
-      if (!operator_id) {
-        const userResult = await client.query('SELECT id FROM core.users LIMIT 1');
-        if (userResult.rows.length === 0) throw new Error('No user found to act as operator');
-        operator_id = userResult.rows[0].id;
-      }
 
       // 1. Catat master transaksi AmarthaFin dengan status pending
       const txResult = await client.query(

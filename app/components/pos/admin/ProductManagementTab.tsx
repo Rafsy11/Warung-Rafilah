@@ -253,11 +253,16 @@ export default function ProductManagementTab({
         setEditingProduct(null);
         fetchProducts(searchQuery);
       } else {
-        const err = await res.json();
-        setFormError(err.error || 'Gagal menyimpan produk.');
+        const errData = await res.json().catch(() => null);
+        const errMsg = 
+          typeof errData?.error === 'string' 
+            ? errData.error 
+            : (errData?.error?.message || errData?.message || 'Gagal menyimpan produk.');
+        setFormError(errMsg);
       }
-    } catch {
-      setFormError('Koneksi database bermasalah.');
+    } catch (err: any) {
+      console.error('Save product error:', err);
+      setFormError(err?.message || 'Gagal terhubung ke server.');
     } finally {
       setSaving(false);
     }

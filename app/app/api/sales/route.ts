@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { requireRole, requireAuth } from '@/lib/rbac';
 
 const digitalDetailsSchema = z.object({
   service_type: z.enum(['e_wallet_topup', 'bill_payment', 'qris_deposit', 'cash_withdrawal', 'transfer']),
@@ -35,6 +36,9 @@ const saleRequestSchema = z.object({
 
 /** GET /api/sales?date=YYYY-MM-DD&limit=50 */
 export async function GET(req: NextRequest) {
+  const forbidden = requireRole(req, ['owner', 'cashier']);
+  if (forbidden) return forbidden;
+
   const { searchParams } = req.nextUrl;
   const date  = searchParams.get('date') ?? new Date().toISOString().slice(0, 10);
   const limit = Math.min(parseInt(searchParams.get('limit') ?? '50', 10), 200);
@@ -56,9 +60,10 @@ export async function GET(req: NextRequest) {
   }
 }
 
-
-
 export async function POST(request: NextRequest) {
+  const { errorResponse, userId: cashier_id } = requireAuth(request);
+  if (errorResponse) return errorResponse;
+
   try {
     const body = await request.json();
     const parsed = saleRequestSchema.safeParse(body);
@@ -87,15 +92,6 @@ export async function POST(request: NextRequest) {
     
     try {
       await client.query('BEGIN');
-
-      // Pakai cashier ID dari JWT header yang di-set middleware
-      let cashier_id = request.headers.get('x-user-id');
-      if (!cashier_id) {
-        // Fallback dev-only: ambil user pertama
-        const userResult = await client.query('SELECT id FROM core.users LIMIT 1');
-        if (userResult.rows.length === 0) throw new Error('No user found to act as cashier');
-        cashier_id = userResult.rows[0].id;
-      }
 
       // Check active cashier session
       const sessionRes = await client.query(

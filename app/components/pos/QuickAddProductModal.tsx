@@ -31,12 +31,34 @@ export default function QuickAddProductModal({ barcode, onSaved, onClose }: Quic
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState('');
   const nameRef = useRef<HTMLInputElement>(null);
+  const priceRef = useRef<HTMLInputElement>(null);
 
-  // Autofocus on product name input when modal opens
+  // Auto-check Kamus Master Products on mount
   useEffect(() => {
-    const timer = setTimeout(() => nameRef.current?.focus(), 80);
-    return () => clearTimeout(timer);
-  }, []);
+    let isMounted = true;
+    async function checkKamus() {
+      try {
+        const res = await fetch(`/api/check-master-product?barcode=${encodeURIComponent(barcode)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted && data.status === 'ada_di_kamus' && data.preset) {
+            setName(data.preset.nama_barang || '');
+            if (data.preset.kategori) setCategory(data.preset.kategori);
+            // High-speed DOM Auto-Focus straight into Price field!
+            setTimeout(() => priceRef.current?.focus(), 50);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Check master product error:', err);
+      }
+      if (isMounted) {
+        setTimeout(() => nameRef.current?.focus(), 80);
+      }
+    }
+    checkKamus();
+    return () => { isMounted = false; };
+  }, [barcode]);
 
   // Close on Escape
   useEffect(() => {
@@ -180,6 +202,7 @@ export default function QuickAddProductModal({ barcode, onSaved, onClose }: Quic
               </span>
               <input
                 id="input-quick-add-price"
+                ref={priceRef}
                 type="text"
                 value={priceStr ? Number(priceStr.replace(/[^0-9]/g, '')).toLocaleString('id-ID') : ''}
                 onChange={e => setPriceStr(e.target.value.replace(/[^0-9]/g, ''))}

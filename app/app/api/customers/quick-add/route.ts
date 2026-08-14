@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { requireRole } from '@/lib/rbac';
 
 const quickAddCustomerSchema = z.object({
   name:         z.string().min(1).max(100),
@@ -10,15 +11,10 @@ const quickAddCustomerSchema = z.object({
 
 const DEFAULT_CREDIT_LIMIT = 500_000;
 
-/**
- * POST /api/customers/quick-add
- * Lightweight customer creation for the checkout flow.
- * Unlike POST /api/customers (owner-only), accessible by any cashier
- * so they can register new customers during debt/bon checkout.
- *
- * Returns the full customer record for immediate selection in PaymentPanel.
- */
 export async function POST(request: NextRequest) {
+  const forbidden = requireRole(request, ['owner', 'cashier']);
+  if (forbidden) return forbidden;
+
   try {
     const body = await request.json();
     const parsed = quickAddCustomerSchema.safeParse(body);

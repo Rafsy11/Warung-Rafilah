@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { z } from 'zod';
+import { requireRole } from '@/lib/rbac';
 
 const patchSchema = z.object({
   status: z.enum(['success', 'failed', 'reversed']),
@@ -11,6 +12,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const forbidden = requireRole(request, ['owner', 'cashier', 'agent_operator']);
+  if (forbidden) return forbidden;
+
   try {
     const { id } = await params;
     

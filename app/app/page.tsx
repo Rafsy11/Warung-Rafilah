@@ -518,7 +518,10 @@ export default function PosDashboard() {
     onAlt2:   () => window.dispatchEvent(new CustomEvent('hotkey-pay-qris')),
     onAlt3:   () => window.dispatchEvent(new CustomEvent('hotkey-pay-split')),
     onAlt4:   () => window.dispatchEvent(new CustomEvent('hotkey-pay-debt')),
+    onAltA:   () => window.dispatchEvent(new CustomEvent('hotkey-pay-exact-cash')),
+    onAltN:   () => window.dispatchEvent(new CustomEvent('hotkey-add-non-barcode')),
     onAltP:   () => window.dispatchEvent(new CustomEvent('hotkey-trigger-pay')),
+    onAltS:   () => window.dispatchEvent(new CustomEvent('hotkey-select-customer')),
     onAsterisk: handleManualKickDrawer,
   });
 

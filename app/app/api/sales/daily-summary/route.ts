@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { db as pool } from '@/lib/db';
+import { requireRole } from '@/lib/rbac';
 
 export async function GET(req: Request) {
+  const forbidden = requireRole(req, ['owner', 'cashier']);
+  if (forbidden) return forbidden;
   const { searchParams } = new URL(req.url);
   const date = searchParams.get('date');
   

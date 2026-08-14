@@ -102,6 +102,15 @@ export default function CartTable({
     return () => clearTimeout(timer);
   }, [inputValue, mode]);
 
+  useEffect(() => {
+    const onAddNonBarcode = () => {
+      setCustomName(inputValue.trim());
+      setShowCustomModal(true);
+    };
+    window.addEventListener('hotkey-add-non-barcode', onAddNonBarcode);
+    return () => window.removeEventListener('hotkey-add-non-barcode', onAddNonBarcode);
+  }, [inputValue]);
+
   const handleSelectProduct = useCallback(
     (barcode: string) => {
       onScan(barcode);
