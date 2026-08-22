@@ -282,15 +282,9 @@ export default function CameraScannerModal({ onScanSuccess, onClose }: CameraSca
 
         {/* Viewfinder Target Border Overlay */}
         {isScanning && (
-          <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-6">
-            <div className="w-[260px] h-[160px] border-2 border-primary rounded-2xl relative shadow-[0_0_20px_rgba(0,0,0,0.8)]">
-              <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-primary -mt-1 -ml-1 rounded-tl-lg"></div>
-              <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-primary -mt-1 -mr-1 rounded-tr-lg"></div>
-              <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-primary -mb-1 -ml-1 rounded-bl-lg"></div>
-              <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-primary -mb-1 -mr-1 rounded-br-lg"></div>
+            <div className="w-[260px] h-[160px] border-2 border-primary/80 rounded-2xl relative shadow-[0_0_20px_rgba(0,0,0,0.8)] overflow-hidden">
               <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-red-500 to-transparent shadow-[0_0_10px_#ef4444] animate-pulse absolute top-1/2 -translate-y-1/2"></div>
             </div>
-          </div>
         )}
 
         {/* Initial User Touch Activation Overlay */}

@@ -229,22 +229,22 @@ export default function CartTable({
               <React.Fragment key={item.id}>
                 {/* ── Mobile Touch Card View (<640px) ── */}
                 <article className={`sm:hidden flex flex-col p-3 px-4 gap-2 border-b border-outline-variant/30 transition-colors ${
-                  isSelected ? 'bg-primary/10 border-l-4 border-l-primary' : 'bg-surface-container-low/40'
+                  isSelected ? 'bg-primary/15 ring-1 ring-inset ring-primary/40' : 'bg-surface-container-low/40'
                 }`}>
                   <div className="flex justify-between items-start">
                     <div className="flex flex-col min-w-0 pr-2">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-bold text-sm text-on-surface leading-snug">{item.name}</span>
                         {item.isAgent && (
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-secondary/10 text-secondary border border-secondary/20 shrink-0">AGEN</span>
+                          <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-secondary/15 text-secondary border border-secondary/25 shrink-0">AGEN</span>
                         )}
                         {item.appliedTierName && (
-                          <span className="text-[10px] text-emerald-500 font-bold tracking-wide">
+                          <span className="text-xs text-emerald-400 font-bold tracking-wide">
                             ★ {item.appliedTierName}
                           </span>
                         )}
                       </div>
-                      <span className="font-mono text-[10px] text-on-surface-variant/70 mt-0.5">{item.barcode}</span>
+                      <span className="font-mono text-xs text-on-surface-variant/70 mt-0.5">{item.barcode}</span>
                     </div>
                     <button
                       onClick={() => onRemove(item.id)}
@@ -290,7 +290,7 @@ export default function CartTable({
                   id={`cart-item-${item.id}`}
                   className={`hidden sm:grid grid-cols-12 gap-2 p-3 px-5 items-center transition-colors font-body-md text-body-md ${
                     isSelected
-                      ? 'bg-primary/10 border-l-4 border-l-primary'
+                      ? 'bg-primary/15 ring-1 ring-inset ring-primary/40'
                       : idx % 2 === 0
                       ? 'bg-surface-container-low/40 hover:bg-surface-container-high/40'
                       : 'bg-surface-container/20 hover:bg-surface-container-high/40'
@@ -312,13 +312,13 @@ export default function CartTable({
                   <div className="col-span-2 min-w-0 font-mono text-xs text-on-surface-variant/70 truncate flex items-center gap-1.5">
                     <span className="truncate">{item.barcode}</span>
                     {item.isAgent && (
-                      <span className="px-1 py-0.2 rounded text-[9px] font-bold bg-secondary/10 text-secondary border border-secondary/20 shrink-0">AGEN</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-secondary/15 text-secondary border border-secondary/25 shrink-0">AGEN</span>
                     )}
                   </div>
                   <div className="col-span-3 min-w-0 font-medium text-on-surface flex flex-col">
                     <span className="truncate font-semibold">{item.name}</span>
                     {item.appliedTierName && (
-                      <span className="text-[10px] text-emerald-500 font-bold tracking-wide">
+                      <span className="text-xs text-emerald-400 font-bold tracking-wide">
                         ★ {item.appliedTierName}
                       </span>
                     )}

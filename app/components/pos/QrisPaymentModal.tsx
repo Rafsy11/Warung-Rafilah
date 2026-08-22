@@ -129,10 +129,10 @@ export default function QrisPaymentModal({
             </div>
           </header>
 
-          <h3 id="qris-merchant-name" className="font-bold text-[15px] uppercase tracking-wide text-gray-800 text-center w-full">
+          <h3 id="qris-merchant-name" className="font-bold text-sm uppercase tracking-wide text-gray-800 text-center w-full">
             WARUNG RAFILAH
           </h3>
-          <address id="qris-merchant-address" className="text-[10px] text-gray-400 text-center mb-3 not-italic">
+          <address id="qris-merchant-address" className="text-xs text-gray-400 text-center mb-3 not-italic">
             Jl. Mawar No.2335, RT 08, RW 02, Sukajaya
           </address>
 
@@ -177,7 +177,7 @@ export default function QrisPaymentModal({
                   <span>Total Transaksi:</span>
                   <output id="qris-split-total-output" className="font-semibold text-gray-800">Rp {sale.total_amount.toLocaleString('id-ID')}</output>
                 </div>
-                <div className="text-[10px] text-gray-500 uppercase tracking-wide">Nominal Transfer QRIS</div>
+                <div className="text-xs text-gray-500 uppercase tracking-wide">Nominal Transfer QRIS</div>
                 <output id="qris-split-transfer-output" className="font-mono text-3xl font-extrabold text-blue-600 mt-1 tracking-tight block">
                   Rp {sale.split_qris_amount.toLocaleString('id-ID')}
                 </output>
@@ -188,7 +188,7 @@ export default function QrisPaymentModal({
                   <span>Total Belanja:</span>
                   <output id="qris-total-amount-output" className="font-bold text-gray-800">Rp {sale.total_amount.toLocaleString('id-ID')}</output>
                 </div>
-                <div className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">Nominal Transfer QRIS</div>
+                <div className="text-xs text-gray-500 uppercase tracking-wide mt-1">Nominal Transfer QRIS</div>
                 <output id="qris-transfer-amount-output" className="font-mono text-3xl font-extrabold text-blue-600 mt-0.5 tracking-tight block">
                   Rp {(sale.payment_received || sale.total_amount).toLocaleString('id-ID')}
                 </output>
@@ -197,14 +197,14 @@ export default function QrisPaymentModal({
                     <span>💵 Kembalian Tunai:</span>
                     <output id="qris-cash-change-amount-output" className="font-mono text-base font-extrabold text-emerald-700">Rp {sale.change_given.toLocaleString('id-ID')}</output>
                   </div>
-                  <p id="qris-cash-change-instruction" className="text-[10px] text-emerald-700 font-medium mt-0.5 text-center">
+                  <p id="qris-cash-change-instruction" className="text-xs text-emerald-700 font-medium mt-0.5 text-center">
                     Serahkan Rp {sale.change_given.toLocaleString('id-ID')} uang tunai dari laci kasir ke pelanggan.
                   </p>
                 </div>
               </>
             ) : (
               <>
-                <div className="text-[10px] text-gray-500 uppercase tracking-wide">Total Nominal Transfer</div>
+                <div className="text-xs text-gray-500 uppercase tracking-wide">Total Nominal Transfer</div>
                 <output id="qris-direct-total-output" className="font-mono text-3xl font-extrabold text-blue-600 mt-1 tracking-tight block">
                   Rp {sale.total_amount.toLocaleString('id-ID')}
                 </output>
@@ -212,7 +212,7 @@ export default function QrisPaymentModal({
             )}
             
             {/* Direct Instructions */}
-            <aside id="qris-customer-instruction-aside" className="bg-blue-50 border border-blue-100 rounded-lg p-2 mt-2 text-[11px] text-blue-800 font-semibold leading-relaxed">
+            <aside id="qris-customer-instruction-aside" className="bg-blue-50 border border-blue-100 rounded-lg p-2 mt-2 text-xs text-blue-800 font-semibold leading-relaxed">
               Minta pelanggan untuk men-scan QRIS statis di kasir dan bayar sesuai nominal di atas.
             </aside>
           </section>
@@ -224,7 +224,7 @@ export default function QrisPaymentModal({
             <Smartphone size={16} className="text-secondary animate-pulse" />
             <span>Periksa mutasi di HP Anda, kemudian klik konfirmasi:</span>
           </div>
-          <time id="qris-countdown-timer" className="text-display-price text-[28px] font-bold text-error tracking-tight font-mono block">
+          <time id="qris-countdown-timer" className="text-display-price text-3xl font-bold text-error tracking-tight font-mono block">
             {formattedTime}
           </time>
         </section>
