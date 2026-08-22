@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getJwtSecret } from '@/lib/runtime-env';
 
 const SESSION_COOKIE = process.env.SESSION_COOKIE_NAME || 'pos_session';
-const PUBLIC_PATHS   = ['/login', '/api/auth/login', '/api/health', '/api/webhooks'];
+const PUBLIC_PATHS   = ['/login', '/api/auth/login', '/api/health'];
 const JWT_SECRET = getJwtSecret();
 
 async function verifyToken(token: string): Promise<Record<string, unknown> | null> {

@@ -125,12 +125,13 @@ export async function POST(req: Request) {
       user: { id: user.id, username: user.username, full_name: user.full_name, role: user.role },
     });
 
-    const isHttps = req.headers.get('x-forwarded-proto') === 'https' || new URL(req.url).protocol === 'https:';
-
+    const forwardedProto = req.headers.get('x-forwarded-proto');
+    const cfVisitor = req.headers.get('cf-visitor');
+    const isHttps = forwardedProto === 'https' || (cfVisitor && cfVisitor.includes('https')) || new URL(req.url).protocol === 'https:';
 
     res.cookies.set(process.env.SESSION_COOKIE_NAME || 'pos_session', token, {
       httpOnly: true,
-      secure:   isHttps,
+      secure:   isHttps || process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path:     '/',
       maxAge:   60 * 60 * 24,
