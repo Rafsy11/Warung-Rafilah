@@ -1,9 +1,26 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Package, Search, Plus, Edit2, Trash2, X, Save, AlertCircle, Loader2, History, Scale, Wallet, RefreshCw, Users, User, Tag, Truck, Percent } from 'lucide-react';
-import ProductManagementTab from './admin/ProductManagementTab';
-import ProductConversionTab from './admin/ProductConversionTab';
+import dynamic from 'next/dynamic';
+import { Package, Search, Plus, Edit2, Trash2, X, Save, AlertCircle, Loader2, History, Scale, Wallet, RefreshCw, Users, User, Tag, Truck, Percent, TrendingUp } from 'lucide-react';
+
+
+// Dynamically import heavy tab components — code-split out of main Admin bundle
+// Each component is only downloaded when the user first opens that tab
+const ProductManagementTab = dynamic(() => import('./admin/ProductManagementTab'), {
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center h-48 text-on-surface-variant"><Loader2 size={20} className="animate-spin mr-2" />Memuat tab produk...</div>,
+});
+const ProductConversionTab = dynamic(() => import('./admin/ProductConversionTab'), {
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center h-48 text-on-surface-variant"><Loader2 size={20} className="animate-spin mr-2" />Memuat tab konversi...</div>,
+});
+const FinancialAccountingTab = dynamic(() => import('./admin/FinancialAccountingTab'), {
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center h-48 text-on-surface-variant"><Loader2 size={20} className="animate-spin mr-2" />Memuat laporan keuangan...</div>,
+});
+
+
 
 export interface Product {
   id: string;
@@ -81,8 +98,10 @@ interface AdminWorkspaceProps {
 export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspaceProps) {
   const nowDate = new Date();
   const sevenDaysLater = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  const [activeTab, setActiveTab] = useState<'products' | 'adjust' | 'convert' | 'customers' | 'sessions' | 'history' | 'float' | 'consignment' | 'procurement' | 'discounts'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'adjust' | 'convert' | 'customers' | 'sessions' | 'float' | 'consignment' | 'procurement' | 'discounts' | 'accounting' | 'history'>('products');
+
   const [products, setProducts] = useState<Product[]>([]);
+  const [totalProductsCount, setTotalProductsCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -178,12 +197,14 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
     setLoading(true);
     try {
       const url = search 
-        ? `/api/products?search=${encodeURIComponent(search)}&limit=100`
-        : `/api/products?limit=100`;
+        ? `/api/products?search=${encodeURIComponent(search)}&limit=1000`
+        : `/api/products?limit=1000`;
+
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setProducts(data.items || []);
+        setTotalProductsCount(data.total !== undefined ? Number(data.total) : (data.items ? data.items.length : 0));
       } else {
         onToast('Gagal memuat produk.', 'error');
       }
@@ -924,25 +945,26 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
   };
 
   return (
-    <section id="admin-workspace-section" aria-label="Operasional & Manajemen Toko Admin" className="flex-1 flex flex-row gap-3.5 overflow-hidden h-full w-full">
+    <section id="admin-workspace-section" aria-label="Operasional & Manajemen Toko Admin" className="flex-1 flex flex-col sm:flex-row gap-3.5 overflow-y-auto sm:overflow-hidden h-full w-full">
       {/* Side Navbar / Tab Switcher */}
-      <nav id="admin-sidebar-nav" aria-label="Navigasi Menu Admin" className="w-60 bg-surface-container border border-outline-variant/30 rounded-xl p-2 gap-1 flex flex-col shrink-0 overflow-y-auto scrollbar-hide h-full">
-        <span className="font-bold text-[9px] text-on-surface-variant/65 uppercase tracking-widest px-3 pt-2.5 pb-1 select-none shrink-0">Operasional Toko</span>
+      <nav id="admin-sidebar-nav" aria-label="Navigasi Menu Admin" className="w-full sm:w-52 md:w-56 lg:w-60 bg-surface-container border border-outline-variant/30 rounded-xl p-1.5 sm:p-2 gap-1 flex flex-row sm:flex-col shrink-0 overflow-x-auto sm:overflow-y-auto no-scrollbar sm:h-full">
+        <span className="hidden sm:block font-bold text-[9px] text-on-surface-variant/65 uppercase tracking-widest px-3 pt-2.5 pb-1 select-none shrink-0">Operasional Toko</span>
+
         
         <button
           onClick={() => setActiveTab('products')}
-          className={`font-label-md text-label-md px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all cursor-pointer shrink-0 w-full text-left ${
+          className={`font-label-md text-label-md px-3 md:px-4 py-2 md:py-2.5 rounded-lg flex items-center gap-2 md:gap-3 transition-all cursor-pointer shrink-0 whitespace-nowrap md:whitespace-normal md:w-full text-left ${
             activeTab === 'products'
               ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
               : 'text-on-surface-variant hover:bg-surface-container-high/50'
           }`}
         >
           <Package size={16} />
-          Manajemen Produk
+          Produk & Stok
         </button>
         <button
           onClick={() => setActiveTab('discounts')}
-          className={`font-label-md text-label-md px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all cursor-pointer shrink-0 w-full text-left ${
+          className={`font-label-md text-label-md px-3 md:px-4 py-2 md:py-2.5 rounded-lg flex items-center gap-2 md:gap-3 transition-all cursor-pointer shrink-0 whitespace-nowrap md:whitespace-normal md:w-full text-left ${
             activeTab === 'discounts'
               ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
               : 'text-on-surface-variant hover:bg-surface-container-high/50'
@@ -953,7 +975,7 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
         </button>
         <button
           onClick={() => setActiveTab('consignment')}
-          className={`font-label-md text-label-md px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all cursor-pointer shrink-0 w-full text-left ${
+          className={`font-label-md text-label-md px-3 md:px-4 py-2 md:py-2.5 rounded-lg flex items-center gap-2 md:gap-3 transition-all cursor-pointer shrink-0 whitespace-nowrap md:whitespace-normal md:w-full text-left ${
             activeTab === 'consignment'
               ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
               : 'text-on-surface-variant hover:bg-surface-container-high/50'
@@ -964,7 +986,7 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
         </button>
         <button
           onClick={() => setActiveTab('procurement')}
-          className={`font-label-md text-label-md px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all cursor-pointer shrink-0 w-full text-left ${
+          className={`font-label-md text-label-md px-3 md:px-4 py-2 md:py-2.5 rounded-lg flex items-center gap-2 md:gap-3 transition-all cursor-pointer shrink-0 whitespace-nowrap md:whitespace-normal md:w-full text-left ${
             activeTab === 'procurement'
               ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
               : 'text-on-surface-variant hover:bg-surface-container-high/50'
@@ -974,11 +996,22 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
           Daftar Kulakan
         </button>
 
-        <span className="font-bold text-[9px] text-on-surface-variant/65 uppercase tracking-widest px-3 pt-3.5 pb-1 select-none shrink-0">Kas & Keuangan</span>
+        <span className="hidden md:block font-bold text-[9px] text-on-surface-variant/65 uppercase tracking-widest px-3 pt-3.5 pb-1 select-none shrink-0">Kas & Keuangan</span>
 
         <button
+          onClick={() => setActiveTab('accounting')}
+          className={`font-label-md text-label-md px-3 md:px-4 py-2 md:py-2.5 rounded-lg flex items-center gap-2 md:gap-3 transition-all cursor-pointer shrink-0 whitespace-nowrap md:whitespace-normal md:w-full text-left ${
+            activeTab === 'accounting'
+              ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
+              : 'text-on-surface-variant hover:bg-surface-container-high/50'
+          }`}
+        >
+          <TrendingUp size={16} />
+          Laba Rugi & Neraca
+        </button>
+        <button
           onClick={() => setActiveTab('sessions')}
-          className={`font-label-md text-label-md px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all cursor-pointer shrink-0 w-full text-left ${
+          className={`font-label-md text-label-md px-3 md:px-4 py-2 md:py-2.5 rounded-lg flex items-center gap-2 md:gap-3 transition-all cursor-pointer shrink-0 whitespace-nowrap md:whitespace-normal md:w-full text-left ${
             activeTab === 'sessions'
               ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
               : 'text-on-surface-variant hover:bg-surface-container-high/50'
@@ -989,7 +1022,7 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
         </button>
         <button
           onClick={() => setActiveTab('float')}
-          className={`font-label-md text-label-md px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all cursor-pointer shrink-0 w-full text-left ${
+          className={`font-label-md text-label-md px-3 md:px-4 py-2 md:py-2.5 rounded-lg flex items-center gap-2 md:gap-3 transition-all cursor-pointer shrink-0 whitespace-nowrap md:whitespace-normal md:w-full text-left ${
             activeTab === 'float'
               ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
               : 'text-on-surface-variant hover:bg-surface-container-high/50'
@@ -1000,7 +1033,7 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
         </button>
         <button
           onClick={() => setActiveTab('customers')}
-          className={`font-label-md text-label-md px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all cursor-pointer shrink-0 w-full text-left ${
+          className={`font-label-md text-label-md px-3 md:px-4 py-2 md:py-2.5 rounded-lg flex items-center gap-2 md:gap-3 transition-all cursor-pointer shrink-0 whitespace-nowrap md:whitespace-normal md:w-full text-left ${
             activeTab === 'customers'
               ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
               : 'text-on-surface-variant hover:bg-surface-container-high/50'
@@ -1010,11 +1043,11 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
           Kelola Pelanggan
         </button>
 
-        <span className="font-bold text-[9px] text-on-surface-variant/65 uppercase tracking-widest px-3 pt-3.5 pb-1 select-none shrink-0">Inventori & Logistik</span>
+        <span className="hidden md:block font-bold text-[9px] text-on-surface-variant/65 uppercase tracking-widest px-3 pt-3.5 pb-1 select-none shrink-0">Inventori & Logistik</span>
 
         <button
           onClick={() => setActiveTab('adjust')}
-          className={`font-label-md text-label-md px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all cursor-pointer shrink-0 w-full text-left ${
+          className={`font-label-md text-label-md px-3 md:px-4 py-2 md:py-2.5 rounded-lg flex items-center gap-2 md:gap-3 transition-all cursor-pointer shrink-0 whitespace-nowrap md:whitespace-normal md:w-full text-left ${
             activeTab === 'adjust'
               ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
               : 'text-on-surface-variant hover:bg-surface-container-high/50'
@@ -1025,7 +1058,7 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
         </button>
         <button
           onClick={() => setActiveTab('convert')}
-          className={`font-label-md text-label-md px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all cursor-pointer shrink-0 w-full text-left ${
+          className={`font-label-md text-label-md px-3 md:px-4 py-2 md:py-2.5 rounded-lg flex items-center gap-2 md:gap-3 transition-all cursor-pointer shrink-0 whitespace-nowrap md:whitespace-normal md:w-full text-left ${
             activeTab === 'convert'
               ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
               : 'text-on-surface-variant hover:bg-surface-container-high/50'
@@ -1036,7 +1069,7 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
         </button>
         <button
           onClick={() => setActiveTab('history')}
-          className={`font-label-md text-label-md px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all cursor-pointer shrink-0 w-full text-left ${
+          className={`font-label-md text-label-md px-3 md:px-4 py-2 md:py-2.5 rounded-lg flex items-center gap-2 md:gap-3 transition-all cursor-pointer shrink-0 whitespace-nowrap md:whitespace-normal md:w-full text-left ${
             activeTab === 'history'
               ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
               : 'text-on-surface-variant hover:bg-surface-container-high/50'
@@ -1047,11 +1080,13 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
         </button>
       </nav>
 
+
       {/* Tab Contents */}
       <main id="admin-main-content-area" className="flex-1 flex gap-3.5 overflow-hidden h-full">
         {activeTab === 'products' && (
           <ProductManagementTab
             products={products}
+            totalProductsCount={totalProductsCount}
             loading={loading}
             fetchProducts={fetchProducts}
             onToast={onToast}
@@ -1059,6 +1094,15 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
             scannedBarcode={scannedBarcode}
           />
         )}
+
+        {/* Tab Laporan Akuntansi & Laba Rugi */}
+        {activeTab === 'accounting' && (
+          <div className="flex-1 bg-surface-container-low rounded-2xl border border-outline-variant/40 p-3 sm:p-5 overflow-y-auto h-full w-full">
+            <FinancialAccountingTab />
+          </div>
+        )}
+
+
 
         {/* Tab Penyesuaian Stok */}
         {activeTab === 'adjust' && (

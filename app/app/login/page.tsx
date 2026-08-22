@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, ShieldCheck, Loader2, AlertCircle } from 'lucide-react';
+
 
 export default function LoginPage() {
   const router   = useRouter();
@@ -61,7 +63,8 @@ export default function LoginPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center overflow-hidden relative">
+    <div className="min-h-[100dvh] w-[100dvw] bg-background flex items-center justify-center overflow-hidden relative">
+
       {/* Ambient glow blobs */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-secondary/10 blur-[120px]" />
@@ -77,7 +80,7 @@ export default function LoginPage() {
         {/* Logo / Brand */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white border border-outline-variant mb-4 shadow-lg p-2 overflow-hidden">
-            <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
+            <Image src="/logo.png" alt="Logo Warung Rafilah" width={56} height={56} className="w-full h-full object-contain" priority />
           </div>
           <h1 className="font-headline-md text-headline-md text-secondary font-bold tracking-tight">
             WARUNG RAFILAH

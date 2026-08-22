@@ -25,7 +25,10 @@ type PaymentPanelProps = {
   onPay:       (method: PaymentMethod, received: number, splitCash?: number, splitQris?: number, customerId?: string) => void;
   paying:      boolean;
   activeDiscounts?: any[];
+  isMobileDrawer?: boolean;
+  onCloseMobileDrawer?: () => void;
 };
+
 
 /** Round up to nearest denomination ceiling for quick-cash presets */
 function quickCashOptions(total: number): number[] {
@@ -52,7 +55,10 @@ export default function PaymentPanel({
   onPay,
   paying,
   activeDiscounts,
+  isMobileDrawer,
+  onCloseMobileDrawer,
 }: PaymentPanelProps) {
+
   const [method, setMethod]     = useState<PaymentMethod>('CASH');
   const [received, setReceived]   = useState(0);
   const [qrisReceived, setQrisReceived] = useState(0);
@@ -286,9 +292,24 @@ export default function PaymentPanel({
     };
   }, [method, canPay, handlePay, grandTotal, paying, onPay]);
 
-  return (
-    <aside id="payment-panel-sidebar" aria-label="Panel Pembayaran dan Kasir" className="w-96 shrink-0 flex flex-col h-full overflow-hidden border border-outline-variant/50 bg-surface-container-low p-3 justify-between rounded-2xl shadow-md transition-all duration-200">
+  const panelContent = (
+    <aside id="payment-panel-sidebar" aria-label="Panel Pembayaran dan Kasir" className="w-full sm:w-72 md:w-80 lg:w-96 shrink-0 flex flex-col h-full overflow-y-auto sm:overflow-hidden border border-outline-variant/50 bg-surface-container-low p-2.5 sm:p-3 justify-between rounded-2xl shadow-md transition-all duration-200">
+      {isMobileDrawer && (
+        <header className="sm:hidden flex items-center justify-between pb-3 border-b border-outline-variant/40 mb-2 shrink-0">
+
+          <h3 className="font-bold text-base text-on-surface flex items-center gap-2">
+            <Banknote size={20} className="text-primary" /> Pembayaran Kasir
+          </h3>
+          <button
+            onClick={onCloseMobileDrawer}
+            className="p-1.5 rounded-lg bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
+          >
+            <X size={20} />
+          </button>
+        </header>
+      )}
       <div id="payment-panel-container" className="flex-1 flex flex-col gap-2.5 overflow-y-auto pr-0.5 no-scrollbar">
+
 
         {/* ── Totals Card ─────────────────────────────────────────────────── */}
         <section id="payment-totals-card" aria-label="Ringkasan Total Harga" className="bg-surface-container border border-outline-variant rounded-xl p-2.5 flex flex-col gap-1 shadow-sm shrink-0">
@@ -758,5 +779,20 @@ export default function PaymentPanel({
       )}
     </aside>
   );
+
+  if (isMobileDrawer) {
+    return (
+      <div className="sm:hidden fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end justify-center p-0 animate-in fade-in duration-150" onClick={onCloseMobileDrawer}>
+
+        <div className="w-full max-h-[92dvh] flex flex-col bg-surface-container-low rounded-t-3xl border-t border-outline-variant p-2 overflow-y-auto shadow-2xl animate-in slide-in-from-bottom duration-200" onClick={e => e.stopPropagation()}>
+
+          {panelContent}
+        </div>
+      </div>
+    );
+  }
+
+  return panelContent;
 }
+
 

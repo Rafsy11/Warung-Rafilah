@@ -1,11 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Package, Trash2, Plus, Search, Loader2, Tag, Edit2, X, AlertCircle, Save } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Package, Trash2, Plus, Search, Loader2, Tag, Edit2, X, AlertCircle, Save, TrendingDown, ShieldAlert, CalendarX2, Camera } from 'lucide-react';
+import CameraScannerModal from '../CameraScannerModal';
 import { Product } from '../AdminWorkspace';
+
 
 interface ProductManagementTabProps {
   products: Product[];
+  totalProductsCount?: number;
   loading: boolean;
   fetchProducts: (query?: string) => Promise<void>;
   onToast: (msg: string, type: 'success' | 'error') => void;
@@ -15,6 +18,7 @@ interface ProductManagementTabProps {
 
 export default function ProductManagementTab({
   products,
+  totalProductsCount,
   loading,
   fetchProducts,
   onToast,
@@ -27,6 +31,22 @@ export default function ProductManagementTab({
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [cameraScanTarget, setCameraScanTarget] = useState<'search' | 'form' | null>(null);
+
+
+  // Computed stats from existing products data — no extra fetch needed
+  const stats = useMemo(() => {
+    const total = totalProductsCount !== undefined && totalProductsCount > 0 ? totalProductsCount : products.length;
+    const lowStock = products.filter(p => Number(p.stock_qty) <= Number(p.reorder_threshold)).length;
+    const expiringSoon = products.filter(p => {
+      if (!p.nearest_expiry_date) return false;
+      const exp = new Date(p.nearest_expiry_date);
+      return exp <= sevenDaysLater && exp >= nowDate;
+    }).length;
+    return { total, lowStock, expiringSoon };
+  }, [products, totalProductsCount, nowDate, sevenDaysLater]);
+
+
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
@@ -300,26 +320,97 @@ export default function ProductManagementTab({
           </div>
         </div>
 
+        {/* ── Product Stats Cards ─────────────────────────────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 mb-4 shrink-0">
+
+          {/* Total SKU */}
+          <div
+            id="stat-total-produk"
+            className="flex items-center gap-3 bg-primary-container/20 border border-primary/15 rounded-xl px-4 py-3 transition-all hover:bg-primary-container/30"
+          >
+            <div className="p-2 rounded-lg bg-primary-container shrink-0">
+              <Package size={16} className="text-on-primary-container" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-widest leading-none mb-1">Total SKU</p>
+              <p className="font-bold text-xl text-on-surface leading-none tabular-nums">
+                {loading ? <span className="inline-block w-8 h-5 bg-outline-variant/40 rounded animate-pulse" /> : stats.total}
+              </p>
+            </div>
+          </div>
+
+          {/* Stok Kritis */}
+          <div
+            id="stat-stok-kritis"
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 border transition-all ${
+              stats.lowStock > 0
+                ? 'bg-amber-500/10 border-amber-500/25 hover:bg-amber-500/15'
+                : 'bg-surface-container-low border-outline-variant/40 hover:bg-surface-container'
+            }`}
+          >
+            <div className={`p-2 rounded-lg shrink-0 ${stats.lowStock > 0 ? 'bg-amber-500/20' : 'bg-surface-container-highest'}`}>
+              <TrendingDown size={16} className={stats.lowStock > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-on-surface-variant'} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-widest leading-none mb-1">Stok Kritis</p>
+              <p className={`font-bold text-xl leading-none tabular-nums ${stats.lowStock > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-on-surface'}`}>
+                {loading ? <span className="inline-block w-8 h-5 bg-outline-variant/40 rounded animate-pulse" /> : stats.lowStock}
+              </p>
+            </div>
+          </div>
+
+          {/* Hampir Kadaluarsa */}
+          <div
+            id="stat-hampir-exp"
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 border transition-all ${
+              stats.expiringSoon > 0
+                ? 'bg-error-container/20 border-error/25 hover:bg-error-container/30'
+                : 'bg-surface-container-low border-outline-variant/40 hover:bg-surface-container'
+            }`}
+          >
+            <div className={`p-2 rounded-lg shrink-0 ${stats.expiringSoon > 0 ? 'bg-error-container' : 'bg-surface-container-highest'}`}>
+              <CalendarX2 size={16} className={stats.expiringSoon > 0 ? 'text-on-error-container' : 'text-on-surface-variant'} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-widest leading-none mb-1">Hampir Exp</p>
+              <p className={`font-bold text-xl leading-none tabular-nums ${stats.expiringSoon > 0 ? 'text-error' : 'text-on-surface'}`}>
+                {loading ? <span className="inline-block w-8 h-5 bg-outline-variant/40 rounded animate-pulse" /> : stats.expiringSoon}
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Search Bar */}
+
         <form onSubmit={handleSearchSubmit} className="flex gap-2 mb-4 shrink-0">
           <div className="relative flex-1">
             <input
               id="admin-product-search-input"
               type="text"
-              placeholder="Cari produk berdasarkan nama..."
+              placeholder="Cari produk berdasarkan nama / barcode..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-surface-dim border border-outline-variant rounded-lg px-3 py-2 pl-10 text-on-surface font-label-md text-label-md focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-colors placeholder:text-on-surface-variant/40"
+              className="w-full bg-surface-dim border border-outline-variant rounded-lg px-3 py-2 pl-10 pr-10 text-on-surface font-label-md text-label-md focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-colors placeholder:text-on-surface-variant/40"
             />
             <Search size={18} className="absolute left-3 top-2.5 text-on-surface-variant/60" />
+            <button
+              type="button"
+              onClick={() => setCameraScanTarget('search')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-on-surface-variant hover:text-secondary transition-colors cursor-pointer md:hidden"
+              title="Scan Barcode via Kamera HP untuk Cari Produk"
+              aria-label="Scan Barcode Kamera Admin"
+            >
+              <Camera size={18} />
+            </button>
           </div>
           <button
             type="submit"
-            className="bg-surface-container-highest border border-outline-variant text-on-surface font-label-md text-label-md rounded-lg px-5 hover:bg-surface-container-high transition-colors"
+            className="bg-surface-container-highest border border-outline-variant text-on-surface font-label-md text-label-md rounded-lg px-5 hover:bg-surface-container-high transition-colors cursor-pointer"
           >
             Cari
           </button>
         </form>
+
 
         {/* Product Table */}
         <div className="flex-1 overflow-y-auto border border-outline-variant/30 rounded-lg bg-surface-dim">
@@ -332,37 +423,83 @@ export default function ProductManagementTab({
               Belum ada produk atau hasil pencarian nihil.
             </div>
           ) : (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-surface-container border-b border-outline-variant font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider sticky top-0 z-10">
-                  <th className="p-3 pl-4 text-center w-12">
-                    <input
-                      type="checkbox"
-                      checked={products.length > 0 && selectedProductIds.length === products.length}
-                      onChange={handleToggleSelectAllProducts}
-                      className="w-4 h-4 accent-secondary rounded border-outline-variant cursor-pointer"
-                    />
-                  </th>
-                  <th className="p-3">Barcode</th>
-                  <th className="p-3">Nama Barang</th>
-                  <th className="p-3">Kategori</th>
-                  <th className="p-3 text-right">Modal</th>
-                  <th className="p-3 text-right">Harga Jual</th>
-                  <th className="p-3 text-center">Stok</th>
-                  <th className="p-3 text-center">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="font-body-md text-body-md text-on-surface divide-y divide-outline-variant/20">
+            <>
+
+              {/* ── Mobile Product List Cards (<640px) ── */}
+              <div className="sm:hidden flex flex-col divide-y divide-outline-variant/20">
                 {products.map(prod => (
-                  <tr key={prod.id} className={`hover:bg-surface-container-high/40 transition-colors ${selectedProductIds.includes(prod.id) ? 'bg-secondary-container/10' : ''}`}>
-                    <td className="p-3 text-center w-12">
-                      <input
-                        type="checkbox"
-                        checked={selectedProductIds.includes(prod.id)}
-                        onChange={() => handleToggleProductSelection(prod.id)}
-                        className="w-4 h-4 accent-secondary rounded border-outline-variant cursor-pointer"
-                      />
-                    </td>
+                  <div key={prod.id} className="p-3.5 flex flex-col gap-2.5 bg-surface-container-low/40">
+                    <div className="flex justify-between items-start">
+                      <div className="flex flex-col min-w-0 pr-2">
+                        <span className="font-bold text-sm text-on-surface leading-tight">{prod.name}</span>
+                        <span className="font-mono text-[11px] text-on-surface-variant/70 mt-0.5">
+                          {prod.barcode} • <span className="text-secondary font-semibold">{prod.category || 'Umum'}</span>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={() => handleOpenEditForm(prod)}
+                          className="p-2 rounded-lg bg-surface-container-high text-on-surface hover:text-secondary transition-colors cursor-pointer"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProduct(prod.id, prod.name)}
+                          className="p-2 rounded-lg bg-error-container/30 text-error hover:bg-error-container transition-colors cursor-pointer"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center text-xs font-mono pt-1.5 border-t border-outline-variant/20 flex-wrap gap-2">
+                      <span className="text-on-surface-variant">Modal: <strong>Rp {Number(prod.cost_price).toLocaleString('id-ID')}</strong></span>
+                      <span className="text-primary font-bold text-sm">Jual: Rp {Number(prod.sell_price).toLocaleString('id-ID')}</span>
+                      <span className={`px-2 py-0.5 rounded font-bold text-xs ${
+                        Number(prod.stock_qty) <= Number(prod.reorder_threshold)
+                          ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30'
+                          : 'bg-surface-container-high text-on-surface border border-outline-variant/40'
+                      }`}>
+                        Stok: {prod.stock_qty} {prod.unit}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── Desktop Product Table (>=640px) ── */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[650px]">
+                  <thead>
+                    <tr className="bg-surface-container border-b border-outline-variant font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider sticky top-0 z-10">
+                      <th className="p-3 pl-4 text-center w-12">
+                        <input
+                          type="checkbox"
+                          checked={products.length > 0 && selectedProductIds.length === products.length}
+                          onChange={handleToggleSelectAllProducts}
+                          className="w-4 h-4 accent-secondary rounded border-outline-variant cursor-pointer"
+                        />
+                      </th>
+                      <th className="p-3">Barcode</th>
+                      <th className="p-3">Nama Barang</th>
+                      <th className="p-3">Kategori</th>
+                      <th className="p-3 text-right">Modal</th>
+                      <th className="p-3 text-right">Harga Jual</th>
+                      <th className="p-3 text-center">Stok</th>
+                      <th className="p-3 text-center">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="font-body-md text-body-md text-on-surface divide-y divide-outline-variant/20">
+                    {products.map(prod => (
+                      <tr key={prod.id} className={`hover:bg-surface-container-high/40 transition-colors ${selectedProductIds.includes(prod.id) ? 'bg-secondary-container/10' : ''}`}>
+                        <td className="p-3 text-center w-12">
+                          <input
+                            type="checkbox"
+                            checked={selectedProductIds.includes(prod.id)}
+                            onChange={() => handleToggleProductSelection(prod.id)}
+                            className="w-4 h-4 accent-secondary rounded border-outline-variant cursor-pointer"
+                          />
+                        </td>
+
                     <td className="p-3 font-mono text-[11px] opacity-75">{prod.barcode}</td>
                     <td className="p-3 font-semibold">
                       <div className="flex flex-col gap-0.5 text-left">
@@ -461,13 +598,19 @@ export default function ProductManagementTab({
                 ))}
               </tbody>
             </table>
-          )}
-        </div>
-      </div>
+          </div>
+        </>
+      )}
+    </div>
+  </div>
+
 
       {/* ── RIGHT: Add / Edit Form Panel ─────────────────────────────────── */}
       {showForm && (
-        <div className="w-80 shrink-0 flex flex-col bg-surface-container rounded-xl border border-outline-variant p-4 overflow-y-auto max-h-full">
+        <aside className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm sm:static sm:z-auto sm:bg-transparent sm:backdrop-blur-none flex items-end sm:items-stretch justify-center p-0 sm:p-0 sm:w-80 sm:shrink-0 animate-in fade-in duration-150" onClick={() => setShowForm(false)}>
+          <div className="w-full sm:w-80 max-h-[90dvh] sm:max-h-full flex flex-col bg-surface-container rounded-t-3xl sm:rounded-xl border border-outline-variant p-4 overflow-y-auto shadow-2xl sm:shadow-none animate-in slide-in-from-bottom sm:slide-in-from-right duration-200" onClick={(e) => e.stopPropagation()}>
+
+
           <div className="flex justify-between items-center mb-4 shrink-0">
             <h3 className="font-label-lg text-label-lg font-bold text-on-surface">
               {editingProduct ? 'EDIT PRODUK' : 'TAMBAH PRODUK BARU'}
@@ -486,16 +629,30 @@ export default function ProductManagementTab({
               <label className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
                 Barcode / PLU *
               </label>
-              <input
-                type="text"
-                value={barcode}
-                onChange={e => setBarcode(e.target.value)}
-                placeholder="Contoh: 89912345"
-                className="bg-surface-dim border border-outline-variant rounded-lg px-3 py-2 text-on-surface font-label-md text-label-md focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-colors"
-                required
-                disabled={saving || (editingProduct !== null)}
-              />
+              <div className="relative flex items-center">
+                <input
+                  type="text"
+                  value={barcode}
+                  onChange={e => setBarcode(e.target.value)}
+                  placeholder="Contoh: 89912345"
+                  className="w-full bg-surface-dim border border-outline-variant rounded-lg pl-3 pr-10 py-2 text-on-surface font-label-md text-label-md focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-colors font-mono"
+                  required
+                  disabled={saving || (editingProduct !== null)}
+                />
+                {!editingProduct && (
+                  <button
+                    type="button"
+                    onClick={() => setCameraScanTarget('form')}
+                    className="absolute right-2 p-1.5 bg-secondary-container hover:bg-secondary hover:text-white text-on-secondary-container rounded-md transition-colors cursor-pointer md:hidden"
+                    title="Scan Barcode Kemasan Produk via Kamera HP"
+                    aria-label="Scan Barcode Form Admin"
+                  >
+                    <Camera size={16} />
+                  </button>
+                )}
+              </div>
             </div>
+
 
             {/* Name */}
             <div className="flex flex-col gap-1.5">
@@ -700,7 +857,27 @@ export default function ProductManagementTab({
             </button>
           </form>
         </div>
-      )}
-    </>
-  );
+      </aside>
+    )}
+
+    {/* Camera Barcode Scanner Modal for Admin */}
+    {cameraScanTarget && (
+      <CameraScannerModal
+        onScanSuccess={(code) => {
+          if (cameraScanTarget === 'search') {
+            setSearchQuery(code);
+            fetchProducts(code);
+          } else if (cameraScanTarget === 'form') {
+            setBarcode(code);
+          }
+          setCameraScanTarget(null);
+        }}
+        onClose={() => setCameraScanTarget(null)}
+      />
+    )}
+  </>
+);
 }
+
+
+

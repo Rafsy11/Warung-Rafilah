@@ -320,9 +320,11 @@ export default function AIAssistant({ userRole, userId, isOpen = false, onClose 
   if (!isOpen) return null;
 
   return (
-    <aside id="ai-assistant-drawer" className="fixed top-20 right-4 z-40 flex flex-col items-end">
+    <aside id="ai-assistant-drawer" className="fixed inset-0 sm:inset-auto sm:top-20 sm:right-4 z-50 flex flex-col items-end justify-end sm:justify-start bg-black/50 sm:bg-transparent backdrop-blur-sm sm:backdrop-blur-none">
       {/* Chat Window */}
-      <section id="ai-chat-window" aria-label="Asisten AI Velo" className="bg-surface-container rounded-2xl border border-outline-variant shadow-2xl w-80 md:w-96 h-[520px] flex flex-col overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200">
+      <section id="ai-chat-window" aria-label="Asisten AI Velo" className="bg-surface-container rounded-t-3xl sm:rounded-2xl border border-outline-variant shadow-2xl w-full sm:w-80 md:w-96 h-[85dvh] sm:h-[520px] flex flex-col overflow-hidden animate-in slide-in-from-bottom sm:slide-in-from-top-2 fade-in duration-200">
+
+
           {/* Header */}
           <header id="ai-assistant-header" className="bg-primary text-on-primary px-4 py-3 flex items-center justify-between shadow-sm flex-shrink-0">
             <div className="flex items-center gap-2">

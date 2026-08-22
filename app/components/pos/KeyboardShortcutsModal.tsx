@@ -95,7 +95,8 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShor
         </header>
 
         {/* Modal Content Grid */}
-        <section id="shortcuts-grid-section" className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[70vh] overflow-y-auto">
+        <section id="shortcuts-grid-section" className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[70dvh] overflow-y-auto">
+
           {shortcutGroups.map((group, gIdx) => (
             <article 
               key={gIdx} 

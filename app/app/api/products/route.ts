@@ -4,9 +4,16 @@ import { db as pool } from '@/lib/db';
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const search = searchParams.get('search');
-  const limit = parseInt(searchParams.get('limit') || '20', 10);
+  const limit = parseInt(searchParams.get('limit') || '1000', 10);
 
   try {
+    const countQuery = search
+      ? `SELECT COUNT(*) as total FROM warung.products WHERE is_active = true AND (name ILIKE $1 OR barcode ILIKE $1)`
+      : `SELECT COUNT(*) as total FROM warung.products WHERE is_active = true`;
+    const countParams = search ? [`%${search}%`] : [];
+    const countRes = await pool.query(countQuery, countParams);
+    const totalCount = parseInt(countRes.rows[0]?.total || '0', 10);
+
     let query = `
       SELECT id, barcode, name, category, unit, cost_price, sell_price, stock_qty, reorder_threshold,
              is_consignment, consignment_supplier_name, consignment_cost_share, nearest_expiry_date,
@@ -31,17 +38,21 @@ export async function GET(req: Request) {
       WHERE is_active = true`;
     const params: unknown[] = [];
     if (search) {
-      query += ` AND (name ILIKE $1 OR barcode ILIKE $1)`;
-      params.push(`%${search}%`);
+      query += ` AND (name ILIKE $1 OR barcode ILIKE $1 OR similarity(name, $2) > 0.18)`;
+      params.push(`%${search}%`, search);
+      query += ` ORDER BY CASE WHEN barcode = $2 THEN 0 WHEN name ILIKE $1 THEN 1 ELSE 2 END, similarity(name, $2) DESC, name ASC`;
+    } else {
+      query += ` ORDER BY name ASC`;
     }
     query += ` LIMIT $${params.length + 1}`;
     params.push(limit);
 
     const { rows } = await pool.query(query, params);
-    return NextResponse.json({ items: rows, total: rows.length });
+    return NextResponse.json({ items: rows, total: totalCount });
   } catch {
     return NextResponse.json({ error: { code: 'internal_error', message: 'Database error' } }, { status: 500 });
   }
+
 }
 
 export async function POST(req: Request) {

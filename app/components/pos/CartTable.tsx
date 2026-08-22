@@ -1,7 +1,9 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Zap, X, ScanBarcode, Plus, Minus, Trash2, AlertCircle } from 'lucide-react';
+import { Zap, X, ScanBarcode, Plus, Minus, Trash2, AlertCircle, Camera } from 'lucide-react';
 import type { CartItem } from '@/types/pos';
 import { refreshProductCache, searchProductsLocal } from '@/lib/cache/product-cache';
+import CameraScannerModal from '@/components/pos/CameraScannerModal';
+
 
 const SERVICES = [
   { type: 'e_wallet_topup',  label: 'E-Wallet Topup',  adminFee: 1000, commission: 1500 },
@@ -34,6 +36,8 @@ export default function CartTable({
   const [searchResults, setSearchResults] = useState<{ id: string; barcode: string; name: string; sell_price: string; stock_qty: string }[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [selectedCartIds, setSelectedCartIds] = useState<string[]>([]);
+  const [showCameraScanner, setShowCameraScanner] = useState(false);
+
 
   // Focus input on mount and whenever mode or items count changes
   useEffect(() => {
@@ -172,8 +176,8 @@ export default function CartTable({
 
   return (
     <section id="cart-table-section" aria-label="Tabel Keranjang Belanja" className="flex-1 flex flex-col bg-surface-container border border-outline-variant/50 rounded-2xl overflow-hidden shadow-md transition-all duration-200">
-      {/* Cart Header */}
-      <header id="cart-table-header" className="grid grid-cols-12 gap-2 p-3 px-5 border-b border-outline-variant/40 bg-surface-container-low font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider items-center">
+      {/* Cart Header (Desktop/Tablet >= 640px) */}
+      <header id="cart-table-header" className="hidden sm:grid grid-cols-12 gap-2 p-3 px-5 border-b border-outline-variant/40 bg-surface-container-low font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider items-center">
         <div className="col-span-1 text-center flex items-center justify-center">
           {items.length > 0 && onBulkRemove && (
             <input
@@ -222,105 +226,168 @@ export default function CartTable({
           items.map((item, idx) => {
             const isSelected = selectedCartIds.includes(item.id);
             return (
-              <article
-                key={item.id}
-                id={`cart-item-${item.id}`}
-                className={`grid grid-cols-12 gap-2 p-3 px-5 items-center transition-colors font-body-md text-body-md ${
-                  isSelected
-                    ? 'bg-primary/10 border-l-4 border-l-primary'
-                    : idx % 2 === 0
-                    ? 'bg-surface-container-low/40 hover:bg-surface-container-high/40'
-                    : 'bg-surface-container/20 hover:bg-surface-container-high/40'
-                }`}
-              >
-                <div className="col-span-1 text-center flex items-center justify-center">
-                  {onBulkRemove && (
-                    <input
-                      id={`checkbox-cart-item-${item.id}`}
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => handleToggleSelect(item.id)}
-                      className="w-4 h-4 accent-primary rounded cursor-pointer transition-all"
-                      aria-label={`Pilih item ${item.name}`}
-                    />
-                  )}
-                </div>
-                <div className="col-span-2 min-w-0 font-mono text-xs text-on-surface-variant/70 truncate flex items-center gap-1.5">
-                  <span className="truncate">{item.barcode}</span>
-                  {item.isAgent && (
-                    <span className="px-1 py-0.2 rounded text-[9px] font-bold bg-secondary/10 text-secondary border border-secondary/20 shrink-0">AGEN</span>
-                  )}
-                </div>
-                <div className="col-span-3 min-w-0 font-medium text-on-surface flex flex-col">
-                  <span className="truncate font-semibold">{item.name}</span>
-                  {item.appliedTierName && (
-                    <span className="text-[10px] text-emerald-500 font-bold tracking-wide">
-                      ★ {item.appliedTierName}
-                    </span>
-                  )}
-                </div>
-                <div className="col-span-2 flex items-center justify-center gap-1">
-                  {onChangeQty && !item.isAgent ? (
-                    <div className="flex items-center bg-surface-container-low border border-outline-variant/60 rounded-lg p-0.5 shadow-sm">
-                      <button
-                        id={`btn-decrease-qty-${item.id}`}
-                        onClick={() => onChangeQty(item.id, Math.max(1, item.qty - 1))}
-                        className="w-6 h-6 rounded flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer"
-                        title="Kurangi Qty"
-                        aria-label={`Kurangi kuantitas ${item.name}`}
-                      >
-                        <Minus size={12} />
-                      </button>
-                      <input
-                        id={`input-qty-${item.id}`}
-                        type="number"
-                        min="1"
-                        value={item.qty}
-                        onChange={e => {
-                          const val = parseInt(e.target.value, 10);
-                          if (!isNaN(val) && val > 0) onChangeQty(item.id, val);
-                        }}
-                        className="w-10 text-center font-mono font-bold text-xs bg-transparent text-on-surface focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      />
-                      <button
-                        id={`btn-increase-qty-${item.id}`}
-                        onClick={() => onChangeQty(item.id, item.qty + 1)}
-                        className="w-6 h-6 rounded flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer"
-                        title="Tambah Qty"
-                        aria-label={`Tambah kuantitas ${item.name}`}
-                      >
-                        <Plus size={12} />
-                      </button>
+              <React.Fragment key={item.id}>
+                {/* ── Mobile Touch Card View (<640px) ── */}
+                <article className={`sm:hidden flex flex-col p-3 px-4 gap-2 border-b border-outline-variant/30 transition-colors ${
+                  isSelected ? 'bg-primary/10 border-l-4 border-l-primary' : 'bg-surface-container-low/40'
+                }`}>
+                  <div className="flex justify-between items-start">
+                    <div className="flex flex-col min-w-0 pr-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-bold text-sm text-on-surface leading-snug">{item.name}</span>
+                        {item.isAgent && (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-secondary/10 text-secondary border border-secondary/20 shrink-0">AGEN</span>
+                        )}
+                        {item.appliedTierName && (
+                          <span className="text-[10px] text-emerald-500 font-bold tracking-wide">
+                            ★ {item.appliedTierName}
+                          </span>
+                        )}
+                      </div>
+                      <span className="font-mono text-[10px] text-on-surface-variant/70 mt-0.5">{item.barcode}</span>
                     </div>
-                  ) : (
-                    <span className="font-mono font-bold text-on-surface bg-surface-container-high px-2 py-0.5 rounded-md text-xs">{item.qty}</span>
-                  )}
-                </div>
-                <div className="col-span-2 text-right font-mono text-on-surface-variant text-xs font-semibold">
-                  Rp {item.price.toLocaleString('id-ID')}
-                </div>
-                <div className="col-span-2 text-right font-mono font-bold text-primary flex items-center justify-between pr-2">
-                  <span className="w-full text-right">Rp {item.subtotal.toLocaleString('id-ID')}</span>
-                  <button
-                    id={`btn-remove-item-${item.id}`}
-                    onClick={() => onRemove(item.id)}
-                    className="text-on-surface-variant/40 hover:text-error transition-colors p-1 rounded-lg hover:bg-error-container/30 cursor-pointer ml-2 shrink-0"
-                    title="Hapus barang"
-                    aria-label={`Hapus item ${item.name}`}
-                  >
-                    <X size={15} />
-                  </button>
-                </div>
-              </article>
+                    <button
+                      onClick={() => onRemove(item.id)}
+                      className="p-1.5 text-error/80 hover:text-error hover:bg-error-container/20 rounded-lg shrink-0 transition-colors cursor-pointer"
+                      title="Hapus item"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                  <div className="flex justify-between items-center mt-1 pt-1 border-t border-outline-variant/20">
+                    <span className="font-mono text-xs text-on-surface-variant font-semibold">
+                      Rp {item.price.toLocaleString('id-ID')}
+                    </span>
+                    <div className="flex items-center gap-3">
+                      {onChangeQty && !item.isAgent ? (
+                        <div className="flex items-center bg-surface-container border border-outline-variant/60 rounded-xl p-0.5 shadow-sm">
+                          <button
+                            onClick={() => onChangeQty(item.id, Math.max(1, item.qty - 1))}
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-on-surface hover:bg-surface-container-high cursor-pointer"
+                          >
+                            <Minus size={13} />
+                          </button>
+                          <span className="w-7 text-center font-mono font-bold text-xs text-on-surface">{item.qty}</span>
+                          <button
+                            onClick={() => onChangeQty(item.id, item.qty + 1)}
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-on-surface hover:bg-surface-container-high cursor-pointer"
+                          >
+                            <Plus size={13} />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="font-mono font-bold text-on-surface bg-surface-container-high px-2 py-0.5 rounded-md text-xs">{item.qty}</span>
+                      )}
+                      <span className="font-mono font-extrabold text-sm text-primary min-w-[70px] text-right">
+                        Rp {item.subtotal.toLocaleString('id-ID')}
+                      </span>
+                    </div>
+                  </div>
+                </article>
+
+                {/* ── Desktop Grid Row View (>=640px) ── */}
+                <article
+                  id={`cart-item-${item.id}`}
+                  className={`hidden sm:grid grid-cols-12 gap-2 p-3 px-5 items-center transition-colors font-body-md text-body-md ${
+                    isSelected
+                      ? 'bg-primary/10 border-l-4 border-l-primary'
+                      : idx % 2 === 0
+                      ? 'bg-surface-container-low/40 hover:bg-surface-container-high/40'
+                      : 'bg-surface-container/20 hover:bg-surface-container-high/40'
+                  }`}
+                >
+
+                  <div className="col-span-1 text-center flex items-center justify-center">
+                    {onBulkRemove && (
+                      <input
+                        id={`checkbox-cart-item-${item.id}`}
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleToggleSelect(item.id)}
+                        className="w-4 h-4 accent-primary rounded cursor-pointer transition-all"
+                        aria-label={`Pilih item ${item.name}`}
+                      />
+                    )}
+                  </div>
+                  <div className="col-span-2 min-w-0 font-mono text-xs text-on-surface-variant/70 truncate flex items-center gap-1.5">
+                    <span className="truncate">{item.barcode}</span>
+                    {item.isAgent && (
+                      <span className="px-1 py-0.2 rounded text-[9px] font-bold bg-secondary/10 text-secondary border border-secondary/20 shrink-0">AGEN</span>
+                    )}
+                  </div>
+                  <div className="col-span-3 min-w-0 font-medium text-on-surface flex flex-col">
+                    <span className="truncate font-semibold">{item.name}</span>
+                    {item.appliedTierName && (
+                      <span className="text-[10px] text-emerald-500 font-bold tracking-wide">
+                        ★ {item.appliedTierName}
+                      </span>
+                    )}
+                  </div>
+                  <div className="col-span-2 flex items-center justify-center gap-1">
+                    {onChangeQty && !item.isAgent ? (
+                      <div className="flex items-center bg-surface-container-low border border-outline-variant/60 rounded-lg p-0.5 shadow-sm">
+                        <button
+                          id={`btn-decrease-qty-${item.id}`}
+                          onClick={() => onChangeQty(item.id, Math.max(1, item.qty - 1))}
+                          className="w-6 h-6 rounded flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer"
+                          title="Kurangi Qty"
+                          aria-label={`Kurangi kuantitas ${item.name}`}
+                        >
+                          <Minus size={12} />
+                        </button>
+                        <input
+                          id={`input-qty-${item.id}`}
+                          type="number"
+                          min="1"
+                          value={item.qty}
+                          onChange={e => {
+                            const val = parseInt(e.target.value, 10);
+                            if (!isNaN(val) && val > 0) onChangeQty(item.id, val);
+                          }}
+                          className="w-10 text-center font-mono font-bold text-xs bg-transparent text-on-surface focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                        <button
+                          id={`btn-increase-qty-${item.id}`}
+                          onClick={() => onChangeQty(item.id, item.qty + 1)}
+                          className="w-6 h-6 rounded flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer"
+                          title="Tambah Qty"
+                          aria-label={`Tambah kuantitas ${item.name}`}
+                        >
+                          <Plus size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="font-mono font-bold text-on-surface bg-surface-container-high px-2 py-0.5 rounded-md text-xs">{item.qty}</span>
+                    )}
+                  </div>
+                  <div className="col-span-2 text-right font-mono text-on-surface-variant text-xs font-semibold">
+                    Rp {item.price.toLocaleString('id-ID')}
+                  </div>
+                  <div className="col-span-2 text-right font-mono font-bold text-primary flex items-center justify-between pr-2">
+                    <span className="w-full text-right">Rp {item.subtotal.toLocaleString('id-ID')}</span>
+                    <button
+                      id={`btn-remove-item-${item.id}`}
+                      onClick={() => onRemove(item.id)}
+                      className="text-on-surface-variant/40 hover:text-error transition-colors p-1 rounded-lg hover:bg-error-container/30 cursor-pointer ml-2 shrink-0"
+                      title="Hapus barang"
+                      aria-label={`Hapus item ${item.name}`}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </article>
+              </React.Fragment>
             );
           })
         )}
+
       </div>
 
       {/* Footer Barcode Scan Bar */}
-      <footer id="cart-table-footer" className="p-3 bg-surface-container-low border-t border-outline-variant/50 flex flex-col gap-2 shrink-0">
-        <div id="barcode-input-container" className="flex items-center gap-2 relative">
-          <form id="barcode-scan-form" onSubmit={(e) => e.preventDefault()} className="flex-1 relative">
+      <footer id="cart-table-footer" className={`p-2.5 sm:p-3 bg-surface-container-low border-t border-outline-variant/50 flex flex-col gap-2 shrink-0 transition-all ${items.length > 0 ? 'pb-16 md:pb-3' : ''}`}>
+
+        <div id="barcode-input-container" className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 relative">
+          <form id="barcode-scan-form" onSubmit={(e) => e.preventDefault()} className="flex-1 relative w-full">
             <ScanBarcode size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/60" />
             <input
               id="input-barcode-scan"
@@ -330,26 +397,40 @@ export default function CartTable({
               onChange={e => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={mode === 'warung' ? "Scan Barcode / Cari Produk [F1]..." : "Input Transaksi Agen [F2]..."}
-              className="w-full bg-surface-container border border-outline-variant/60 rounded-xl pl-10 pr-10 py-2.5 text-on-surface font-label-md text-label-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-on-surface-variant/40 shadow-inner font-mono font-semibold"
+              className="w-full bg-surface-container border border-outline-variant/60 rounded-xl pl-10 pr-24 py-2.5 text-on-surface font-label-md text-label-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-on-surface-variant/40 shadow-inner font-mono font-semibold"
               autoFocus
               aria-label="Scan atau Cari Barcode Produk"
             />
-            {inputValue && (
-              <button
-                id="btn-clear-barcode-input"
-                type="button"
-                onClick={() => {
-                  setInputValue('');
-                  setSearchResults([]);
-                  setSelectedIndex(-1);
-                  inputRef.current?.focus();
-                }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors p-1"
-                aria-label="Bersihkan Input Barcode"
-              >
-                <X size={14} />
-              </button>
-            )}
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {inputValue && (
+                <button
+                  id="btn-clear-barcode-input"
+                  type="button"
+                  onClick={() => {
+                    setInputValue('');
+                    setSearchResults([]);
+                    setSelectedIndex(-1);
+                    inputRef.current?.focus();
+                  }}
+                  className="text-on-surface-variant hover:text-on-surface transition-colors p-1"
+                  aria-label="Bersihkan Input Barcode"
+                >
+                  <X size={14} />
+                </button>
+              )}
+              {mode === 'warung' && (
+                <button
+                  type="button"
+                  onClick={() => setShowCameraScanner(true)}
+                  className="p-1 bg-primary/10 hover:bg-primary hover:text-white text-primary rounded-lg transition-all cursor-pointer shrink-0 md:hidden"
+                  title="Scan Barcode via Kamera HP"
+                  aria-label="Buka Pemindai Kamera"
+                >
+                  <Camera size={16} />
+                </button>
+              )}
+            </div>
+
 
             {/* Fast Autocomplete Dropdown */}
             {searchResults.length > 0 ? (
@@ -409,7 +490,18 @@ export default function CartTable({
           </form>
 
           {mode === 'warung' && onAddDigitalItem && (
-            <div className="flex gap-1.5 shrink-0">
+            <div className="flex gap-2 w-full sm:w-auto shrink-0 flex-wrap">
+              <button
+                id="btn-open-camera-scanner"
+                type="button"
+                onClick={() => setShowCameraScanner(true)}
+                className="flex-1 sm:flex-initial bg-primary text-on-primary hover:bg-primary/90 rounded-xl px-3 py-2 flex md:hidden items-center justify-center gap-1.5 font-bold text-xs shadow-md shrink-0 cursor-pointer active:scale-95 border border-primary/30"
+                title="Buka Kamera HP untuk Scan Barcode"
+                aria-label="Scan Barcode Kamera HP"
+              >
+                <Camera size={15} />
+                <span>SCAN KAMERA</span>
+              </button>
               <button
                 id="btn-open-custom-item-modal"
                 type="button"
@@ -417,26 +509,28 @@ export default function CartTable({
                   setCustomName(inputValue.trim());
                   setShowCustomModal(true);
                 }}
-                className="bg-primary/10 hover:bg-primary hover:text-white text-primary font-label-md text-label-md rounded-xl px-3 py-2.5 flex items-center gap-1.5 transition-all border border-primary/20 shrink-0 font-bold cursor-pointer active:scale-95 shadow-sm"
+                className="flex-1 sm:flex-initial bg-primary/10 hover:bg-primary hover:text-white text-primary rounded-xl px-2.5 py-2 flex items-center justify-center gap-1 font-bold text-xs border border-primary/20 cursor-pointer active:scale-95 shadow-sm"
                 title="Tambah barang tanpa barcode / item manual"
                 aria-label="Tambah Item Non-Barcode"
               >
                 <Plus size={14} className="shrink-0" />
-                + ITEM NON-BARCODE
+                <span>NON-BARCODE</span>
               </button>
               <button
                 id="btn-open-digital-modal"
                 type="button"
                 onClick={() => setShowDigitalModal(true)}
-                className="bg-secondary-container hover:bg-secondary hover:text-white text-on-secondary-container font-label-md text-label-md rounded-xl px-3.5 py-2.5 flex items-center gap-1.5 transition-all border border-secondary/20 shrink-0 font-bold cursor-pointer active:scale-95 shadow-sm"
+                className="flex-1 sm:flex-initial bg-secondary-container hover:bg-secondary hover:text-white text-on-secondary-container rounded-xl px-2.5 py-2 flex items-center justify-center gap-1 font-bold text-xs border border-secondary/20 cursor-pointer active:scale-95 shadow-sm"
                 aria-label="Buka Tambah Layanan Digital"
               >
                 <Zap size={14} className="shrink-0" />
-                + LAYANAN DIGITAL
+                <span>+ DIGITAL</span>
               </button>
             </div>
           )}
+
         </div>
+
         <div id="barcode-scan-status-indicator" className="text-center font-label-sm text-label-sm text-primary font-bold tracking-widest uppercase animate-pulse text-[10px] leading-none mt-0.5">
           {mode === 'warung' ? '✓ SIAP SCAN BARCODE PRODUK' : '⚡ SIAP TRANSAKSI DIGITAL AGEN'}
         </div>
@@ -718,7 +812,18 @@ export default function CartTable({
           </div>
         </div>
       )}
+
+      {/* Camera Barcode Scanner Modal */}
+      {showCameraScanner && (
+        <CameraScannerModal
+          onScanSuccess={(barcode) => {
+            onScan(barcode);
+          }}
+          onClose={() => setShowCameraScanner(false)}
+        />
+      )}
     </section>
   );
 }
+
 

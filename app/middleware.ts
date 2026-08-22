@@ -49,6 +49,16 @@ async function verifyToken(token: string): Promise<Record<string, unknown> | nul
   }
 }
 
+function applySecurityHeaders(res: NextResponse): NextResponse {
+  res.headers.set('X-Frame-Options', 'DENY');
+  res.headers.set('X-Content-Type-Options', 'nosniff');
+  res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.headers.set('X-XSS-Protection', '1; mode=block');
+  res.headers.set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');
+  res.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  return res;
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
@@ -57,7 +67,7 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon')
   ) {
-    return NextResponse.next();
+    return applySecurityHeaders(NextResponse.next());
   }
 
   const token = req.cookies.get(SESSION_COOKIE)?.value;
@@ -71,27 +81,55 @@ export async function middleware(req: NextRequest) {
   requestHeaders.delete('x-user-id');
   requestHeaders.delete('x-user-role');
 
+  // CSRF Protection on state-modifying API requests
+  if (pathname.startsWith('/api/') && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+    const origin = req.headers.get('origin') || req.headers.get('referer');
+    const host = req.headers.get('host');
+    if (origin && host) {
+      try {
+        const originHost = new URL(origin).host;
+        if (originHost !== host) {
+          console.warn(`CSRF blocked: origin ${originHost} does not match host ${host}`);
+          return applySecurityHeaders(
+            NextResponse.json(
+              { error: { code: 'csrf_forbidden', message: 'Permintaan ditolak karena ketidaksesuaian asal (CSRF Protection).' } },
+              { status: 403 }
+            )
+          );
+        }
+      } catch {
+        // Invalid URL origin format
+      }
+    }
+  }
+
   if (!decoded) {
+
     if (pathname.startsWith('/api/')) {
-      return NextResponse.json(
-        { error: { code: 'unauthorized', message: 'Sesi tidak valid atau telah berakhir.' } },
-        { status: 401 }
+      return applySecurityHeaders(
+        NextResponse.json(
+          { error: { code: 'unauthorized', message: 'Sesi tidak valid atau telah berakhir.' } },
+          { status: 401 }
+        )
       );
     }
     const loginUrl = req.nextUrl.clone();
     loginUrl.pathname = '/login';
-    return NextResponse.redirect(loginUrl);
+    return applySecurityHeaders(NextResponse.redirect(loginUrl));
   }
 
   requestHeaders.set('x-user-id',   String(decoded.sub  ?? ''));
   requestHeaders.set('x-user-role', String(decoded.role ?? ''));
 
-  return NextResponse.next({
+  const response = NextResponse.next({
     request: {
       headers: requestHeaders,
     },
   });
+
+  return applySecurityHeaders(response);
 }
+
 
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.png|.*\\.svg|.*\\.jpg|.*\\.jpeg).*)'],

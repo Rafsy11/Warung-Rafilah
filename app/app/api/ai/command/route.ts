@@ -42,8 +42,12 @@ function fallbackIntentClassifier(p: string): any {
   if (/\b(bantuan|help|panduan|bisa apa|fitur)\b/.test(text)) {
     return {
       action: 'HELP',
-      direct_response: 'Saya bisa membantu Anda dengan perintah seperti:\n- "Cek stok kritis"\n- "Ringkasan penjualan hari ini"\n- "Produk kadaluarsa"\n- "Daftar hutang pelanggan"\n- "Saldo float agen"\n- "Tambah stok [nama produk] [jumlah]"'
+      direct_response: 'Saya bisa membantu Anda dengan perintah seperti:\n- "Cek stok kritis"\n- "Ringkasan penjualan hari ini"\n- "Produk kadaluarsa"\n- "Daftar hutang pelanggan"\n- "Saldo float agen"\n- "Berapa total produk saya?"\n- "Tambah stok [nama produk] [jumlah]"'
     };
+  }
+  // "berapa total produk", "jumlah produk", "ada berapa produk" etc.
+  if (/\b(berapa|total|jumlah|ada berapa|banyak|count)\b/.test(text) && /\b(produk|barang|item|sku)\b/.test(text)) {
+    return { action: 'INQUIRY_PRODUCT', count_only: true };
   }
   if (/\b(omset|omzet|penjualan|laporan|terjual|laku)\b/.test(text) && !/\b(terlaris|top)\b/.test(text)) {
     return { action: 'INQUIRY_SALES' };
@@ -577,6 +581,24 @@ Kembalikan HANYA JSON (tanpa markdown, tanpa komentar):
 
       // ── Product inquiry ───────────────────────────────────────────────────
       if (action === 'INQUIRY_PRODUCT') {
+        // Case 1: "berapa total produk?" — count only, no product_query
+        if (p.count_only || (!product_query && /\b(berapa|total|jumlah|ada berapa|banyak|count)\b/.test(prompt.toLowerCase()))) {
+          const r = await client.query(
+            `SELECT
+               COUNT(*) FILTER (WHERE is_active = true) as total_aktif,
+               COUNT(*) FILTER (WHERE is_active = true AND stock_qty <= reorder_threshold) as kritis,
+               COUNT(*) FILTER (WHERE is_active = true AND nearest_expiry_date IS NOT NULL AND nearest_expiry_date <= CURRENT_DATE + INTERVAL '30 days') as mau_exp,
+               COUNT(*) FILTER (WHERE is_active = false) as nonaktif
+             FROM warung.products`
+          );
+          const d = r.rows[0];
+          return NextResponse.json({
+            success: true,
+            message: `📦 *Ringkasan Produk*\n\n• Total produk aktif: *${d.total_aktif} SKU*\n• Stok kritis: *${d.kritis} produk*\n• Mendekati kadaluarsa (≤30 hari): *${d.mau_exp} produk*\n• Produk nonaktif: *${d.nonaktif} produk*`
+          });
+        }
+
+        // Case 2: cari produk spesifik
         if (product_query) {
           const r = await client.query(
             `SELECT name, stock_qty, sell_price, cost_price, unit, is_consignment, nearest_expiry_date
@@ -592,12 +614,17 @@ Kembalikan HANYA JSON (tanpa markdown, tanpa komentar):
           });
           return NextResponse.json({ success: true, message: `Informasi Produk:\n\n${lines.join('\n\n')}` });
         }
-        const r = await client.query(
-          `SELECT name, stock_qty, sell_price, unit FROM warung.products WHERE is_active=true ORDER BY name ASC LIMIT 30`
-        );
-        if (!r.rows.length) return NextResponse.json({ success: true, message: 'Belum ada produk terdaftar.' });
-        const lines = r.rows.map(x => `• *${x.name}* — ${x.stock_qty} ${x.unit} | ${idr(Number(x.sell_price))}`);
-        return NextResponse.json({ success: true, message: `Daftar Produk (${r.rows.length}):\n\n${lines.join('\n')}` });
+
+        // Case 3: daftar semua produk (tampilkan 30 + info total sebenarnya)
+        const [listRes, countRes] = await Promise.all([
+          client.query(`SELECT name, stock_qty, sell_price, unit FROM warung.products WHERE is_active=true ORDER BY name ASC LIMIT 30`),
+          client.query(`SELECT COUNT(*) as total FROM warung.products WHERE is_active=true`),
+        ]);
+        if (!listRes.rows.length) return NextResponse.json({ success: true, message: 'Belum ada produk terdaftar.' });
+        const total = Number(countRes.rows[0].total);
+        const lines = listRes.rows.map(x => `• *${x.name}* — ${x.stock_qty} ${x.unit} | ${idr(Number(x.sell_price))}`);
+        const suffix = total > 30 ? `\n\n_... dan ${total - 30} produk lainnya. Total: *${total} SKU aktif*._` : `\n\nTotal: *${total} SKU aktif*.`;
+        return NextResponse.json({ success: true, message: `Daftar Produk:\n\n${lines.join('\n')}${suffix}` });
       }
 
 

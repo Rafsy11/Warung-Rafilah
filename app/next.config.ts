@@ -3,12 +3,15 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: 'standalone',
   productionBrowserSourceMaps: false,
+  compress: true, // Enable gzip/brotli HTTP response compression
   images: {
-    unoptimized: true,
+    // Next.js Image Optimization enabled — serves WebP/AVIF automatically
+    remotePatterns: [],
   },
   reactStrictMode: true,
   experimental: {
     optimizePackageImports: ['lucide-react'],
+    webpackMemoryOptimizations: true, // Reduces peak memory during builds
   },
   poweredByHeader: false,
   

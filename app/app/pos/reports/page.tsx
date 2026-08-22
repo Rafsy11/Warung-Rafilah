@@ -373,7 +373,8 @@ export default function ReportsPage() {
   if (userRole && userRole !== 'owner') return null; // guarded by auth check redirect
 
   return (
-    <div className="bg-background text-on-background min-h-screen w-full flex flex-col font-body-md select-none">
+    <div className="bg-background text-on-background min-h-[100dvh] w-full flex flex-col font-body-md select-none">
+
       {/* Header */}
       <header className="bg-surface-container flex items-center gap-4 px-6 h-14 border-b border-outline-variant shrink-0 z-50 shadow-sm">
         <button

@@ -364,9 +364,10 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
   }, [canSubmit, selectedProd, phone, amount, adminFee, commission, onToast, fetchRecent]);
 
   return (
-    <section id="agent-workspace-section" aria-label="Layanan Digital Agen" className="flex-1 flex gap-3.5 overflow-hidden w-full h-full">
+    <section id="agent-workspace-section" aria-label="Layanan Digital Agen" className="flex-1 flex flex-col md:flex-row gap-3.5 overflow-y-auto md:overflow-hidden w-full h-full pb-16 sm:pb-0">
 
       {/* ── Closing Modal ─────────────────────────────────────────────────── */}
+
       {showClosingModal && (
         <dialog id="agent-closing-dialog" open aria-modal="true" aria-labelledby="agent-closing-title" className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm w-full h-full border-none p-0">
           <section id="agent-closing-card" className="bg-surface-container rounded-2xl border border-outline-variant p-6 w-full max-w-sm mx-4 flex flex-col gap-4 shadow-2xl">
@@ -450,7 +451,8 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
                   Belum ada produk digital. Jalankan migrasi database terlebih dahulu.
                 </div>
               ) : (
-                <nav id="agent-category-grid-nav" aria-label="Grid Kategori Layanan Agen" className="grid grid-cols-5 gap-2">
+                <nav id="agent-category-grid-nav" aria-label="Grid Kategori Layanan Agen" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
+
                   {categories.map(cat => (
                     <CategoryTile
                       key={cat.category}
@@ -594,7 +596,8 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
       </main>
 
       {/* ── RIGHT: Recent transactions Sidebar ─────────────────────────────── */}
-      <aside id="agent-right-sidebar" className="w-72 shrink-0 flex flex-col gap-3.5">
+      <aside id="agent-right-sidebar" className="w-full md:w-72 shrink-0 flex flex-col gap-3.5">
+
 
         {/* Tutup Kas button */}
         <button

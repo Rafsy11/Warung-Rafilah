@@ -32,17 +32,40 @@ export default function FloatBalanceWidget({ onBalanceLoad }: FloatBalanceWidget
     }
   }, [onBalanceLoad]);
 
-  // Initial load + poll every 30s
+  // Initial load + poll every 30s, paused when tab is hidden (Page Visibility API)
   useEffect(() => {
-    const timer = setTimeout(() => {
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    const startPolling = () => {
+      if (intervalId) return; // already running
       fetchBalance();
-    }, 0);
-    const id = setInterval(fetchBalance, 30_000);
+      intervalId = setInterval(fetchBalance, 30_000);
+    };
+
+    const stopPolling = () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    };
+
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
-      clearTimeout(timer);
-      clearInterval(id);
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [fetchBalance]);
+
 
   const isLow = balance !== null && balance < LOW_BALANCE_THRESHOLD;
 

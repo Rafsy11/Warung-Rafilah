@@ -2,6 +2,8 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import AppShell from '@/components/Layout/AppShell';
+import { Banknote } from 'lucide-react';
+
 import CartTable from '@/components/pos/CartTable';
 import PaymentPanel from '@/components/pos/PaymentPanel';
 import AgentWorkspace from '@/components/pos/AgentWorkspace';
@@ -100,6 +102,8 @@ export default function PosDashboard() {
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
+  const [isPaymentDrawerOpen, setIsPaymentDrawerOpen] = useState(false);
+
 
   const fetchRebalanceStatus = useCallback(async () => {
     try {
@@ -130,12 +134,30 @@ export default function PosDashboard() {
     }
   }, []);
 
+  // Mode change handler with localStorage persistence
+  const handleModeChange = useCallback((newMode: 'warung' | 'agent' | 'admin') => {
+    setMode(newMode);
+    try {
+      localStorage.setItem('pos_preferred_mode', newMode);
+    } catch { /* ignore */ }
+  }, []);
+
   // Fetch current user details on load to get the role
   useEffect(() => {
     fetch('/api/auth/me')
       .then(res => res.json())
       .then(data => {
-        if (data.role) setUserRole(data.role);
+        if (data.role) {
+          setUserRole(data.role);
+          try {
+            const savedMode = localStorage.getItem('pos_preferred_mode') as 'warung' | 'agent' | 'admin' | null;
+            if (savedMode && (data.role === 'owner' || savedMode !== 'admin')) {
+              setMode(savedMode);
+            } else if (data.role === 'owner' && !savedMode) {
+              setMode('admin');
+            }
+          } catch { /* ignore */ }
+        }
         if (data.username) userNameRef.current = data.username;
         // Check active session
         fetch('/api/cashier-sessions/active')
@@ -152,6 +174,7 @@ export default function PosDashboard() {
       .catch(() => setCheckingSession(false));
   }, [fetchRebalanceStatus]);
 
+
   // ── Toast helper ─────────────────────────────────────────────────────────────
   const showToast = useCallback((msg: string, type: 'error' | 'success' = 'error') => {
     setToast({ msg, type });
@@ -159,11 +182,11 @@ export default function PosDashboard() {
   }, []);
 
   // ── Mode switch ──────────────────────────────────────────────────────────────
-  const handleF1 = useCallback(() => { setMode('warung'); setCart([]); }, []);
-  const handleF2 = useCallback(() => { setMode('agent');  setCart([]); }, []);
+  const handleF1 = useCallback(() => { handleModeChange('warung'); setCart([]); }, [handleModeChange]);
+  const handleF2 = useCallback(() => { handleModeChange('agent');  setCart([]); }, [handleModeChange]);
   const handleF3 = useCallback(() => { 
     if (userRole === 'owner') { 
-      setMode('admin'); 
+      handleModeChange('admin'); 
       setCart([]); 
     } else if (mode === 'warung') {
       const discountInput = document.getElementById('input-discount') as HTMLInputElement | null;
@@ -172,7 +195,8 @@ export default function PosDashboard() {
         discountInput.select();
       }
     }
-  }, [userRole, mode]);
+  }, [userRole, mode, handleModeChange]);
+
 
   // ── Add digital item to cart ────────────────────────────────────────────────
   const handleAddDigitalItem = useCallback((item: CartItem) => {
@@ -650,7 +674,7 @@ export default function PosDashboard() {
           </div>
         )}
 
-        <div className="flex-1 flex gap-3.5 overflow-hidden">
+        <div className="flex-1 flex flex-col sm:flex-row gap-3.5 overflow-hidden relative">
           {mode === 'warung' ? (
         <>
           <CartTable
@@ -662,24 +686,71 @@ export default function PosDashboard() {
             onChangeQty={handleChangeQty}
             onAddDigitalItem={handleAddDigitalItem}
           />
-          <PaymentPanel
-            warungTotal={cart.filter(i => !i.isAgent).reduce((s, i) => s + i.subtotal, 0)}
-            agentTotal={cart.filter(i => i.isAgent).reduce((s, i) => s + (i.modal_price || 0), 0)}
-            agentFee={cart.filter(i => i.isAgent).reduce((s, i) => s + (i.price - (i.modal_price || 0)), 0)}
-            discount={discount}
-            onDiscountChange={setDiscount}
-            grandTotal={grandTotal}
-            onPay={handleCheckout}
-            paying={paying}
-            activeDiscounts={activeDiscounts}
-          />
+
+          {/* Desktop/Tablet Payment Panel (>=640px) */}
+          <div className="hidden sm:block shrink-0">
+            <PaymentPanel
+              warungTotal={cart.filter(i => !i.isAgent).reduce((s, i) => s + i.subtotal, 0)}
+              agentTotal={cart.filter(i => i.isAgent).reduce((s, i) => s + (i.modal_price || 0), 0)}
+              agentFee={cart.filter(i => i.isAgent).reduce((s, i) => s + (i.price - (i.modal_price || 0)), 0)}
+              discount={discount}
+              onDiscountChange={setDiscount}
+              grandTotal={grandTotal}
+              onPay={handleCheckout}
+              paying={paying}
+              activeDiscounts={activeDiscounts}
+            />
+          </div>
+
+          {/* Mobile Payment Panel Drawer (<640px) */}
+          {isPaymentDrawerOpen && (
+            <PaymentPanel
+              warungTotal={cart.filter(i => !i.isAgent).reduce((s, i) => s + i.subtotal, 0)}
+              agentTotal={cart.filter(i => i.isAgent).reduce((s, i) => s + (i.modal_price || 0), 0)}
+              agentFee={cart.filter(i => i.isAgent).reduce((s, i) => s + (i.price - (i.modal_price || 0)), 0)}
+              discount={discount}
+              onDiscountChange={setDiscount}
+              grandTotal={grandTotal}
+              onPay={(method, received, splitCash, splitQris, customerId) => {
+                setIsPaymentDrawerOpen(false);
+                handleCheckout(method, received, splitCash, splitQris, customerId);
+              }}
+              paying={paying}
+              activeDiscounts={activeDiscounts}
+              isMobileDrawer
+              onCloseMobileDrawer={() => setIsPaymentDrawerOpen(false)}
+            />
+          )}
+
+          {/* Mobile Sticky Checkout Action Bar (<640px) */}
+          {mode === 'warung' && cart.length > 0 && (
+            <div className="sm:hidden fixed bottom-16 left-0 right-0 z-30 p-3 px-4 bg-surface-container/95 backdrop-blur-md border-t border-outline-variant/60 shadow-2xl flex items-center justify-between gap-3 animate-in slide-in-from-bottom-2 duration-200">
+              <div className="flex flex-col min-w-0">
+                <span className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">
+                  {cart.reduce((s, i) => s + i.qty, 0)} Item di Keranjang
+                </span>
+                <span className="font-mono font-extrabold text-base text-primary truncate">
+                  Rp {grandTotal.toLocaleString('id-ID')}
+                </span>
+              </div>
+              <button
+                onClick={() => setIsPaymentDrawerOpen(true)}
+                className="bg-primary hover:bg-primary/90 text-on-primary font-bold text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-primary/25 active:scale-95 transition-all flex items-center gap-2 cursor-pointer shrink-0"
+              >
+                <span>BAYAR SEKARANG</span>
+                <Banknote size={18} />
+              </button>
+            </div>
+          )}
         </>
+
       ) : mode === 'agent' ? (
         <AgentWorkspace onToast={showToast} />
       ) : (
         <AdminWorkspace onToast={showToast} scannedBarcode={scannedBarcode} />
       )}
         </div>
+
       </div>
 
       {pendingQrisSale && (

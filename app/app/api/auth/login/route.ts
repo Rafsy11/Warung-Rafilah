@@ -125,13 +125,17 @@ export async function POST(req: Request) {
       user: { id: user.id, username: user.username, full_name: user.full_name, role: user.role },
     });
 
+    const isHttps = req.headers.get('x-forwarded-proto') === 'https' || new URL(req.url).protocol === 'https:';
+
+
     res.cookies.set(process.env.SESSION_COOKIE_NAME || 'pos_session', token, {
       httpOnly: true,
-      secure:   process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure:   isHttps,
+      sameSite: 'lax',
       path:     '/',
       maxAge:   60 * 60 * 24,
     });
+
 
     return res;
   } catch (err: any) {

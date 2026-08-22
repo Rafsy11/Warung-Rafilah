@@ -1,7 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import Image from 'next/image';
 import { RefreshCw, Store, Printer, BarChart3, Sun, Moon, LogOut, Sparkles, Keyboard, Calculator, Wifi, WifiOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import NetworkStatusModal from '@/components/pos/NetworkStatusModal';
+import BottomNav from '@/components/Layout/BottomNav';
+
+
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -116,42 +120,45 @@ export default function AppShell({
   }, []);
 
   return (
-    <div id="pos-main-layout" role="application" className="bg-background text-on-background h-screen w-screen overflow-hidden flex flex-col font-body-md select-none">
+    <div id="pos-main-layout" role="application" className="bg-background text-on-background h-[100dvh] w-[100dvw] overflow-hidden flex flex-col font-body-md select-none">
+
+
       {/* Top Navigation Header */}
-      <header id="pos-header" role="banner" className="bg-surface-container flex justify-between items-center w-full px-5 h-16 border-b border-outline-variant shrink-0 z-50 transition-colors duration-150">
-        <div className="flex items-center gap-6">
+      <header id="pos-header" role="banner" className="bg-surface-container flex justify-between items-center w-full px-3 sm:px-5 h-14 sm:h-16 border-b border-outline-variant shrink-0 z-50 transition-colors duration-150">
+        <div className="flex items-center gap-3 sm:gap-6">
           {/* Brand Identity */}
-          <div id="brand-identity" className="flex items-center gap-3">
-            <figure className="w-10 h-10 min-w-0 min-h-0 bg-surface-container-low border border-outline-variant/60 rounded-xl flex items-center justify-center p-0.5 overflow-hidden shrink-0 shadow-sm">
-              <img src="/logo.png" alt="Logo Warung Rafilah" className="w-full h-full object-cover rounded-[10px]" />
+          <div id="brand-identity" className="flex items-center gap-2.5 sm:gap-3">
+            <figure className="w-8 h-8 sm:w-10 sm:h-10 min-w-0 min-h-0 bg-surface-container-low border border-outline-variant/60 rounded-xl flex items-center justify-center p-0.5 overflow-hidden shrink-0 shadow-sm">
+              <Image src="/logo.png" alt="Logo Warung Rafilah" width={40} height={40} className="w-full h-full object-cover rounded-[10px]" priority />
             </figure>
             <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <h1 id="brand-title" className="text-sm font-bold tracking-tight text-on-surface leading-none">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <h1 id="brand-title" className="text-xs sm:text-sm font-bold tracking-tight text-on-surface leading-none">
                   WARUNG RAFILAH
                 </h1>
                 <button 
                   id="system-online-badge" 
                   onClick={() => setShowNetworkModal(true)}
                   title="Klik untuk lihat Diagnostic Monitoring Status"
-                  className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold leading-none cursor-pointer transition-all hover:scale-105 active:scale-95 border ${
+                  className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-semibold leading-none cursor-pointer transition-all hover:scale-105 active:scale-95 border ${
                     isOnline 
                       ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20' 
                       : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 hover:bg-amber-500/20'
                   }`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full mr-1 animate-pulse ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-                  {isOnline ? 'Online Engine' : 'Offline Mode (Local Active)'}
+                  <span className="hidden sm:inline">{isOnline ? 'Online Engine' : 'Offline Mode (Local Active)'}</span>
+                  <span className="sm:hidden">{isOnline ? 'Online' : 'Offline'}</span>
                 </button>
               </div>
-              <span className="text-[10px] text-on-surface-variant font-medium tracking-wide uppercase mt-0.5">POS System</span>
+              <span className="text-[9px] sm:text-[10px] text-on-surface-variant font-medium tracking-wide uppercase mt-0.5">POS System</span>
             </div>
           </div>
 
-          <div className="h-6 w-px bg-outline-variant/60"></div>
+          <div className="hidden sm:block h-6 w-px bg-outline-variant/60"></div>
 
-          {/* Mode Switcher Tabs */}
-          <nav id="pos-mode-navigation" aria-label="Mode Aplikasi Kasir" className="flex bg-surface-container-low border border-outline-variant rounded-lg p-0.5 gap-0.5">
+          {/* Mode Switcher Tabs (Desktop/Tablet >= 640px) */}
+          <nav id="pos-mode-navigation" aria-label="Mode Aplikasi Kasir" className="hidden sm:flex bg-surface-container-low border border-outline-variant rounded-lg p-0.5 gap-0.5">
             <button 
               id="btn-mode-warung"
               onClick={() => onModeChange('warung')}
@@ -194,14 +201,15 @@ export default function AppShell({
         </div>
 
         {/* Right Section Tools */}
-        <div id="header-tools-actions" className="flex items-center gap-3">
-          <time id="pos-header-clock" className="font-mono text-on-surface-variant text-xs font-medium bg-surface-container-low px-2.5 py-1.2 rounded-md border border-outline-variant/40">
+        <div id="header-tools-actions" className="flex items-center gap-2 sm:gap-3">
+          <time id="pos-header-clock" className="hidden md:block font-mono text-on-surface-variant text-xs font-medium bg-surface-container-low px-2.5 py-1.2 rounded-md border border-outline-variant/40">
             {time}
           </time>
           
-          <div className="h-5 w-px bg-outline-variant/60"></div>
+          <div className="hidden md:block h-5 w-px bg-outline-variant/60"></div>
  
-          <div id="header-utility-buttons" className="flex items-center gap-1 text-on-surface-variant">
+          <div id="header-utility-buttons" className="hidden sm:flex items-center gap-1 text-on-surface-variant">
+
             <button
               id="btn-toggle-theme"
               onClick={toggleTheme}
@@ -331,12 +339,30 @@ export default function AppShell({
       </header>
 
       {/* Main Content Workspace */}
-      <main id="pos-main-content" role="main" className="flex-1 flex overflow-hidden p-3.5 gap-3.5 h-full">
+      <main id="pos-main-content" role="main" className="flex-1 min-h-0 flex overflow-hidden p-2 sm:p-3.5 pb-20 sm:pb-3.5 gap-2 sm:gap-3.5">
         {children}
       </main>
 
-      {/* Footer Hotkey Status Bar */}
-      <footer id="pos-footer" role="contentinfo" aria-label="Status Pintasan Keyboard" className="bg-surface-container-lowest border-t border-outline-variant h-10 shrink-0 flex items-center justify-between px-margin-edge z-50">
+
+
+      {/* Mobile Bottom Navigation (<640px) */}
+      <BottomNav
+        mode={mode}
+        onModeChange={onModeChange}
+        userRole={userRole}
+        onReprint={onReprint}
+        onToggleAi={onToggleAi}
+        onToggleShortcuts={onToggleShortcuts}
+        onToggleCalculator={onToggleCalculator}
+        onCloseSession={onCloseSession}
+        activeSession={activeSession}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onLogout={handleLogout}
+      />
+
+      {/* Footer Hotkey Status Bar (Desktop/Tablet >= 640px) */}
+      <footer id="pos-footer" role="contentinfo" aria-label="Status Pintasan Keyboard" className="hidden sm:flex bg-surface-container-lowest border-t border-outline-variant h-10 shrink-0 items-center justify-between px-margin-edge z-50">
         <nav id="footer-shortcut-list" aria-label="Pintasan Tombol Cepat" className="flex items-center gap-6 text-on-surface-variant text-xs font-medium">
           <button id="btn-footer-f1" onClick={() => onModeChange('warung')} className="ml-3 hover:text-primary transition-colors flex items-center gap-1.5 cursor-pointer">
             <kbd className="bg-surface-container-highest border border-outline-variant px-1.5 py-0.5 rounded-md font-mono font-bold text-on-surface text-[11px]">F1</kbd> Warung
@@ -394,3 +420,4 @@ export default function AppShell({
     </div>
   );
 }
+
