@@ -143,16 +143,33 @@ fi
     IS_ONLINE=true
   fi
 
-  if [ "$IS_ONLINE" = true ]; then
-    docker compose "${COMPOSE_FILES[@]}" up -d --build >>"$LOG_FILE" 2>&1 || docker compose "${COMPOSE_FILES[@]}" up -d >>"$LOG_FILE" 2>&1
-  else
-    # Offline mode: Up directly using cached local image without hitting Docker Hub metadata lookup
-    docker compose "${COMPOSE_FILES[@]}" up -d >>"$LOG_FILE" 2>&1 || docker compose "${COMPOSE_FILES[@]}" up -d --build --pull never >>"$LOG_FILE" 2>&1
+  start_success=false
+  if docker compose "${COMPOSE_FILES[@]}" up -d >>"$LOG_FILE" 2>&1; then
+    start_success=true
   fi
 
-  echo "90"
-  echo "# Waiting for services to become healthy..."
-  sleep 5
+  # Self-healing: If up -d failed (e.g. RWLayer nil or corrupted container metadata after reboot), recover automatically
+  if [ "$start_success" = false ]; then
+    echo "55"
+    echo "# Recovering container state..."
+    echo "[Self-healing] Initial up failed, running compose down --remove-orphans to clear orphaned layer..." >>"$LOG_FILE"
+    docker compose "${COMPOSE_FILES[@]}" down --remove-orphans >>"$LOG_FILE" 2>&1 || true
+    docker compose "${COMPOSE_FILES[@]}" up -d >>"$LOG_FILE" 2>&1 || true
+  fi
+
+  echo "70"
+  echo "# Waiting for database & POS services to become ready..."
+  # Dynamic polling wait loop (up to 25s) instead of fragile fixed sleep
+  for ((sec = 1; sec <= 25; sec++)); do
+    if docker compose "${COMPOSE_FILES[@]}" ps 2>/dev/null | grep -E 'pos_nextjs|pos_app' | grep -iE 'running|up' >/dev/null 2>&1 || docker ps 2>/dev/null | grep -q 'pos_nextjs'; then
+      if curl -s --connect-timeout 1 http://localhost:3000/api/health >/dev/null 2>&1; then
+        break
+      fi
+    fi
+    pct=$((70 + (sec * 28 / 25)))
+    echo "$pct"
+    sleep 1
+  done
 
   echo "100"
   echo "# Done."

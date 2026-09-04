@@ -72,12 +72,28 @@ else
 fi
 
 echo "▶️  Menyalakan server POS..."
-$COMPOSE_CMD up -d
+if ! $COMPOSE_CMD up -d; then
+    echo "⚠️  Terdeteksi kendala container lama, melakukan pemulihan otomatis..."
+    $COMPOSE_CMD down --remove-orphans 2>/dev/null || true
+    $COMPOSE_CMD up -d
+fi
 
-echo "⏳ Menunggu server siap..."
-sleep 5
+echo "⏳ Menunggu database & web app siap..."
+READY=false
+for i in {1..20}; do
+    if curl -s --connect-timeout 1 http://localhost:3000/api/health >/dev/null 2>&1; then
+        READY=true
+        break
+    fi
+    sleep 1
+done
 
-echo "✅ POS Warung Rafilah berhasil dijalankan!"
-echo "Akses di browser PC Kasir: http://localhost:3000"
+if [ "$READY" = true ]; then
+    echo "✅ POS Warung Rafilah berhasil dijalankan & siap digunakan!"
+    echo "Akses di browser PC Kasir: http://localhost:3000"
+else
+    echo "⚠️  Layanan sedang dimulai di latar belakang..."
+    echo "Akses di browser PC Kasir: http://localhost:3000"
+fi
 read -p "Tekan [Enter] untuk menutup jendela ini..."
 

@@ -406,7 +406,7 @@ export default function AppShell({
             <kbd className="bg-surface-container-highest border border-outline-variant px-1.5 py-0.5 rounded-md font-mono font-bold text-on-surface text-[11px]">ESC</kbd> Cancel
           </button>
         </nav>
-        <div id="app-version-indicator" className="font-label-sm text-label-sm text-outline">
+        <div id="app-version-indicator" className="font-label-sm text-label-sm text-outline mr-3">
           v2.4.0-stable
         </div>
       </footer>
