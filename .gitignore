@@ -20,4 +20,18 @@ Thumbs.db
 
 # Environment secrets
 .env
+.env.*
+!.env.example
+
+# Database backups & dumps
+backups/
+*.sql
+!app/migrations/*.sql
+!db/init/*.sql
+*.sql.gz
+*.dump
+
+# Log files
+logs/
+*.log
 

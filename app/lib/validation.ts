@@ -7,9 +7,8 @@ export const loginSchema = z.object({
     .max(50, 'Username maksimal 50 karakter')
     .regex(/^[a-zA-Z0-9_-]+$/, 'Username hanya boleh huruf, angka, underscore dan dash'),
   pin: z.string()
-    .min(4, 'PIN minimal 4 karakter')
-    .max(10, 'PIN maksimal 10 karakter')
-    .regex(/^\d+$/, 'PIN hanya boleh angka')
+    .min(4, 'Password/PIN minimal 4 karakter')
+    .max(64, 'Password/PIN maksimal 64 karakter')
 });
 
 // Product validation schemas

@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Reactivate soft-deleted product with new data
+      await db.query(`SELECT set_config('app.price_change_source', 'quick_add', true)`);
       const { rows } = await db.query(
         `UPDATE warung.products
          SET name = $1, sell_price = $2, category = $3,

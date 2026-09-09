@@ -33,33 +33,54 @@ export async function POST(req: Request) {
 
     const { username, pin } = validation.data;
 
-    // Rate limiting dengan sliding window
-    const rateLimitKey = `login:${username}:${ip}`;
-    
-    if (rateLimiter.isRateLimited(rateLimitKey, RATE_LIMITS.LOGIN.limit, RATE_LIMITS.LOGIN.windowMs)) {
-      const retryAfter = rateLimiter.getTimeUntilReset(rateLimitKey, RATE_LIMITS.LOGIN.windowMs);
-      
+    // 1. IP-wide rate limit (15 attempts per 5 mins) to protect against credential stuffing
+    const ipRateLimitKey = `login:ip:${ip}`;
+    if (rateLimiter.isRateLimited(ipRateLimitKey, 15, RATE_LIMITS.LOGIN.windowMs)) {
+      const retryAfter = rateLimiter.getTimeUntilReset(ipRateLimitKey, RATE_LIMITS.LOGIN.windowMs);
       await logAudit({
         action: 'login_failed',
         ip_address: ip,
         user_agent: userAgent,
         status: 'failed',
-        error_message: 'Rate limit exceeded',
+        error_message: 'IP rate limit exceeded',
         metadata: { username }
       });
-      
       return NextResponse.json(
         { 
           error: { 
             code: 'rate_limited', 
-            message: `Terlalu banyak percobaan. Coba lagi dalam ${retryAfter} detik.` 
+            message: `Terlalu banyak percobaan dari IP ini. Tunggu ${retryAfter} detik.` 
           } 
         },
         { 
           status: 429,
-          headers: {
-            'Retry-After': retryAfter.toString()
-          }
+          headers: { 'Retry-After': retryAfter.toString() }
+        }
+      );
+    }
+
+    // 2. Account-specific rate limit (5 attempts per 5 mins)
+    const rateLimitKey = `login:${username}:${ip}`;
+    if (rateLimiter.isRateLimited(rateLimitKey, RATE_LIMITS.LOGIN.limit, RATE_LIMITS.LOGIN.windowMs)) {
+      const retryAfter = rateLimiter.getTimeUntilReset(rateLimitKey, RATE_LIMITS.LOGIN.windowMs);
+      await logAudit({
+        action: 'login_failed',
+        ip_address: ip,
+        user_agent: userAgent,
+        status: 'failed',
+        error_message: 'User rate limit exceeded',
+        metadata: { username }
+      });
+      return NextResponse.json(
+        { 
+          error: { 
+            code: 'rate_limited', 
+            message: `Terlalu banyak percobaan untuk akun ini. Coba lagi dalam ${retryAfter} detik.` 
+          } 
+        },
+        { 
+          status: 429,
+          headers: { 'Retry-After': retryAfter.toString() }
         }
       );
     }
@@ -75,18 +96,36 @@ export async function POST(req: Request) {
     );
 
     if (rows.length === 0) {
+      // Timing attack countermeasure: simulate constant-time hash verification so execution time is identical
+      await pool.query(
+        "SELECT crypt($1, '$2a$12$e8Y5lqfQvM1wS5YgC6eIquP9lC6dC0x7.hEaL1lG6qJ2bC8kL4e2G')",
+        [pin]
+      ).catch(() => {});
+
+      const remaining = rateLimiter.getRemainingAttempts(rateLimitKey, RATE_LIMITS.LOGIN.limit, RATE_LIMITS.LOGIN.windowMs);
+
       await logAudit({
         action: 'login_failed',
         ip_address: ip,
         user_agent: userAgent,
         status: 'failed',
         error_message: 'Invalid credentials',
-        metadata: { username }
+        metadata: { username, remaining_attempts: remaining }
       });
       
       return NextResponse.json(
-        { error: { code: 'invalid_credentials', message: 'Username atau password salah.' } },
-        { status: 401 }
+        { 
+          error: { 
+            code: 'invalid_credentials', 
+            message: `Username atau password salah.${remaining <= 2 && remaining > 0 ? ` Sisa percobaan: ${remaining} kali.` : ''}` 
+          } 
+        },
+        { 
+          status: 401,
+          headers: {
+            'X-RateLimit-Remaining': remaining.toString()
+          }
+        }
       );
     }
 
@@ -108,8 +147,9 @@ export async function POST(req: Request) {
       .digest('base64url');
     const token = `${header}.${payload}.${signature}`;
 
-    // Reset rate limit on successful login
+    // Reset rate limits on successful login
     rateLimiter.reset(rateLimitKey);
+    rateLimiter.reset(ipRateLimitKey);
     
     // Log successful login
     await logAudit({

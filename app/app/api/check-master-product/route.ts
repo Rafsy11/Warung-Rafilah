@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db as pool } from '@/lib/db';
 import { requireRole } from '@/lib/rbac';
+import { enforceRateLimit } from '@/lib/rate-limiter';
 
 /**
  * 3-STEP AUTO-LEARN & FALLBACK MASTER PRODUCT CONTROLLER
@@ -12,6 +13,9 @@ import { requireRole } from '@/lib/rbac';
 export async function GET(req: Request) {
   const forbidden = requireRole(req, ['owner', 'cashier']);
   if (forbidden) return forbidden;
+
+  const rateLimited = enforceRateLimit(req, 'API_GENERAL', '/api/check-master-product');
+  if (rateLimited) return rateLimited;
 
   const { searchParams } = new URL(req.url);
   const barcode = searchParams.get('barcode')?.trim();
@@ -92,6 +96,9 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const forbidden = requireRole(req, ['owner', 'cashier']);
   if (forbidden) return forbidden;
+
+  const rateLimited = enforceRateLimit(req, 'API_WRITE', '/api/check-master-product');
+  if (rateLimited) return rateLimited;
 
   const client = await pool.connect();
   try {

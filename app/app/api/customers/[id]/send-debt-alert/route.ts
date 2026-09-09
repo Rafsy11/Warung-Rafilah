@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireRole } from '@/lib/rbac';
+import { enforceRateLimit } from '@/lib/rate-limiter';
 
 export async function POST(
   req: NextRequest,
@@ -8,6 +9,9 @@ export async function POST(
 ) {
   const forbidden = requireRole(req, ['owner', 'cashier']);
   if (forbidden) return forbidden;
+
+  const rateLimited = enforceRateLimit(req, 'WEBHOOK', '/api/customers/send-debt-alert');
+  if (rateLimited) return rateLimited;
 
   const { id } = await params;
 

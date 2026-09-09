@@ -454,6 +454,20 @@ export default function ProductManagementTab({
                     <div className="flex justify-between items-center text-xs font-mono pt-1.5 border-t border-outline-variant/20 flex-wrap gap-2">
                       <span className="text-on-surface-variant">Modal: <strong>Rp {Number(prod.cost_price).toLocaleString('id-ID')}</strong></span>
                       <span className="text-primary font-bold text-sm">Jual: Rp {Number(prod.sell_price).toLocaleString('id-ID')}</span>
+                      {prod.latest_price_change && (() => {
+                        const lpc = prod.latest_price_change;
+                        const diff = lpc.new_sell_price - lpc.old_sell_price;
+                        if (diff === 0) return null;
+                        const pct = ((diff / lpc.old_sell_price) * 100).toFixed(0);
+                        const isUp = diff > 0;
+                        return (
+                          <span className={`text-[9px] px-1 py-0.5 rounded leading-none font-bold border ${
+                            isUp ? 'bg-red-950/40 text-red-400 border-red-500/20' : 'bg-emerald-950/40 text-emerald-400 border-emerald-500/20'
+                          }`}>
+                            {isUp ? '↑' : '↓'}{pct}%
+                          </span>
+                        );
+                      })()}
                       <span className={`px-2 py-0.5 rounded font-bold text-xs ${
                         Number(prod.stock_qty) <= Number(prod.reorder_threshold)
                           ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30'
@@ -529,6 +543,34 @@ export default function ProductManagementTab({
                     <td className="p-3 text-right font-mono">
                       <div className="flex flex-col items-end">
                         <span className="font-semibold text-on-surface">Rp {Number(prod.sell_price).toLocaleString('id-ID')}</span>
+                        {prod.latest_price_change && (() => {
+                          const lpc = prod.latest_price_change;
+                          const diff = lpc.new_sell_price - lpc.old_sell_price;
+                          if (diff === 0) return null;
+                          const pct = ((diff / lpc.old_sell_price) * 100).toFixed(0);
+                          const isUp = diff > 0;
+                          const ago = (() => {
+                            const ms = Date.now() - new Date(lpc.changed_at).getTime();
+                            const m = Math.floor(ms / 60000);
+                            if (m < 60) return `${m}m lalu`;
+                            const h = Math.floor(m / 60);
+                            if (h < 24) return `${h}j lalu`;
+                            const d = Math.floor(h / 24);
+                            return `${d}h lalu`;
+                          })();
+                          return (
+                            <span
+                              className={`text-[9px] mt-1 px-1.5 py-0.5 rounded leading-none font-bold border ${
+                                isUp
+                                  ? 'bg-red-950/40 text-red-400 border-red-500/20'
+                                  : 'bg-emerald-950/40 text-emerald-400 border-emerald-500/20'
+                              }`}
+                              title={`Rp ${Number(lpc.old_sell_price).toLocaleString('id-ID')} → Rp ${Number(lpc.new_sell_price).toLocaleString('id-ID')} (${lpc.source})`}
+                            >
+                              {isUp ? '↑' : '↓'} {isUp ? '+' : ''}{pct}% · {ago}
+                            </span>
+                          );
+                        })()}
                         {prod.pricing_tiers && prod.pricing_tiers.length > 0 && (
                           <div className="flex flex-col items-end gap-0.5 mt-1 max-w-[150px]">
                             {prod.pricing_tiers.map((t) => (

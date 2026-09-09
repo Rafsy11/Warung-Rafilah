@@ -62,7 +62,7 @@ services:
     mem_reservation: 150m
     cpus: 1.0
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     logging:
       driver: "json-file"
       options:

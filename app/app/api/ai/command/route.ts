@@ -657,6 +657,7 @@ Kembalikan HANYA JSON (tanpa markdown, tanpa komentar):
         if (new_sell_price && Number(new_sell_price) > 0) { updates.push(`sell_price = $${vals.length + 1}`); vals.push(Number(new_sell_price)); }
         if (new_cost_price && Number(new_cost_price) > 0) { updates.push(`cost_price = $${vals.length + 1}`); vals.push(Number(new_cost_price)); }
         vals.push(prod.id);
+        await client.query(`SELECT set_config('app.price_change_source', 'ai_command', true)`);
         await client.query(`UPDATE warung.products SET ${updates.join(', ')} WHERE id = $${vals.length}`, vals);
         const changes = [];
         if (new_sell_price && Number(new_sell_price) > 0) changes.push(`Harga Jual: *${idr(Number(prod.sell_price))}* → *${idr(Number(new_sell_price))}*`);

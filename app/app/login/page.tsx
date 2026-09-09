@@ -12,15 +12,31 @@ export default function LoginPage() {
 
   const [username, setUsername]   = useState('');
   const [password, setPassword]   = useState('');
-  const [showPwd, setShowPwd]     = useState(false);
-  const [loading, setLoading]     = useState(false);
-  const [error, setError]         = useState('');
-  const [shake, setShake]         = useState(false);
+  const [showPwd, setShowPwd]               = useState(false);
+  const [loading, setLoading]               = useState(false);
+  const [error, setError]                   = useState('');
+  const [shake, setShake]                   = useState(false);
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
 
   // Auto-focus username on mount
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  // Real-time countdown timer for rate limit lockout
+  useEffect(() => {
+    if (lockoutSeconds <= 0) return;
+    const timer = setInterval(() => {
+      setLockoutSeconds(prev => {
+        if (prev <= 1) {
+          setError('');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [lockoutSeconds]);
 
   const triggerShake = useCallback(() => {
     setShake(true);
@@ -30,7 +46,7 @@ export default function LoginPage() {
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      if (loading) return;
+      if (loading || lockoutSeconds > 0) return;
       setError('');
       setLoading(true);
 
@@ -44,6 +60,10 @@ export default function LoginPage() {
         const data = await res.json();
 
         if (!res.ok) {
+          const retryAfter = res.headers.get('Retry-After');
+          if (res.status === 429 && retryAfter) {
+            setLockoutSeconds(parseInt(retryAfter, 10) || 60);
+          }
           setError(data.error?.message || 'Login gagal.');
           triggerShake();
           return;
@@ -59,7 +79,7 @@ export default function LoginPage() {
         setLoading(false);
       }
     },
-    [username, password, loading, router, triggerShake]
+    [username, password, loading, lockoutSeconds, router, triggerShake]
   );
 
   return (
@@ -106,12 +126,16 @@ export default function LoginPage() {
                 ref={inputRef}
                 type="text"
                 autoComplete="off"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                maxLength={50}
                 name="pos_user_login"
                 value={username}
                 onChange={e => { setUsername(e.target.value); setError(''); }}
                 className="bg-surface-dim border border-outline-variant rounded-lg px-4 py-3 text-on-surface font-body-md text-body-md focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-colors placeholder:text-on-surface-variant/40"
                 placeholder="Masukkan username"
-                disabled={loading}
+                disabled={loading || lockoutSeconds > 0}
               />
             </div>
 
@@ -128,12 +152,16 @@ export default function LoginPage() {
                   id="password"
                   type={showPwd ? 'text' : 'password'}
                   autoComplete="new-password"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  maxLength={64}
                   name="pos_pin_login"
                   value={password}
                   onChange={e => { setPassword(e.target.value); setError(''); }}
                   className="w-full bg-surface-dim border border-outline-variant rounded-lg px-4 py-3 pr-12 text-on-surface font-body-md text-body-md focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-colors placeholder:text-on-surface-variant/40"
                   placeholder="••••••••••"
-                  disabled={loading}
+                  disabled={loading || lockoutSeconds > 0}
                 />
                 <button
                   type="button"
@@ -157,10 +185,12 @@ export default function LoginPage() {
             {/* Submit */}
             <button
               type="submit"
-              disabled={loading || !username.trim() || !password}
+              disabled={loading || lockoutSeconds > 0 || !username.trim() || !password}
               className="mt-1 bg-secondary-container hover:bg-secondary-container/80 text-on-secondary-container font-label-lg text-label-lg rounded-lg py-3.5 flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-md shadow-secondary/20 disabled:opacity-50 disabled:cursor-not-allowed border border-secondary/30"
             >
-              {loading ? (
+              {lockoutSeconds > 0 ? (
+                `TERKUNCI (${lockoutSeconds} detik)`
+              ) : loading ? (
                 <>
                   <Loader2 size={18} className="animate-spin" />
                   Memverifikasi...

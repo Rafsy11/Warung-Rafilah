@@ -43,6 +43,14 @@ export interface Product {
   consignment_supplier_name?: string | null;
   consignment_cost_share?: string | number | null;
   nearest_expiry_date?: string | null;
+  latest_price_change?: {
+    old_sell_price: number;
+    new_sell_price: number;
+    old_cost_price: number;
+    new_cost_price: number;
+    changed_at: string;
+    source: string;
+  } | null;
 }
 
 interface StockMovement {

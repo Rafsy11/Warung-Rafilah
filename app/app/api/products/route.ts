@@ -24,6 +24,19 @@ export async function GET(req: Request) {
                '[]'::json
              ) as pricing_tiers,
              (SELECT json_build_object(
+                'old_sell_price', h.old_sell_price::float,
+                'new_sell_price', h.new_sell_price::float,
+                'old_cost_price', h.old_cost_price::float,
+                'new_cost_price', h.new_cost_price::float,
+                'changed_at', h.changed_at,
+                'source', h.source
+              )
+              FROM warung.product_price_history h
+              WHERE h.product_id = warung.products.id
+              ORDER BY h.changed_at DESC
+              LIMIT 1
+             ) as latest_price_change,
+             (SELECT json_build_object(
                 'id', d.id,
                 'name', d.name,
                 'discount_type', d.discount_type,
@@ -75,6 +88,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: { code: 'barcode_exists', message: 'A product with this barcode already exists.' } }, { status: 409 });
       } else {
         // Reactivate and update the soft-deleted product
+        await pool.query(`SELECT set_config('app.price_change_source', 'reactivation', true)`);
         const { rows } = await pool.query(
           `UPDATE warung.products 
            SET name = $1, category = $2, unit = $3, cost_price = $4, sell_price = $5, stock_qty = $6, reorder_threshold = $7,
