@@ -177,6 +177,155 @@ export default function CartTable({
 
   return (
     <section id="cart-table-section" aria-label="Tabel Keranjang Belanja" className="flex-1 flex flex-col bg-surface-container border border-outline-variant/50 rounded-2xl overflow-hidden shadow-md transition-all duration-200">
+      <div id="cart-table-footer" className={`p-2.5 sm:p-3 bg-surface-container-low border-t border-outline-variant/50 flex flex-col gap-2 shrink-0 transition-all ${items.length > 0 ? 'pb-16 md:pb-3' : ''}`}>
+
+        <div id="barcode-input-container" className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 relative">
+          <form id="barcode-scan-form" onSubmit={(e) => e.preventDefault()} className="flex-1 relative w-full">
+            <ScanBarcode size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/60" />
+            <input
+              id="input-barcode-scan"
+              ref={inputRef}
+              type="text"
+              value={inputValue}
+              onChange={e => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={mode === 'warung' ? "Scan barcode / cari barang" : "Cari transaksi agen"}
+              className="w-full bg-surface-container border border-outline-variant/60 rounded-xl pl-10 pr-24 py-2.5 text-on-surface font-label-md text-label-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-on-surface-variant/40 shadow-inner font-mono font-semibold"
+              autoFocus
+              aria-label="Scan atau Cari Barcode Produk"
+            />
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {inputValue && (
+                <button
+                  id="btn-clear-barcode-input"
+                  type="button"
+                  onClick={() => {
+                    setInputValue('');
+                    setSearchResults([]);
+                    setSelectedIndex(-1);
+                    inputRef.current?.focus();
+                  }}
+                  className="text-on-surface-variant hover:text-on-surface transition-colors p-1"
+                  aria-label="Bersihkan Input Barcode"
+                >
+                  <X size={14} />
+                </button>
+              )}
+              {mode === 'warung' && (
+                <button
+                  type="button"
+                  onClick={() => setShowCameraScanner(true)}
+                  className="p-1 bg-primary/10 hover:bg-primary hover:text-white text-primary rounded-lg transition-all cursor-pointer shrink-0 md:hidden"
+                  title="Scan Barcode via Kamera HP"
+                  aria-label="Buka Pemindai Kamera"
+                >
+                  <Camera size={16} />
+                </button>
+              )}
+            </div>
+
+
+            {/* Fast Autocomplete Dropdown */}
+            {searchResults.length > 0 ? (
+              <div id="barcode-search-results-dropdown" role="listbox" className="absolute left-0 top-full mt-2 w-full bg-surface-container border border-outline-variant rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="px-3 py-1.5 bg-surface-container-high font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider flex justify-between items-center border-b border-outline-variant/30">
+                  <span>Hasil Pencarian ({searchResults.length})</span>
+                  <span className="text-[10px] text-on-surface-variant/60">Gunakan ↑↓ & Enter</span>
+                </div>
+                <div className="max-h-48 overflow-y-auto divide-y divide-outline-variant/20">
+                  {searchResults.map((p, index) => {
+                    const isSelected = index === selectedIndex;
+                    return (
+                      <div
+                        key={p.id}
+                        id={`search-result-item-${p.id}`}
+                        role="option"
+                        aria-selected={isSelected}
+                        onClick={() => handleSelectProduct(p.barcode)}
+                        className={`px-3 py-2 cursor-pointer transition-colors flex justify-between items-center ${
+                          isSelected
+                            ? 'bg-primary text-white'
+                            : 'hover:bg-surface-container-high text-on-surface'
+                        }`}
+                      >
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-semibold text-xs truncate">{p.name}</span>
+                          <span className={`font-mono text-[10px] ${isSelected ? 'text-white/80' : 'text-on-surface-variant'}`}>
+                            {p.barcode} • Stok: {p.stock_qty}
+                          </span>
+                        </div>
+                        <span className={`font-mono font-bold text-xs shrink-0 ${isSelected ? 'text-white' : 'text-primary'}`}>
+                          Rp {Number(p.sell_price).toLocaleString('id-ID')}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : inputValue.trim().length >= 2 ? (
+              <div id="barcode-no-results-dropdown" className="absolute left-0 top-full mt-2 w-full bg-surface-container border border-outline-variant rounded-xl shadow-2xl p-2 z-50 animate-in fade-in duration-150">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomName(inputValue.trim());
+                    setShowCustomModal(true);
+                  }}
+                  className="w-full text-left p-2.5 bg-primary/10 hover:bg-primary hover:text-white rounded-lg transition-colors flex items-center justify-between cursor-pointer"
+                >
+                  <div className="flex flex-col">
+                    <span className="font-bold text-xs">Produk &quot;{inputValue.trim()}&quot; Tidak Ditemukan</span>
+                    <span className="text-[10px] opacity-80">Klik untuk tambah sebagai Item Non-Barcode / Manual</span>
+                  </div>
+                  <Plus size={16} />
+                </button>
+              </div>
+            ) : null}
+          </form>
+
+          {mode === 'warung' && onAddDigitalItem && (
+            <div className="flex gap-2 w-full sm:w-auto shrink-0 flex-wrap">
+              <button
+                id="btn-open-camera-scanner"
+                type="button"
+                onClick={() => setShowCameraScanner(true)}
+                className="flex-1 sm:flex-initial bg-primary text-on-primary hover:bg-primary/90 rounded-xl px-3 py-2 flex md:hidden items-center justify-center gap-1.5 font-bold text-xs shadow-md shrink-0 cursor-pointer active:scale-95 border border-primary/30"
+                title="Buka Kamera HP untuk Scan Barcode"
+                aria-label="Scan Barcode Kamera HP"
+              >
+                <Camera size={15} />
+                <span>SCAN KAMERA</span>
+              </button>
+              <button
+                id="btn-open-custom-item-modal"
+                type="button"
+                onClick={() => {
+                  setCustomName(inputValue.trim());
+                  setShowCustomModal(true);
+                }}
+                className="flex-1 sm:flex-initial bg-primary/10 hover:bg-primary hover:text-white text-primary rounded-xl px-2.5 py-2 flex items-center justify-center gap-1 font-bold text-xs border border-primary/20 cursor-pointer active:scale-95 shadow-sm"
+                title="Tambah barang tanpa barcode / item manual"
+                aria-label="Tambah Item Non-Barcode"
+              >
+                <Plus size={14} className="shrink-0" />
+                <span>NON-BARCODE</span>
+              </button>
+              <button
+                id="btn-open-digital-modal"
+                type="button"
+                onClick={() => setShowDigitalModal(true)}
+                className="flex-1 sm:flex-initial bg-secondary-container hover:bg-secondary hover:text-white text-on-secondary-container rounded-xl px-2.5 py-2 flex items-center justify-center gap-1 font-bold text-xs border border-secondary/20 cursor-pointer active:scale-95 shadow-sm"
+                aria-label="Buka Tambah Layanan Digital"
+              >
+                <Zap size={14} className="shrink-0" />
+                <span>+ DIGITAL</span>
+              </button>
+            </div>
+          )}
+
+        </div>
+
+      </div>
+
       {/* Cart Header (Desktop/Tablet >= 640px) */}
       <header id="cart-table-header" className="hidden sm:grid grid-cols-12 gap-2 p-3 px-5 border-b border-outline-variant/40 bg-surface-container-low font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider items-center">
         <div className="col-span-1 text-center flex items-center justify-center">
@@ -214,13 +363,13 @@ export default function CartTable({
       {/* Cart Item Scroll List */}
       <div id="cart-item-list" role="region" aria-label="Daftar Barang Kasir" className="flex-1 overflow-y-auto bg-surface-dim/40 divide-y divide-outline-variant/30">
         {items.length === 0 ? (
-          <div id="cart-empty-state" className="flex flex-col items-center justify-center h-full text-on-surface-variant/40 gap-4.5 p-6 select-none animate-in fade-in duration-300">
-            <div className="p-5 rounded-2xl bg-surface-container-high border border-outline-variant/20 text-on-surface-variant/30 shadow-inner">
-              <ScanBarcode size={52} className="stroke-[1.25] text-primary/70" />
+          <div id="cart-empty-state" className="flex flex-col items-center justify-center h-full text-on-surface-variant gap-4.5 p-6 select-none animate-in fade-in duration-300">
+            <div className="text-on-surface-variant">
+              <ScanBarcode size={36} className="stroke-[1.25] text-on-surface-variant" />
             </div>
             <div className="text-center">
-              <p className="font-label-md text-label-md font-bold text-on-surface-variant/70 tracking-wide uppercase">Keranjang Masih Kosong</p>
-              <p className="text-body-md text-on-surface-variant/50 mt-1">Scan barcode atau masukkan nama produk untuk memulai transaksi</p>
+              <p className="text-lg font-semibold text-on-surface">Mulai transaksi</p>
+              <p className="text-sm text-on-surface-variant mt-2 max-w-xs">Scan barcode atau cari nama barang. Produk yang dipilih akan muncul di sini.</p>
             </div>
           </div>
         ) : (
@@ -385,157 +534,7 @@ export default function CartTable({
       </div>
 
       {/* Footer Barcode Scan Bar */}
-      <footer id="cart-table-footer" className={`p-2.5 sm:p-3 bg-surface-container-low border-t border-outline-variant/50 flex flex-col gap-2 shrink-0 transition-all ${items.length > 0 ? 'pb-16 md:pb-3' : ''}`}>
 
-        <div id="barcode-input-container" className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 relative">
-          <form id="barcode-scan-form" onSubmit={(e) => e.preventDefault()} className="flex-1 relative w-full">
-            <ScanBarcode size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/60" />
-            <input
-              id="input-barcode-scan"
-              ref={inputRef}
-              type="text"
-              value={inputValue}
-              onChange={e => setInputValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={mode === 'warung' ? "Scan Barcode / Cari Produk [F1]..." : "Input Transaksi Agen [F2]..."}
-              className="w-full bg-surface-container border border-outline-variant/60 rounded-xl pl-10 pr-24 py-2.5 text-on-surface font-label-md text-label-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all placeholder:text-on-surface-variant/40 shadow-inner font-mono font-semibold"
-              autoFocus
-              aria-label="Scan atau Cari Barcode Produk"
-            />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-              {inputValue && (
-                <button
-                  id="btn-clear-barcode-input"
-                  type="button"
-                  onClick={() => {
-                    setInputValue('');
-                    setSearchResults([]);
-                    setSelectedIndex(-1);
-                    inputRef.current?.focus();
-                  }}
-                  className="text-on-surface-variant hover:text-on-surface transition-colors p-1"
-                  aria-label="Bersihkan Input Barcode"
-                >
-                  <X size={14} />
-                </button>
-              )}
-              {mode === 'warung' && (
-                <button
-                  type="button"
-                  onClick={() => setShowCameraScanner(true)}
-                  className="p-1 bg-primary/10 hover:bg-primary hover:text-white text-primary rounded-lg transition-all cursor-pointer shrink-0 md:hidden"
-                  title="Scan Barcode via Kamera HP"
-                  aria-label="Buka Pemindai Kamera"
-                >
-                  <Camera size={16} />
-                </button>
-              )}
-            </div>
-
-
-            {/* Fast Autocomplete Dropdown */}
-            {searchResults.length > 0 ? (
-              <div id="barcode-search-results-dropdown" role="listbox" className="absolute left-0 bottom-full mb-2 w-full bg-surface-container border border-outline-variant rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
-                <div className="px-3 py-1.5 bg-surface-container-high font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider flex justify-between items-center border-b border-outline-variant/30">
-                  <span>Hasil Pencarian ({searchResults.length})</span>
-                  <span className="text-[10px] text-on-surface-variant/60">Gunakan ↑↓ & Enter</span>
-                </div>
-                <div className="max-h-48 overflow-y-auto divide-y divide-outline-variant/20">
-                  {searchResults.map((p, index) => {
-                    const isSelected = index === selectedIndex;
-                    return (
-                      <div
-                        key={p.id}
-                        id={`search-result-item-${p.id}`}
-                        role="option"
-                        aria-selected={isSelected}
-                        onClick={() => handleSelectProduct(p.barcode)}
-                        className={`px-3 py-2 cursor-pointer transition-colors flex justify-between items-center ${
-                          isSelected
-                            ? 'bg-primary text-white'
-                            : 'hover:bg-surface-container-high text-on-surface'
-                        }`}
-                      >
-                        <div className="flex flex-col min-w-0">
-                          <span className="font-semibold text-xs truncate">{p.name}</span>
-                          <span className={`font-mono text-[10px] ${isSelected ? 'text-white/80' : 'text-on-surface-variant'}`}>
-                            {p.barcode} • Stok: {p.stock_qty}
-                          </span>
-                        </div>
-                        <span className={`font-mono font-bold text-xs shrink-0 ${isSelected ? 'text-white' : 'text-primary'}`}>
-                          Rp {Number(p.sell_price).toLocaleString('id-ID')}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : inputValue.trim().length >= 2 ? (
-              <div id="barcode-no-results-dropdown" className="absolute left-0 bottom-full mb-2 w-full bg-surface-container border border-outline-variant rounded-xl shadow-2xl p-2 z-50 animate-in fade-in duration-150">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCustomName(inputValue.trim());
-                    setShowCustomModal(true);
-                  }}
-                  className="w-full text-left p-2.5 bg-primary/10 hover:bg-primary hover:text-white rounded-lg transition-colors flex items-center justify-between cursor-pointer"
-                >
-                  <div className="flex flex-col">
-                    <span className="font-bold text-xs">Produk &quot;{inputValue.trim()}&quot; Tidak Ditemukan</span>
-                    <span className="text-[10px] opacity-80">Klik untuk tambah sebagai Item Non-Barcode / Manual</span>
-                  </div>
-                  <Plus size={16} />
-                </button>
-              </div>
-            ) : null}
-          </form>
-
-          {mode === 'warung' && onAddDigitalItem && (
-            <div className="flex gap-2 w-full sm:w-auto shrink-0 flex-wrap">
-              <button
-                id="btn-open-camera-scanner"
-                type="button"
-                onClick={() => setShowCameraScanner(true)}
-                className="flex-1 sm:flex-initial bg-primary text-on-primary hover:bg-primary/90 rounded-xl px-3 py-2 flex md:hidden items-center justify-center gap-1.5 font-bold text-xs shadow-md shrink-0 cursor-pointer active:scale-95 border border-primary/30"
-                title="Buka Kamera HP untuk Scan Barcode"
-                aria-label="Scan Barcode Kamera HP"
-              >
-                <Camera size={15} />
-                <span>SCAN KAMERA</span>
-              </button>
-              <button
-                id="btn-open-custom-item-modal"
-                type="button"
-                onClick={() => {
-                  setCustomName(inputValue.trim());
-                  setShowCustomModal(true);
-                }}
-                className="flex-1 sm:flex-initial bg-primary/10 hover:bg-primary hover:text-white text-primary rounded-xl px-2.5 py-2 flex items-center justify-center gap-1 font-bold text-xs border border-primary/20 cursor-pointer active:scale-95 shadow-sm"
-                title="Tambah barang tanpa barcode / item manual"
-                aria-label="Tambah Item Non-Barcode"
-              >
-                <Plus size={14} className="shrink-0" />
-                <span>NON-BARCODE</span>
-              </button>
-              <button
-                id="btn-open-digital-modal"
-                type="button"
-                onClick={() => setShowDigitalModal(true)}
-                className="flex-1 sm:flex-initial bg-secondary-container hover:bg-secondary hover:text-white text-on-secondary-container rounded-xl px-2.5 py-2 flex items-center justify-center gap-1 font-bold text-xs border border-secondary/20 cursor-pointer active:scale-95 shadow-sm"
-                aria-label="Buka Tambah Layanan Digital"
-              >
-                <Zap size={14} className="shrink-0" />
-                <span>+ DIGITAL</span>
-              </button>
-            </div>
-          )}
-
-        </div>
-
-        <div id="barcode-scan-status-indicator" className="text-center font-label-sm text-label-sm text-primary font-bold tracking-widest uppercase animate-pulse text-[10px] leading-none mt-0.5">
-          {mode === 'warung' ? '✓ SIAP SCAN BARCODE PRODUK' : '⚡ SIAP TRANSAKSI DIGITAL AGEN'}
-        </div>
-      </footer>
 
       {/* Add Digital Service Modal */}
       {showDigitalModal && (

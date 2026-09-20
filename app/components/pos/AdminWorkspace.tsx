@@ -956,14 +956,15 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
     <section id="admin-workspace-section" aria-label="Operasional & Manajemen Toko Admin" className="flex-1 flex flex-col sm:flex-row gap-3.5 overflow-y-auto sm:overflow-hidden h-full w-full">
       {/* Side Navbar / Tab Switcher */}
       <nav id="admin-sidebar-nav" aria-label="Navigasi Menu Admin" className="w-full sm:w-52 md:w-56 lg:w-60 bg-surface-container border border-outline-variant/30 rounded-xl p-1.5 sm:p-2 gap-1 flex flex-row sm:flex-col shrink-0 overflow-x-auto sm:overflow-y-auto no-scrollbar sm:h-full">
-        <span className="hidden sm:block font-bold text-[9px] text-on-surface-variant/65 uppercase tracking-widest px-3 pt-2.5 pb-1 select-none shrink-0">Operasional Toko</span>
+        <span className="hidden sm:block font-medium text-xs text-on-surface-variant px-3 pt-2.5 pb-1 select-none shrink-0">Operasional Toko</span>
 
         
         <button
+          aria-current={activeTab === 'products' ? 'page' : undefined}
           onClick={() => setActiveTab('products')}
           className={`font-label-md text-label-md px-3 md:px-4 py-2 md:py-2.5 rounded-lg flex items-center gap-2 md:gap-3 transition-all cursor-pointer shrink-0 whitespace-nowrap md:whitespace-normal md:w-full text-left ${
             activeTab === 'products'
-              ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
+              ? 'bg-secondary-container text-on-secondary-container font-semibold'
               : 'text-on-surface-variant hover:bg-surface-container-high/50'
           }`}
         >
@@ -971,10 +972,11 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
           Produk & Stok
         </button>
         <button
+          aria-current={activeTab === 'discounts' ? 'page' : undefined}
           onClick={() => setActiveTab('discounts')}
           className={`font-label-md text-label-md px-3 md:px-4 py-2 md:py-2.5 rounded-lg flex items-center gap-2 md:gap-3 transition-all cursor-pointer shrink-0 whitespace-nowrap md:whitespace-normal md:w-full text-left ${
             activeTab === 'discounts'
-              ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
+              ? 'bg-secondary-container text-on-secondary-container font-semibold'
               : 'text-on-surface-variant hover:bg-surface-container-high/50'
           }`}
         >
@@ -982,10 +984,11 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
           Manajemen Diskon
         </button>
         <button
+          aria-current={activeTab === 'consignment' ? 'page' : undefined}
           onClick={() => setActiveTab('consignment')}
           className={`font-label-md text-label-md px-3 md:px-4 py-2 md:py-2.5 rounded-lg flex items-center gap-2 md:gap-3 transition-all cursor-pointer shrink-0 whitespace-nowrap md:whitespace-normal md:w-full text-left ${
             activeTab === 'consignment'
-              ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
+              ? 'bg-secondary-container text-on-secondary-container font-semibold'
               : 'text-on-surface-variant hover:bg-surface-container-high/50'
           }`}
         >
@@ -993,10 +996,11 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
           Barang Konsinyasi
         </button>
         <button
+          aria-current={activeTab === 'procurement' ? 'page' : undefined}
           onClick={() => setActiveTab('procurement')}
           className={`font-label-md text-label-md px-3 md:px-4 py-2 md:py-2.5 rounded-lg flex items-center gap-2 md:gap-3 transition-all cursor-pointer shrink-0 whitespace-nowrap md:whitespace-normal md:w-full text-left ${
             activeTab === 'procurement'
-              ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
+              ? 'bg-secondary-container text-on-secondary-container font-semibold'
               : 'text-on-surface-variant hover:bg-surface-container-high/50'
           }`}
         >
@@ -1004,13 +1008,14 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
           Daftar Kulakan
         </button>
 
-        <span className="hidden md:block font-bold text-[9px] text-on-surface-variant/65 uppercase tracking-widest px-3 pt-3.5 pb-1 select-none shrink-0">Kas & Keuangan</span>
+        <span className="hidden md:block font-medium text-xs text-on-surface-variant px-3 pt-3.5 pb-1 select-none shrink-0">Kas & Keuangan</span>
 
         <button
+          aria-current={activeTab === 'accounting' ? 'page' : undefined}
           onClick={() => setActiveTab('accounting')}
           className={`font-label-md text-label-md px-3 md:px-4 py-2 md:py-2.5 rounded-lg flex items-center gap-2 md:gap-3 transition-all cursor-pointer shrink-0 whitespace-nowrap md:whitespace-normal md:w-full text-left ${
             activeTab === 'accounting'
-              ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
+              ? 'bg-secondary-container text-on-secondary-container font-semibold'
               : 'text-on-surface-variant hover:bg-surface-container-high/50'
           }`}
         >
@@ -1018,10 +1023,11 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
           Laba Rugi & Neraca
         </button>
         <button
+          aria-current={activeTab === 'sessions' ? 'page' : undefined}
           onClick={() => setActiveTab('sessions')}
           className={`font-label-md text-label-md px-3 md:px-4 py-2 md:py-2.5 rounded-lg flex items-center gap-2 md:gap-3 transition-all cursor-pointer shrink-0 whitespace-nowrap md:whitespace-normal md:w-full text-left ${
             activeTab === 'sessions'
-              ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
+              ? 'bg-secondary-container text-on-secondary-container font-semibold'
               : 'text-on-surface-variant hover:bg-surface-container-high/50'
           }`}
         >
@@ -1029,10 +1035,11 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
           Rekonsiliasi Kasir
         </button>
         <button
+          aria-current={activeTab === 'float' ? 'page' : undefined}
           onClick={() => setActiveTab('float')}
           className={`font-label-md text-label-md px-3 md:px-4 py-2 md:py-2.5 rounded-lg flex items-center gap-2 md:gap-3 transition-all cursor-pointer shrink-0 whitespace-nowrap md:whitespace-normal md:w-full text-left ${
             activeTab === 'float'
-              ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
+              ? 'bg-secondary-container text-on-secondary-container font-semibold'
               : 'text-on-surface-variant hover:bg-surface-container-high/50'
           }`}
         >
@@ -1040,10 +1047,11 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
           Kelola Saldo Agen
         </button>
         <button
+          aria-current={activeTab === 'customers' ? 'page' : undefined}
           onClick={() => setActiveTab('customers')}
           className={`font-label-md text-label-md px-3 md:px-4 py-2 md:py-2.5 rounded-lg flex items-center gap-2 md:gap-3 transition-all cursor-pointer shrink-0 whitespace-nowrap md:whitespace-normal md:w-full text-left ${
             activeTab === 'customers'
-              ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
+              ? 'bg-secondary-container text-on-secondary-container font-semibold'
               : 'text-on-surface-variant hover:bg-surface-container-high/50'
           }`}
         >
@@ -1051,13 +1059,14 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
           Kelola Pelanggan
         </button>
 
-        <span className="hidden md:block font-bold text-[9px] text-on-surface-variant/65 uppercase tracking-widest px-3 pt-3.5 pb-1 select-none shrink-0">Inventori & Logistik</span>
+        <span className="hidden md:block font-medium text-xs text-on-surface-variant px-3 pt-3.5 pb-1 select-none shrink-0">Inventori & Logistik</span>
 
         <button
+          aria-current={activeTab === 'adjust' ? 'page' : undefined}
           onClick={() => setActiveTab('adjust')}
           className={`font-label-md text-label-md px-3 md:px-4 py-2 md:py-2.5 rounded-lg flex items-center gap-2 md:gap-3 transition-all cursor-pointer shrink-0 whitespace-nowrap md:whitespace-normal md:w-full text-left ${
             activeTab === 'adjust'
-              ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
+              ? 'bg-secondary-container text-on-secondary-container font-semibold'
               : 'text-on-surface-variant hover:bg-surface-container-high/50'
           }`}
         >
@@ -1065,10 +1074,11 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
           Penyesuaian Stok
         </button>
         <button
+          aria-current={activeTab === 'convert' ? 'page' : undefined}
           onClick={() => setActiveTab('convert')}
           className={`font-label-md text-label-md px-3 md:px-4 py-2 md:py-2.5 rounded-lg flex items-center gap-2 md:gap-3 transition-all cursor-pointer shrink-0 whitespace-nowrap md:whitespace-normal md:w-full text-left ${
             activeTab === 'convert'
-              ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
+              ? 'bg-secondary-container text-on-secondary-container font-semibold'
               : 'text-on-surface-variant hover:bg-surface-container-high/50'
           }`}
         >
@@ -1076,10 +1086,11 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
           Konversi Produk
         </button>
         <button
+          aria-current={activeTab === 'history' ? 'page' : undefined}
           onClick={() => setActiveTab('history')}
           className={`font-label-md text-label-md px-3 md:px-4 py-2 md:py-2.5 rounded-lg flex items-center gap-2 md:gap-3 transition-all cursor-pointer shrink-0 whitespace-nowrap md:whitespace-normal md:w-full text-left ${
             activeTab === 'history'
-              ? 'bg-secondary-container text-on-secondary-container shadow-md font-bold'
+              ? 'bg-secondary-container text-on-secondary-container font-semibold'
               : 'text-on-surface-variant hover:bg-surface-container-high/50'
           }`}
         >

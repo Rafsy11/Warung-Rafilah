@@ -4,7 +4,7 @@ import { useDeferredEffect } from '@/lib/useDeferredEffect';
 import type { CashSession, Discount } from '@/types/api';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import AppShell from '@/components/Layout/AppShell';
-import { Banknote } from 'lucide-react';
+import { Banknote, AlertTriangle, X } from 'lucide-react';
 
 import CartTable from '@/components/pos/CartTable';
 import PaymentPanel from '@/components/pos/PaymentPanel';
@@ -197,6 +197,8 @@ export default function PosDashboard() {
     } else if (mode === 'warung') {
       const discountInput = document.getElementById('input-discount') as HTMLInputElement | null;
       if (discountInput) {
+        const disclosure = discountInput.closest('details');
+        if (disclosure) disclosure.open = true;
         discountInput.focus();
         discountInput.select();
       }
@@ -620,49 +622,11 @@ export default function PosDashboard() {
       {/* Warning Alert Banner */}
       <div className="flex-1 flex flex-col gap-4 overflow-hidden h-full">
         {rebalanceStatus && rebalanceStatus.status !== 'healthy' && rebalanceStatus.alerts.length > 0 && !rebalanceAlertDismissed && (
-          <div className={`p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200
-            ${rebalanceStatus.status === 'critical'
-              ? 'bg-error-container text-on-error-container border-error/20'
-              : 'bg-amber-950/40 text-amber-400 border-amber-500/20'
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <span className="text-xl shrink-0 mt-0.5">⚠️</span>
-              <div className="flex flex-col text-left">
-                {rebalanceStatus.alerts.map((alert, i) => (
-                  <p key={i} className="font-bold text-sm leading-snug">{alert}</p>
-                ))}
-                {rebalanceStatus.recommendations.length > 0 && (
-                  <p className="text-xs opacity-85 mt-1 font-medium">
-                    <span className="font-bold">Rekomendasi: </span>
-                    {rebalanceStatus.recommendations.join(', ')}
-                  </p>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={async () => { await fetchRebalanceStatus(); setShowKasDetail(true); }}
-                className={`text-xs font-bold px-4 py-2 rounded-lg border transition-all active:scale-95 cursor-pointer
-                  ${rebalanceStatus.status === 'critical'
-                    ? 'border-on-error-container/20 hover:bg-on-error-container/10 text-on-error-container'
-                    : 'border-amber-400/25 hover:bg-amber-400/10 text-amber-400'
-                  }`}
-              >
-                Cek Status Kas
-              </button>
-              <button
-                onClick={() => setRebalanceAlertDismissed(true)}
-                className={`p-2 rounded-lg border transition-all active:scale-95 cursor-pointer leading-none text-xs font-bold hover:bg-white/10
-                  ${rebalanceStatus.status === 'critical'
-                    ? 'border-on-error-container/20 text-on-error-container'
-                    : 'border-amber-400/25 text-amber-400'
-                  }`}
-                title="Tutup Peringatan"
-              >
-                ✕
-              </button>
-            </div>
+          <div className="pos-operational-notice" role="status">
+            <AlertTriangle size={17} aria-hidden="true" />
+            <span><strong>Saldo kas dan agen perlu diperiksa.</strong> {rebalanceStatus.alerts.length} pemberitahuan.</span>
+            <button className="notice-detail" onClick={async () => { await fetchRebalanceStatus(); setShowKasDetail(true); }}>Lihat rincian</button>
+            <button className="notice-close" onClick={() => setRebalanceAlertDismissed(true)} aria-label="Tutup pemberitahuan saldo"><X size={16} /></button>
           </div>
         )}
 

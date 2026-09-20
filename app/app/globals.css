@@ -7,6 +7,7 @@
 
   --color-background: var(--background);
   --color-on-background: var(--on-background);
+  --color-surface-container-lowest: var(--surface-container-lowest);
   --color-surface-container-low: var(--surface-container-low);
   --color-surface-container: var(--surface-container);
   --color-surface-container-high: var(--surface-container-high);
@@ -42,23 +43,15 @@
 
 :root {
   color-scheme: light;
-  /* 
-    GLOSSY SCREEN ULTRA-HIGH-CONTRAST HIERARCHY (LIGHT MODE):
-    Level 0: App Canvas Background -> Slate 300 (#cbd5e1)
-    Level 1: Main Cards & Content Panels -> Pure White (#ffffff)
-    Level 2: Navigation & Sub-Panels -> Slate 100 (#f1f5f9)
-    Level 3: Table Headers, Inset Boxes & Section Dividers -> Slate 200 (#e2e8f0)
-    Level 4: Input Fields & Control Pills -> Pure White (#ffffff) with Slate 500 (#64748b)
-  */
-  --background: #cbd5e1;
-  --on-background: #020617; /* Slate 950 - Jet Black Text (Contrast > 19:1) */
+  --background: #edf0f3;
+  --on-background: #17212e; /* Slate 950 - Jet Black Text (Contrast > 19:1) */
   --on-tertiary: #ffffff;
   --on-primary-fixed-variant: #1d4ed8;
   --inverse-surface: #020617;
   --on-secondary-fixed: #1e3a8a;
 
-  --outline: #64748b;
-  --outline-variant: #94a3b8;
+  --outline: #6b7787;
+  --outline-variant: #c8d0d9;
 
   --primary: #1d4ed8;
   --surface-bright: #ffffff;
@@ -73,13 +66,13 @@
   --on-primary-container: #1e3a8a;
 
   --error-container: #fecaca;
-  --on-surface-variant: #0f172a; /* Slate 900 - Dark Slate Text (Contrast > 16:1) */
+  --on-surface-variant: #526071; /* Slate 900 - Dark Slate Text (Contrast > 16:1) */
 
   --surface-container-low: #f1f5f9;
   --surface-container: #ffffff;
   --surface-container-high: #e2e8f0;
-  --surface-container-highest: #cbd5e1;
-  --surface-dim: #e2e8f0;
+  --surface-container-highest: #e2e8ee;
+  --surface-dim: #f7f8fa;
   --surface-container-lowest: #ffffff;
   --surface-variant: #f1f5f9;
 
@@ -111,8 +104,8 @@
   --shadow-subtle: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
   --shadow-card: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
 
-  --font-family-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-family-mono: 'Inter', 'JetBrains Mono', monospace;
+  --font-family-sans: 'Outfit', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-mono: 'JetBrains Mono', monospace;
 
   /* Typographic Scale Tokens */
   --text-label-sm: 12px;
@@ -139,65 +132,55 @@
 
 .dark {
   color-scheme: dark;
-  --background: #090d16;
-  --on-background: #f8fafc;
-
-  --outline: #475569;
-  --outline-variant: #334155;
-
-  --primary: #3b82f6;
-  --surface-bright: #1e293b;
+  --background: #10151c;
+  --on-background: #f1f4f8;
+  --outline: #788697;
+  --outline-variant: #384451;
+  --primary: #4c8ff7;
   --on-primary: #ffffff;
-  --on-primary-fixed: #dbeafe;
-
-  --secondary-container: #1e3a8a;
-  --on-secondary-container: #dbeafe;
-
-  --on-surface-variant: #cbd5e1;
-
-  --surface-container-low: #0f172a;
-  --surface-container: #1e293b;
-  --surface-container-high: #334155;
-  --surface-container-highest: #475569;
-  --surface-dim: #0f172a;
-  --surface-container-lowest: #090d16;
-
-  --on-surface: #f8fafc;
+  --primary-container: #203958;
+  --on-primary-container: #c9ddff;
+  --secondary: #a6bdf5;
+  --secondary-container: #26364b;
+  --on-secondary-container: #d9e6fb;
+  --surface-bright: #283340;
+  --surface-container-lowest: #141b23;
+  --surface-container-low: #171f29;
+  --surface-container: #1d2732;
+  --surface-container-high: #27333f;
+  --surface-container-highest: #344351;
+  --surface-dim: #151d26;
+  --surface-variant: #202b37;
+  --on-surface: #f1f4f8;
+  --on-surface-variant: #b3becb;
+  --error: #ff9a9a;
+  --error-container: #3a252c;
+  --on-error-container: #ffcbcb;
+  --accent-green: #258459;
 }
 
 @custom-variant dark (&:is(.dark *));
 
-/* Global Base Typography Rules */
-body {
-  font-family: var(--font-family-sans);
-  background-color: var(--background);
-  color: var(--on-background);
-  @apply antialiased h-[100dvh] w-[100dvw] overflow-hidden flex flex-col select-none transition-colors duration-200;
-
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  font-size: 14px; /* Minimum body size for cashier speed-reading */
-  line-height: 1.5;
-}
-
-/* Typographic Scale: Headings (Font-weight: 700) */
-h1, h2, h3, h4, h5, h6, .font-heading {
-  font-family: var(--font-family-sans);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--on-surface);
-}
-
-/* Typographic Scale: Navigation & Buttons (Font-weight: 500/600) */
-nav, button, input, select, label, th, .btn {
-  font-family: var(--font-family-sans);
-  font-weight: 500;
-  letter-spacing: -0.01em;
-}
-
-/* Typographic Scale: Body Text (Font-weight: 400) */
-p, span, td, div {
-  font-weight: 400;
+@layer base {
+  body {
+    font-family: var(--font-family-sans);
+    background: var(--background);
+    color: var(--on-background);
+    height: 100dvh;
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 { font-weight: 600; line-height: 1.3; }
+  button, input, select, textarea { font: inherit; }
+  button { touch-action: manipulation; }
+  input, textarea { caret-color: var(--primary); }
+  ::selection { background: var(--primary-container); color: var(--on-primary-container); }
+  input::placeholder, textarea::placeholder { color: var(--on-surface-variant); opacity: 1; }
 }
 
 /* Numerical Data Standardization (Tabular Nums & Slashed Zero) */
@@ -218,27 +201,7 @@ input[type="number"],
   font-feature-settings: "tnum" 1, "zero" 1;
 }
 
-/* Firefox & WebKit Custom Scrollbar Standards */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--outline) transparent;
-}
-
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--outline);
-  border-radius: 9999px;
-  transition: background 0.15s ease-in-out;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--surface-container-high);
-}
+* { scrollbar-width: thin; scrollbar-color: var(--outline) transparent; }
 
 /* Hide scrollbars utility */
 .scrollbar-hide::-webkit-scrollbar,
@@ -271,23 +234,6 @@ input::-moz-focus-inner {
   outline-offset: 2px;
 }
 
-/* High-quality UI additions */
-button, input, select {
-  @apply transition-all duration-150 ease-in-out;
-}
-button:active {
-  transform: scale(0.97);
-}
-
-/* Surface Distinction & Elevation Overrides for Light Mode */
-:root:not(.dark) .bg-surface-container {
-  box-shadow: var(--shadow-card);
-}
-:root:not(.dark) kbd {
-  background-color: var(--surface-container-highest);
-  color: var(--on-surface-variant);
-  border: 1px solid var(--outline-variant);
-}
-:root:not(.dark) header {
-  box-shadow: var(--shadow-subtle);
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }

@@ -304,6 +304,7 @@ export default function PaymentPanel({
           </h3>
           <button
             onClick={onCloseMobileDrawer}
+            aria-label="Tutup pembayaran"
             className="p-1.5 rounded-lg bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
           >
             <X size={20} />
@@ -314,7 +315,7 @@ export default function PaymentPanel({
 
 
         {/* ── Totals Card ─────────────────────────────────────────────────── */}
-        <section id="payment-totals-card" aria-label="Ringkasan Total Harga" className="bg-surface-container border border-outline-variant rounded-xl p-2.5 flex flex-col gap-1 shadow-sm shrink-0">
+        <section id="payment-totals-card" aria-label="Ringkasan Total Harga" className="pos-payment-total flex flex-col gap-1 shrink-0">
           {warungTotal > 0 && (
             <div className="flex justify-between items-center text-on-surface-variant text-xs border-b border-outline-variant/30 pb-1">
               <span>Total Warung</span>
@@ -340,7 +341,7 @@ export default function PaymentPanel({
             </div>
           )}
           <div className="pt-0.5 flex justify-between items-center">
-            <span className="text-xs text-on-surface-variant font-semibold tracking-wide uppercase">Grand Total</span>
+            <span className="text-xs text-on-surface-variant font-semibold tracking-wide uppercase">Total bayar</span>
             <output id="grand-total-output" aria-live="polite" className="font-mono text-2xl text-primary font-bold tracking-tight">
               {grandTotal > 0 ? `Rp ${grandTotal.toLocaleString('id-ID')}` : 'Rp 0'}
             </output>
@@ -348,20 +349,18 @@ export default function PaymentPanel({
         </section>
 
         {/* ── Discount Panel ───────────────────────────────────────────────── */}
-        <div className="bg-surface-container border border-outline-variant p-2.5 rounded-xl flex flex-col gap-1.5 shadow-sm shrink-0">
-          <div className="text-xs font-semibold text-on-surface-variant flex justify-between items-center">
-            <span>Diskon / Potongan</span>
-            {discount > 0 && (
-              <span className="text-[10px] text-error font-medium bg-error/10 px-1.5 py-0.5 rounded">
-                Potongan Aktif
-              </span>
-            )}
-          </div>
+        <details className="pos-payment-group pos-discount shrink-0">
+          <summary className="pos-discount-summary">
+            <span>{discount > 0 ? 'Diskon diterapkan' : 'Tambahkan diskon'}</span>
+            <span>{discount > 0 ? 'Rp ' + discount.toLocaleString('id-ID') : '+'}</span>
+          </summary>
           
           <div className="relative">
             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-xs font-medium">Rp</span>
             <input
               id="input-discount"
+              aria-label="Diskon dalam rupiah"
+              inputMode="numeric"
               type="text"
               value={discountInputVal}
               onChange={handleDiscountInputChange}
@@ -448,28 +447,30 @@ export default function PaymentPanel({
               })}
             </div>
           )}
-        </div>
+        </details>
 
         {/* ── Payment Method ───────────────────────────────────────────────── */}
-        <div className="bg-surface-container border border-outline-variant p-2.5 rounded-xl flex flex-col gap-1.5 shadow-sm shrink-0">
+        <div className="pos-payment-group flex flex-col gap-1.5 shrink-0">
           <div className="text-xs font-semibold text-on-surface-variant">Metode Pembayaran</div>
           <div className="grid grid-cols-2 gap-1">
             <button
+              aria-pressed={method === 'CASH'}
               onClick={() => setMethod('CASH')}
               className={`border rounded-lg py-1.5 px-2 flex items-center justify-center gap-1.5 text-xs font-bold transition-all cursor-pointer ${
                 method === 'CASH'
-                  ? 'bg-primary text-white border-primary shadow-sm'
+                  ? 'bg-primary-container text-on-primary-container border-primary'
                   : 'bg-surface-container-low border-outline-variant text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
               }`}
             >
               <Banknote size={14} />
-              CASH
+              Tunai
             </button>
             <button
+              aria-pressed={method === 'QRIS'}
               onClick={() => setMethod('QRIS')}
               className={`border rounded-lg py-1.5 px-2 flex items-center justify-center gap-1.5 text-xs font-bold transition-all cursor-pointer ${
                 method === 'QRIS'
-                  ? 'bg-primary text-white border-primary shadow-sm'
+                  ? 'bg-primary-container text-on-primary-container border-primary'
                   : 'bg-surface-container-low border-outline-variant text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
               }`}
             >
@@ -477,33 +478,35 @@ export default function PaymentPanel({
               QRIS
             </button>
             <button
+              aria-pressed={method === 'SPLIT'}
               onClick={() => setMethod('SPLIT')}
               className={`border rounded-lg py-1.5 px-2 flex items-center justify-center gap-1.5 text-xs font-bold transition-all cursor-pointer ${
                 method === 'SPLIT'
-                  ? 'bg-primary text-white border-primary shadow-sm'
+                  ? 'bg-primary-container text-on-primary-container border-primary'
                   : 'bg-surface-container-low border-outline-variant text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
               }`}
             >
               <Coins size={14} />
-              SPLIT
+              Gabungan
             </button>
             <button
+              aria-pressed={method === 'DEBT'}
               onClick={() => setMethod('DEBT')}
               className={`border rounded-lg py-1.5 px-2 flex items-center justify-center gap-1.5 text-xs font-bold transition-all cursor-pointer ${
                 method === 'DEBT'
-                  ? 'bg-primary text-white border-primary shadow-sm'
+                  ? 'bg-primary-container text-on-primary-container border-primary'
                   : 'bg-surface-container-low border-outline-variant text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
               }`}
             >
               <User size={14} />
-              BON / HUTANG
+              Bon
             </button>
           </div>
         </div>
 
         {/* ── QRIS Input & Overpayment (Kembalian Tunai) ──────────────────── */}
         {method === 'QRIS' && (
-          <div className="bg-surface-container border border-outline-variant p-2.5 rounded-xl flex flex-col gap-2 shadow-sm shrink-0">
+          <div className="pos-payment-group flex flex-col gap-2 shrink-0">
             <div className="flex justify-between items-center text-xs font-semibold text-on-surface-variant">
               <span>Nominal QRIS Di-scan</span>
               <span className="text-[10px] text-primary font-mono bg-primary/10 px-1.5 py-0.5 rounded font-semibold">
@@ -515,6 +518,8 @@ export default function PaymentPanel({
               <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-xs font-medium">Rp</span>
               <input
                 id="input-qris-received"
+                aria-label="Nominal pembayaran QRIS"
+                inputMode="numeric"
                 type="text"
                 data-received-input="true"
                 value={qrisReceived ? qrisReceived.toLocaleString('id-ID') : ''}
@@ -589,7 +594,7 @@ export default function PaymentPanel({
 
         {/* ── Cash Input (only when CASH method selected) ──────────────────── */}
         {method === 'CASH' && (
-          <div className="bg-surface-container border border-outline-variant p-2.5 rounded-xl flex flex-col gap-1.5 shadow-sm shrink-0">
+          <div className="pos-payment-group flex flex-col gap-1.5 shrink-0">
             <div className="text-xs font-semibold text-on-surface-variant">Uang Diterima</div>
 
             <div className="relative">
@@ -598,6 +603,8 @@ export default function PaymentPanel({
                 type="text"
                 data-received-input="true"
                 value={received ? received.toLocaleString('id-ID') : ''}
+                aria-label="Uang tunai diterima"
+                inputMode="numeric"
                 onChange={e => {
                   const raw = e.target.value.replace(/[^0-9]/g, '');
                   setReceived(Number(raw) || 0);
@@ -643,7 +650,7 @@ export default function PaymentPanel({
 
         {/* Split Input */}
         {method === 'SPLIT' && (
-          <div className="bg-surface-container border border-outline-variant p-2.5 rounded-xl flex flex-col gap-1.5 shadow-sm shrink-0">
+          <div className="pos-payment-group flex flex-col gap-1.5 shrink-0">
             <span className="text-xs font-semibold text-on-surface-variant">Split (Cash + QRIS)</span>
             
             <div className="flex flex-col gap-0.5">
@@ -675,7 +682,7 @@ export default function PaymentPanel({
 
         {/* Debt Input */}
         {method === 'DEBT' && (
-          <div className="bg-surface-container border border-outline-variant p-2.5 rounded-xl flex flex-col gap-1.5 shadow-sm shrink-0">
+          <div className="pos-payment-group flex flex-col gap-1.5 shrink-0">
             <span className="text-xs font-semibold text-on-surface-variant">Pilih Pelanggan (Bon)</span>
 
             {selectedCustomer ? (
@@ -747,8 +754,8 @@ export default function PaymentPanel({
       {/* ── Fixed Pay Button at Bottom (Zero Scroll guaranteed) ──────────────── */}
       <div className="shrink-0 pt-1">
         {method === 'CASH' && received > 0 && received < grandTotal && grandTotal > 0 && (
-          <div className="mb-0.5 text-center text-xs text-error font-semibold animate-pulse">
-            ⚠️ Kurang Rp {(grandTotal - received).toLocaleString('id-ID')}
+          <div className="mb-0.5 text-center text-xs text-error font-semibold">
+            Kurang Rp {(grandTotal - received).toLocaleString('id-ID')}
           </div>
         )}
         <button
@@ -786,7 +793,7 @@ export default function PaymentPanel({
     return (
       <div className="sm:hidden fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end justify-center p-0 animate-in fade-in duration-150" onClick={onCloseMobileDrawer}>
 
-        <div className="w-full max-h-[92dvh] flex flex-col bg-surface-container-low rounded-t-3xl border-t border-outline-variant p-2 overflow-y-auto shadow-2xl animate-in slide-in-from-bottom duration-200" onClick={e => e.stopPropagation()}>
+        <div className="pos-mobile-payment-sheet w-full flex flex-col bg-surface-container-low rounded-t-2xl border-t border-outline-variant p-2 shadow-2xl" onClick={e => e.stopPropagation()}>
 
           {panelContent}
         </div>
@@ -796,5 +803,4 @@ export default function PaymentPanel({
 
   return panelContent;
 }
-
 

@@ -2,11 +2,11 @@
 name: Warung Rafilah POS Design System
 description: Sleek, high-contrast dark-theme system for efficient retail and digital sales.
 colors:
-  primary: "#3b82f6"
+  primary: "#4c8ff7"
   secondary: "#818cf8"
-  neutral-bg: "#090d16"
-  surface: "#111827"
-  outline: "#334155"
+  neutral-bg: "#10151c"
+  surface: "#1d2732"
+  outline: "#384451"
   error: "#f87171"
 typography:
   display:
@@ -119,3 +119,21 @@ Sebagai gantinya, kedalaman dimensi visual (z-index) diatur sepenuhnya menggunak
 - **Level 0 (Latar Belakang)**: Midnight Obsidian (#090d16) - Gelap pekat.
 - **Level 1 (Kartu/Panel)**: Deep Slate Surface (#111827) - Slate gelap.
 - **Level 2 (Dropdown/Dialog)**: Slate Bright (#1e293b) - Slate sedang.
+
+
+## Refinement — 20 September 2026
+
+User direction: rapi dan tenang, warna seperlunya, angka mudah dibaca.
+Mode: Operate. Existing blue identity and dark/light choice are retained.
+
+- Search and barcode input lead the cart; results open below the input.
+- Payment is a single surface with separators, a prominent total, and one solid primary pay action. Selected methods use a quiet tint and expose their selected state.
+- Operational balance warnings remain visible as a compact notice; full warnings and recommendations stay available through the details action.
+- Dark neutrals: canvas #10151c, working surface #141b23, raised surface #1d2732, divider #384451, secondary text #b3becb. Light canvas #edf0f3 with white work surfaces and secondary text #526071.
+- Amounts use tabular numerals and the existing JetBrains Mono stack. Labels and text use the existing Outfit stack with local system fallbacks. No new external font dependency.
+- Base typography stays in the CSS base layer so component colors and weights are respected. Global button shrinking, blanket card shadows, and decorative status pulses are removed.
+- Mobile payment controls target at least 40–44px; numeric inputs request a numeric keyboard. Browser zoom is enabled; reduced motion is respected.
+
+Implementation: app/app/globals.css contains shared tokens and base rules; app/app/pos-workspace.css contains scoped workspace composition. No database schema or transaction calculation changes belong to this refinement.
+
+Verification: desktop 1366×768 and mobile 390×844, dark/light modes, product search, disclosure controls, cash/change and discount UI checked with isolated test data. Default desktop payment content fits without scrolling at the checked size; mobile keeps the pay action outside the scrollable fields. Build and TypeScript pass; changed TSX files pass ESLint without errors. Production database and transaction calculations were not changed.

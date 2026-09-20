@@ -1,0 +1,91 @@
+/* Operate surfaces: one workspace, restrained sections, readable transaction data. */
+#pos-header { gap: 20px; box-shadow: none; }
+#brand-title { white-space: nowrap; font-size: 14px; }
+#brand-identity figure { border-radius: 8px; box-shadow: none; }
+#pos-mode-navigation { border: 0; background: transparent; gap: 4px; padding: 0; }
+#pos-mode-navigation button { min-height: 38px; font-size: 13px; }
+#header-utility-buttons button { min-height: 36px; min-width: 36px; }
+#system-online-badge { border: 0; background: transparent; font-size: 11px; padding-inline: 0; }
+#system-online-badge:hover { transform: none; }
+#btn-close-shift { min-height: 36px; white-space: nowrap; }
+#btn-user-dropdown-toggle { border-radius: 8px; min-height: 36px; }
+#pos-footer { border-top: 1px solid var(--outline-variant); background: var(--background); }
+
+#cart-table-section { border-radius: 10px; box-shadow: none; background: var(--surface-container-lowest); }
+#cart-table-footer { border-top: 0; border-bottom: 1px solid var(--outline-variant); padding: 14px; background: var(--surface-container-lowest); }
+#cart-table-header { background: var(--surface-container-low); font-size: 12px; text-transform: none; letter-spacing: 0; padding-block: 12px; }
+#cart-item-list { background: var(--surface-container-lowest); }
+#cart-item-list > [id^="cart-item-"] { min-height: 64px; }
+#input-barcode-scan { min-height: 46px; border-radius: 7px; box-shadow: none; font-size: 15px; background: var(--surface-dim); }
+#input-barcode-scan::placeholder { color: var(--on-surface-variant); opacity: 1; }
+#cart-empty-state { gap: 18px; }
+#cart-table-footer button { border-radius: 7px; }
+
+#payment-panel-sidebar { border-radius: 10px; background: var(--surface-container-lowest); padding: 18px; box-shadow: none; }
+#payment-panel-container { gap: 0; min-height: 0; padding-right: 4px; scrollbar-width: thin; }
+.pos-discount-summary { display: flex; align-items: center; justify-content: space-between; min-height: 24px; gap: 12px; color: var(--on-surface-variant); font-size: 13px; cursor: pointer; }
+.pos-discount-summary::marker, .pos-discount-summary::-webkit-details-marker { display: none; content: ''; }
+.pos-discount[open] > .pos-discount-summary { margin-bottom: 10px; color: var(--on-surface); }
+.pos-discount[open] > div + div { margin-top: 8px; }
+.pos-payment-total { padding: 0 0 18px; }
+.pos-payment-total > div:last-child { flex-direction: column; align-items: flex-start; gap: 6px; padding-top: 12px; }
+.pos-payment-total > div:last-child > span { font-size: 14px; text-transform: none; letter-spacing: 0; }
+#grand-total-output { font-size: 30px; line-height: 1.25; color: var(--on-surface); font-weight: 700; overflow-wrap: anywhere; }
+.pos-payment-group { padding: 14px 0; border-top: 1px solid var(--outline-variant); border-radius: 0; background: transparent; box-shadow: none; }
+.pos-payment-group > div:first-child { margin-bottom: 5px; }
+.pos-payment-group input { min-height: 38px; font-size: 14px; border-radius: 6px; }
+.pos-payment-group button { min-height: 30px; font-size: 12px; }
+.pos-payment-group button[aria-pressed] { min-height: 42px; font-size: 13px; border-radius: 6px; }
+#btn-pay { min-height: 48px; border-radius: 7px; margin-top: 12px; box-shadow: none; background: #245fb7; color: white; }
+#btn-pay:hover:not(:disabled) { background: #1b4f9d; }
+#btn-pay:disabled { background: var(--surface-container-high); color: var(--on-surface-variant); opacity: 1; }
+
+#admin-sidebar-nav { border: 0; border-radius: 0; background: transparent; padding: 4px 12px 4px 0; scrollbar-width: thin; }
+#admin-sidebar-nav button { border-radius: 6px; font-weight: 500; min-height: 40px; }
+#admin-main-content-area > section, #admin-main-content-area > div { box-shadow: none; }
+#admin-main-content-area table th { font-size: 12px; text-transform: none; letter-spacing: 0; color: var(--on-surface-variant); }
+#admin-main-content-area table td { padding-block: 14px; }
+
+.pos-operational-notice { display: flex; align-items: center; gap: 12px; flex-shrink: 0; padding: 9px 12px; border: 1px solid var(--outline-variant); border-radius: 7px; background: var(--surface-container-low); color: var(--on-surface); font-size: 13px; }
+.pos-operational-notice > svg { flex-shrink: 0; color: var(--error); }
+.pos-operational-notice .notice-detail { margin-left: auto; color: var(--on-surface); text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+.pos-operational-notice button { min-height: 32px; cursor: pointer; }
+.pos-operational-notice .notice-close { width: 32px; display: grid; place-items: center; color: var(--on-surface-variant); }
+
+@media (min-width: 640px) and (max-width: 1279px) {
+  #pos-header-clock { display: none; }
+  #pos-header { gap: 12px; padding-inline: 12px; }
+  #brand-identity { gap: 8px; }
+  #system-online-badge { display: none; }
+  #pos-header > div:first-child { gap: 12px; }
+  #header-utility-buttons { gap: 0; }
+  #header-utility-buttons button { min-width: 30px; }
+}
+@media (min-width: 640px) and (max-height: 800px) {
+  #payment-panel-sidebar { padding: 12px 14px; }
+  .pos-payment-total { padding-bottom: 12px; }
+  .pos-payment-total > div:last-child { padding-top: 4px; }
+  .pos-payment-group { padding-block: 10px; }
+}
+@media (max-width: 639px) {
+  #pos-header { gap: 8px; }
+  #brand-title { font-size: 12px; }
+  #btn-user-dropdown-toggle { padding: 5px; }
+  #btn-user-dropdown-toggle > span { display: none; }
+  #header-tools-actions { gap: 6px; }
+  #btn-close-shift { padding-inline: 8px; font-size: 11px; }
+  #cart-table-footer { padding: 10px; }
+  #cart-table-footer > p { display: none; }
+  #input-barcode-scan { font-size: 16px; }
+  #barcode-scan-form button[aria-label="Buka Pemindai Kamera"] { display: none; }
+  #btn-open-camera-scanner { background: var(--surface-container-low); color: var(--on-surface); border-color: var(--outline-variant); box-shadow: none; }
+  .pos-mobile-payment-sheet { height: 92dvh; max-height: 850px; overflow: hidden; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+  #payment-panel-sidebar { border: 0; padding: 16px; min-height: 0; overflow: hidden; }
+  .pos-discount-summary { min-height: 40px; }
+  .pos-payment-group input { min-height: 44px; font-size: 16px; }
+  .pos-payment-group button { min-height: 40px; }
+  #admin-sidebar-nav { padding: 0 0 8px; gap: 6px; scrollbar-width: thin; }
+  .pos-operational-notice { gap: 8px; font-size: 12px; align-items: flex-start; }
+  .pos-operational-notice > svg { margin-top: 6px; }
+  .pos-operational-notice > span { padding-top: 6px; }
+}

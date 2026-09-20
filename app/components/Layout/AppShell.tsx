@@ -1,8 +1,8 @@
 import { useDeferredEffect } from '@/lib/useDeferredEffect';
-import type { CashSession, Discount } from '@/types/api';
+import type { CashSession } from '@/types/api';
 import React, { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
-import { RefreshCw, Store, Printer, BarChart3, Sun, Moon, LogOut, Sparkles, Keyboard, Calculator, Wifi, WifiOff } from 'lucide-react';
+import { RefreshCw, Printer, BarChart3, Sun, Moon, LogOut, Sparkles, Keyboard, Calculator } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import NetworkStatusModal from '@/components/pos/NetworkStatusModal';
 import BottomNav from '@/components/Layout/BottomNav';
@@ -148,12 +148,12 @@ export default function AppShell({
                       : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 hover:bg-amber-500/20'
                   }`}
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full mr-1 animate-pulse ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-                  <span className="hidden sm:inline">{isOnline ? 'Online Engine' : 'Offline Mode (Local Active)'}</span>
+                  <span className={`w-1.5 h-1.5 rounded-full mr-1 ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                  <span className="hidden sm:inline">{isOnline ? 'Jaringan aktif' : 'Tanpa jaringan'}</span>
                   <span className="sm:hidden">{isOnline ? 'Online' : 'Offline'}</span>
                 </button>
               </div>
-              <span className="text-[9px] sm:text-[10px] text-on-surface-variant font-medium tracking-wide uppercase mt-0.5">POS System</span>
+              <span className="text-[9px] sm:text-[10px] text-on-surface-variant font-medium tracking-wide uppercase mt-0.5">Kasir & operasional</span>
             </div>
           </div>
 
@@ -163,39 +163,42 @@ export default function AppShell({
           <nav id="pos-mode-navigation" aria-label="Mode Aplikasi Kasir" className="hidden sm:flex bg-surface-container-low border border-outline-variant rounded-lg p-0.5 gap-0.5">
             <button 
               id="btn-mode-warung"
+              aria-pressed={mode === 'warung'}
               onClick={() => onModeChange('warung')}
               className={`px-3 py-1.5 rounded-md flex items-center gap-2 text-xs font-semibold transition-all cursor-pointer ${
                 mode === 'warung' 
-                  ? 'bg-primary text-white shadow-sm' 
+                  ? 'bg-primary-container text-on-primary-container'
                   : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
               }`}
             >
-              <kbd className={`px-1 py-0.2 text-[9px] font-mono rounded ${mode === 'warung' ? 'bg-white/20 text-white' : 'bg-surface-container-highest text-on-surface-variant'}`}>F1</kbd>
+              <kbd className={`px-1 py-0.2 text-[9px] font-mono rounded ${mode === 'warung' ? 'bg-primary/10 text-on-primary-container' : 'bg-surface-container-highest text-on-surface-variant'}`}>F1</kbd>
               Warung
             </button>
             <button 
               id="btn-mode-agent"
+              aria-pressed={mode === 'agent'}
               onClick={() => onModeChange('agent')}
               className={`px-3 py-1.5 rounded-md flex items-center gap-2 text-xs font-semibold transition-all cursor-pointer ${
                 mode === 'agent' 
-                  ? 'bg-primary text-white shadow-sm' 
+                  ? 'bg-primary-container text-on-primary-container'
                   : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
               }`}
             >
-              <kbd className={`px-1 py-0.2 text-[9px] font-mono rounded ${mode === 'agent' ? 'bg-white/20 text-white' : 'bg-surface-container-highest text-on-surface-variant'}`}>F2</kbd>
+              <kbd className={`px-1 py-0.2 text-[9px] font-mono rounded ${mode === 'agent' ? 'bg-primary/10 text-on-primary-container' : 'bg-surface-container-highest text-on-surface-variant'}`}>F2</kbd>
               Agent
             </button>
             {userRole === 'owner' && (
               <button 
                 id="btn-mode-admin"
+              aria-pressed={mode === 'admin'}
                 onClick={() => onModeChange('admin')}
                 className={`px-3 py-1.5 rounded-md flex items-center gap-2 text-xs font-semibold transition-all cursor-pointer ${
                   mode === 'admin' 
-                    ? 'bg-primary text-white shadow-sm' 
+                    ? 'bg-primary-container text-on-primary-container'
                     : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
                 }`}
               >
-                <kbd className={`px-1 py-0.2 text-[9px] font-mono rounded ${mode === 'admin' ? 'bg-white/20 text-white' : 'bg-surface-container-highest text-on-surface-variant'}`}>F3</kbd>
+                <kbd className={`px-1 py-0.2 text-[9px] font-mono rounded ${mode === 'admin' ? 'bg-primary/10 text-on-primary-container' : 'bg-surface-container-highest text-on-surface-variant'}`}>F3</kbd>
                 Admin
               </button>
             )}
@@ -298,7 +301,7 @@ export default function AppShell({
               <button
                 id="btn-close-shift"
                 onClick={onCloseSession}
-                className="px-3 py-1.5 bg-error/10 hover:bg-error/20 text-error text-xs font-semibold rounded-md flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-3 py-1.5 bg-surface-container-low hover:bg-surface-container-high text-on-surface-variant text-xs font-semibold rounded-md flex items-center gap-1.5 transition-colors cursor-pointer"
                 title="Tutup Shift"
               >
                 <LogOut size={14} />
@@ -312,6 +315,7 @@ export default function AppShell({
           <div id="user-profile-menu" className="relative">
             <button
               id="btn-user-dropdown-toggle"
+              aria-label="Menu akun"
               onClick={(e) => { e.stopPropagation(); setShowUserDropdown(prev => !prev); }}
               className="flex items-center gap-2 bg-surface-container-low border border-outline-variant rounded-full pl-1.5 pr-3 py-1 hover:border-outline transition-colors cursor-pointer"
               aria-haspopup="menu"
@@ -422,4 +426,3 @@ export default function AppShell({
     </div>
   );
 }
-
