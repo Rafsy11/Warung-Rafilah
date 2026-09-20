@@ -5,6 +5,7 @@ import { promisify } from 'util';
 import { requireRole } from '@/lib/rbac';
 import { enforceRateLimit } from '@/lib/rate-limiter';
 import { ensureCupsProxy } from '@/lib/print/proxy';
+import type { ReceiptData } from '@/lib/print/receipt';
 
 const execAsync = promisify(exec);
 
@@ -34,7 +35,7 @@ function wrapText(text: string, width = 32): string[] {
   return lines;
 }
 
-function buildRawReceiptText(d: any): Buffer {
+function buildRawReceiptText(d: ReceiptData): Buffer {
   const width = 32;
   const parts: Buffer[] = [];
 
@@ -55,7 +56,7 @@ function buildRawReceiptText(d: any): Buffer {
   parts.push(Buffer.from([0x1B, 0x40]));
 
   // Buka laci kasir jika metode pembayaran TUNAI (CASH) atau SPLIT
-  const method = d.payment_method?.toUpperCase();
+  const method = d.type === 'warung' ? d.payment_method.toUpperCase() : undefined;
   if (d.type === 'warung' && (method === 'CASH' || method === 'SPLIT')) {
     // ESC p 0 25 25 (Pin 2 kick drawer)
     parts.push(Buffer.from([0x1B, 0x70, 0x00, 0x19, 0x19]));

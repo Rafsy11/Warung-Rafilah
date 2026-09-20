@@ -1,5 +1,7 @@
 "use client";
 
+import { useDeferredEffect } from '@/lib/useDeferredEffect';
+import type { Discount } from '@/types/api';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Banknote, QrCode, MonitorSmartphone, Coins, User, Search, X, UserPlus } from 'lucide-react';
 import QuickAddCustomerModal from '@/components/pos/QuickAddCustomerModal';
@@ -24,7 +26,7 @@ type PaymentPanelProps = {
   grandTotal:  number;
   onPay:       (method: PaymentMethod, received: number, splitCash?: number, splitQris?: number, customerId?: string) => void;
   paying:      boolean;
-  activeDiscounts?: any[];
+  activeDiscounts?: Discount[];
   isMobileDrawer?: boolean;
   onCloseMobileDrawer?: () => void;
 };
@@ -75,7 +77,7 @@ export default function PaymentPanel({
   const [discountInputVal, setDiscountInputVal] = useState('');
 
   // Sync discountInputVal with discount prop
-  useEffect(() => {
+  useDeferredEffect(() => {
     if (discount === 0) {
       setDiscountInputVal('');
     } else {
@@ -107,7 +109,7 @@ export default function PaymentPanel({
   };
 
   // Real-time customer lookup for debt payment with 300ms debounce
-  useEffect(() => {
+  useDeferredEffect(() => {
     setCustomerSearchDone(false);
     if (customerSearch.trim().length < 2) {
       setCustomerSuggestions([]);
@@ -143,7 +145,7 @@ export default function PaymentPanel({
   );
   const presets  = useMemo(() => quickCashOptions(grandTotal), [grandTotal]);
 
-  useEffect(() => {
+  useDeferredEffect(() => {
     if (method === 'SPLIT') {
       setSplitCashAmount(0);
       setSplitQrisAmount(grandTotal);
@@ -420,7 +422,7 @@ export default function PaymentPanel({
           {/* Active Promo Pills */}
           {activeDiscounts && activeDiscounts.length > 0 && (
             <div className="flex flex-wrap gap-1 pt-0.5 max-h-12 overflow-hidden">
-              {activeDiscounts.slice(0, 3).map((d: any) => {
+              {activeDiscounts.slice(0, 3).map((d) => {
                 const meetsMin = !d.min_purchase_amount || (warungTotal + agentTotal + agentFee) >= Number(d.min_purchase_amount);
                 return (
                   <button

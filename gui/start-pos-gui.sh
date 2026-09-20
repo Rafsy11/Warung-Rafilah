@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+POS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+POS_ROOT="$(cd "$POS_ROOT/.." && pwd)"
+source "$POS_ROOT/scripts/docker-context.sh"
+bash "$POS_ROOT/scripts/ensure-local-tls.sh" || exit 1
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -162,7 +167,7 @@ fi
   # Dynamic polling wait loop (up to 25s) instead of fragile fixed sleep
   for ((sec = 1; sec <= 25; sec++)); do
     if docker compose "${COMPOSE_FILES[@]}" ps 2>/dev/null | grep -E 'pos_nextjs|pos_app' | grep -iE 'running|up' >/dev/null 2>&1 || docker ps 2>/dev/null | grep -q 'pos_nextjs'; then
-      if curl -s --connect-timeout 1 http://localhost:3000/api/health >/dev/null 2>&1; then
+      if curl -fsS --max-time 3 http://localhost:3000/api/health >/dev/null 2>&1; then
         break
       fi
     fi
@@ -191,6 +196,7 @@ if docker compose "${COMPOSE_FILES[@]}" ps 2>/dev/null | grep -E 'pos_nextjs|pos
     xdg-open "http://localhost:3000" >/dev/null 2>&1 || true
   fi
 
+  curl -fsS --max-time 3 http://localhost:3000/api/health >/dev/null || { show_error "POS belum siap" "Database atau migrasi belum siap. Periksa log."; exit 1; }
   show_info "POS started" "POS is running.
 
 Browser URL:

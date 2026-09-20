@@ -16,7 +16,7 @@ export async function GET(req: Request) {
          sm.movement_type,
          COUNT(*)::int as total_occurrences,
          SUM(ABS(sm.qty_change))::float as total_qty,
-         SUM(ABS(sm.qty_change) * p.cost_price)::float as total_loss
+         SUM(ABS(sm.qty_change) * sm.cost_price_snapshot)::float as total_loss, COUNT(*) FILTER (WHERE sm.cost_price_snapshot IS NULL)::int as unknown_cost_count
        FROM warung.stock_movements sm
        JOIN warung.products p ON sm.product_id = p.id
        WHERE sm.movement_type IN ('damaged', 'expired', 'stolen')

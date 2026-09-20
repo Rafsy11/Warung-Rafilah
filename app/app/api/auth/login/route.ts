@@ -60,7 +60,7 @@ export async function POST(req: Request) {
     }
 
     // 2. Account-specific rate limit (5 attempts per 5 mins)
-    const rateLimitKey = `login:${username}:${ip}`;
+    const rateLimitKey = `login:account:${username}`;
     if (rateLimiter.isRateLimited(rateLimitKey, RATE_LIMITS.LOGIN.limit, RATE_LIMITS.LOGIN.windowMs)) {
       const retryAfter = rateLimiter.getTimeUntilReset(rateLimitKey, RATE_LIMITS.LOGIN.windowMs);
       await logAudit({
@@ -85,23 +85,13 @@ export async function POST(req: Request) {
       );
     }
 
-    // Verify credentials directly in DB using pgcrypto crypt()
-    const { rows } = await pool.query(
-      `SELECT id, username, full_name, role
-       FROM core.users
-       WHERE username = $1
-         AND pin_hash = crypt($2, pin_hash)
-         AND is_active = true`,
-      [username, pin]
-    );
-
+    // Always perform exactly one expensive comparison, including unknown accounts.
+    const lookup = await pool.query('SELECT id, username, full_name, role, pin_hash, is_active FROM core.users WHERE username=$1', [username]);
+    const candidate = lookup.rows[0];
+    const dummyHash = '$2a$12$e8Y5lqfQvM1wS5YgC6eIquP9lC6dC0x7.hEaL1lG6qJ2bC8kL4e2G';
+    const verified = await pool.query('SELECT crypt($1,$2) = $2 AS valid', [pin,candidate?.pin_hash || dummyHash]);
+    const rows = candidate?.is_active && verified.rows[0].valid ? [candidate] : [];
     if (rows.length === 0) {
-      // Timing attack countermeasure: simulate constant-time hash verification so execution time is identical
-      await pool.query(
-        "SELECT crypt($1, '$2a$12$e8Y5lqfQvM1wS5YgC6eIquP9lC6dC0x7.hEaL1lG6qJ2bC8kL4e2G')",
-        [pin]
-      ).catch(() => {});
-
       const remaining = rateLimiter.getRemainingAttempts(rateLimitKey, RATE_LIMITS.LOGIN.limit, RATE_LIMITS.LOGIN.windowMs);
 
       await logAudit({
@@ -138,6 +128,7 @@ export async function POST(req: Request) {
       username:  user.username,
       full_name: user.full_name,
       role:      user.role,
+      jti:       crypto.randomUUID(),
       exp:       Math.floor(Date.now() / 1000) + 60 * 60 * 24,
     };
     const payload   = Buffer.from(JSON.stringify(payloadObj)).toString('base64url');
@@ -147,9 +138,11 @@ export async function POST(req: Request) {
       .digest('base64url');
     const token = `${header}.${payload}.${signature}`;
 
+    await pool.query('INSERT INTO core.sessions(token_hash,user_id,expires_at) VALUES ($1,$2,to_timestamp($3))', [crypto.createHash('sha256').update(token).digest('hex'),user.id,payloadObj.exp]);
+    await pool.query('DELETE FROM core.sessions WHERE expires_at < now()');
     // Reset rate limits on successful login
     rateLimiter.reset(rateLimitKey);
-    rateLimiter.reset(ipRateLimitKey);
+
     
     // Log successful login
     await logAudit({
@@ -179,7 +172,8 @@ export async function POST(req: Request) {
 
 
     return res;
-  } catch (err: any) {
+  } catch (caught) {
+      const err = caught instanceof Error ? caught : new Error(String(caught));
     console.error("Login API Error:", err);
     return NextResponse.json(
       { error: { code: 'internal_error', message: 'Terjadi kesalahan server.' } },

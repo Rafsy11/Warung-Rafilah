@@ -27,6 +27,8 @@ const DEFAULT_CATEGORIES = [
 export default function QuickAddProductModal({ barcode, onSaved, onClose }: QuickAddProductModalProps) {
   const [name, setName]         = useState('');
   const [priceStr, setPriceStr] = useState('');
+  const [costStr, setCostStr] = useState('');
+  const [stockStr, setStockStr] = useState('');
   const [category, setCategory] = useState('Lainnya');
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState('');
@@ -74,7 +76,8 @@ export default function QuickAddProductModal({ barcode, onSaved, onClose }: Quic
   }, [onClose]);
 
   const price = parseInt(priceStr.replace(/\D/g, ''), 10) || 0;
-  const canSubmit = name.trim().length > 0 && price > 0 && !saving;
+  const cost = Number(costStr), stock = Number(stockStr);
+  const canSubmit = name.trim().length > 0 && price > 0 && costStr !== '' && Number.isFinite(cost) && cost >= 0 && Number.isInteger(stock) && stock > 0 && !saving;
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,6 +94,8 @@ export default function QuickAddProductModal({ barcode, onSaved, onClose }: Quic
           barcode,
           name: name.trim(),
           sell_price: price,
+          cost_price: cost,
+          stock_qty: stock,
           category,
         }),
       });
@@ -117,7 +122,7 @@ export default function QuickAddProductModal({ barcode, onSaved, onClose }: Quic
     } finally {
       setSaving(false);
     }
-  }, [canSubmit, barcode, name, price, category, onSaved]);
+  }, [canSubmit, barcode, name, price, cost, stock, category, onSaved]);
 
   return (
     <dialog
@@ -130,7 +135,7 @@ export default function QuickAddProductModal({ barcode, onSaved, onClose }: Quic
     >
       <section
         id="quick-add-product-card"
-        className="bg-surface-container rounded-2xl border border-outline-variant p-6 w-full max-w-md mx-4 flex flex-col gap-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+        className="bg-surface-container rounded-2xl border border-outline-variant p-6 w-full max-w-md mx-4 max-h-[90dvh] overflow-y-auto flex flex-col gap-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -191,6 +196,16 @@ export default function QuickAddProductModal({ barcode, onSaved, onClose }: Quic
             />
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1.5 text-sm text-on-surface-variant">
+              Modal per unit (Rp)
+              <input aria-label="Modal per unit" type="number" min="0" step="1" required disabled={saving} value={costStr} onChange={e => setCostStr(e.target.value)} className="w-full bg-surface-dim border border-outline-variant rounded-lg px-3 py-2.5 text-on-surface" />
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm text-on-surface-variant">
+              Stok tersedia
+              <input aria-label="Stok tersedia" type="number" min="1" step="1" required disabled={saving} value={stockStr} onChange={e => setStockStr(e.target.value)} className="w-full bg-surface-dim border border-outline-variant rounded-lg px-3 py-2.5 text-on-surface" />
+            </label>
+          </div>
           {/* Selling Price */}
           <div className="flex flex-col gap-1.5">
             <label htmlFor="input-quick-add-price" className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">

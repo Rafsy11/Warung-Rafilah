@@ -1,5 +1,6 @@
 "use client";
 
+import { useDeferredEffect } from '@/lib/useDeferredEffect';
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   TrendingUp, TrendingDown, DollarSign, Wallet, FileText, 
@@ -28,6 +29,7 @@ interface FinancialData {
   }>;
   consignment_cost: number;
   net_profit: number;
+  unknown_shrinkage_cost_count: number;
   payment_methods: Array<{
     payment_method: string;
     total_amount: number;
@@ -66,7 +68,7 @@ export default function FinancialAccountingTab() {
     }
   }, []);
 
-  useEffect(() => {
+  useDeferredEffect(() => {
     fetchFinancialReport(startDate, endDate);
   }, [startDate, endDate, fetchFinancialReport]);
 
@@ -101,7 +103,8 @@ export default function FinancialAccountingTab() {
       ['Laba Kotor Penjualan Ritel (Gross Margin)', data.gross_margin],
       ['Pendapatan Komisi Agen PPOB', data.agent_commission],
       ['Beban Kerugian Barang Rusak / Kadaluarsa (Shrinkage)', -data.shrinkage_loss],
-      ['Beban Konsinyasi Supplier', -data.consignment_cost],
+      ['Mutasi kerugian lama tanpa catatan modal (belum dihitung)', data.unknown_shrinkage_cost_count],
+      ['Setoran Konsinyasi (informasi arus kas, tidak dikurangi lagi)', data.consignment_cost],
       ['TOTAL LABA BERSIH OPERASIONAL (NET PROFIT)', data.net_profit],
       [''],
       ['NERACA ASET & LIKUIDITAS TOKO', 'NILAI (IDR)'],
@@ -121,9 +124,6 @@ export default function FinancialAccountingTab() {
     document.body.removeChild(link);
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
 
   const profitMarginPercent = data && data.gross_revenue > 0 
     ? ((data.net_profit / data.gross_revenue) * 100).toFixed(1) 
@@ -242,7 +242,7 @@ export default function FinancialAccountingTab() {
             {/* Laba Bersih */}
             <div className="bg-gradient-to-br from-emerald-950/40 to-surface-container border border-emerald-500/30 p-4 rounded-2xl shadow-sm flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Laba Bersih Riil</span>
+                <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Laba Operasional Tercatat</span>
                 <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl">
                   <TrendingUp size={18} />
                 </div>
@@ -332,18 +332,19 @@ export default function FinancialAccountingTab() {
 
                   {/* Konsinyasi */}
                   <div className="py-2.5 flex justify-between items-center text-rose-400">
-                    <span className="font-medium">- Beban Bagi Hasil Konsinyasi Supplier</span>
-                    <span className="font-mono font-semibold">- {formatRp(data.consignment_cost)}</span>
+                    <span className="font-medium">Setoran Konsinyasi (informasi arus kas)</span>
+                    <span className="font-mono font-semibold">{formatRp(data.consignment_cost)}</span>
                   </div>
 
                   {/* LABA BERSIH TOTAL */}
                   <div className="py-3.5 flex justify-between items-center bg-emerald-500/15 border border-emerald-500/30 px-3 rounded-xl mt-2 font-black text-sm text-emerald-400">
-                    <span className="uppercase tracking-wide">🏆 LABA BERSIH AKHIR (NET PROFIT)</span>
+                    <span className="uppercase tracking-wide">🏆 LABA OPERASIONAL TERCATAT</span>
                     <span className="font-mono text-base">{formatRp(data.net_profit)}</span>
                   </div>
                 </div>
               </div>
 
+              <p className="text-body-sm text-on-surface-variant mt-4">Belum termasuk biaya umum seperti listrik dan sewa. {data.unknown_shrinkage_cost_count > 0 ? `Ada ${data.unknown_shrinkage_cost_count} mutasi kerugian lama tanpa catatan harga modal; nominalnya belum masuk perhitungan.` : ''}</p>
               {/* Shrinkage Details Alert if any */}
               {data.shrinkage_details.length > 0 && (
                 <div className="mt-4 bg-rose-950/30 border border-rose-500/20 rounded-xl p-3 text-xs">

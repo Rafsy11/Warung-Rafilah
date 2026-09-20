@@ -59,6 +59,7 @@ export async function logAudit(entry: AuditLogEntry): Promise<void> {
  * Helper untuk extract IP dari request
  */
 export function getClientIp(request: Request): string {
+  if (process.env.TRUST_PROXY_HEADERS !== 'true') return 'unknown';
   const forwardedFor = request.headers.get('x-forwarded-for');
   const realIp = request.headers.get('x-real-ip');
   const cfConnectingIp = request.headers.get('cf-connecting-ip');

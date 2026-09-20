@@ -1,3 +1,4 @@
+import { beginTransaction } from '@/lib/transaction';
 import { NextResponse } from 'next/server';
 import { db as pool } from '@/lib/db';
 import { requireRole } from '@/lib/rbac';
@@ -80,7 +81,8 @@ export async function GET(req: Request) {
       message: 'Barcode baru_total. Silakan masukkan Nama Barang & Kategori baru.'
     });
 
-  } catch (err: any) {
+  } catch (caught) {
+      const err = caught instanceof Error ? caught : new Error(String(caught));
     console.error('Error in check-master-product controller:', err);
     return NextResponse.json(
       { error: { code: 'internal_error', message: 'Gagal mengecek database kamus produk.' } },
@@ -122,7 +124,7 @@ export async function POST(req: Request) {
       );
     }
 
-    await client.query('BEGIN');
+    await beginTransaction(client);
 
     // 1. Write/Learn to Local Master Product Dictionary
     const learnMasterQuery = `
@@ -171,7 +173,8 @@ export async function POST(req: Request) {
       product: inventoryRows[0]
     }, { status: 201 });
 
-  } catch (err: any) {
+  } catch (caught) {
+      const err = caught instanceof Error ? caught : new Error(String(caught));
     await client.query('ROLLBACK');
     console.error('Error auto-learning master product:', err);
     return NextResponse.json(

@@ -22,6 +22,8 @@ build
 # Testing
 coverage
 .nyc_output
+test-results
+lint-results.json
 
 # Git
 .git

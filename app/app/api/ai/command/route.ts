@@ -1,8 +1,19 @@
+import { logStockChange, productFields } from '@/lib/product-write';
+import { payDebt } from '@/lib/debt';
+import { beginTransaction } from '@/lib/transaction';
 import { NextResponse } from 'next/server';
 import { db as pool } from '@/lib/db';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface HistoryEntry { role: 'user' | 'model'; text: string; }
+interface AiIntent {
+  action: string; product_query?: string; customer_query?: string; quantity?: number;
+  reason?: string; payment_filter?: string; direct_response?: string; count_only?: boolean;
+  new_sell_price?: number; new_cost_price?: number; new_reorder_threshold?: number; new_credit_limit?: number;
+  customer_phone?: string; barcode?: string; unit?: string; category?: string;
+  discount_name?: string; discount_type?: string; discount_value_type?: string; discount_value?: number;
+  discount_min_purchase?: number; toggle_active?: boolean; settle_amount?: number;
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const idr = (n: number) => `Rp ${n.toLocaleString('id-ID')}`;
@@ -30,7 +41,7 @@ function sanitize(s: string): string {
 }
 
 // ── Smart Fallback Intent Classifier (guarantees AI availability) ───────────
-function fallbackIntentClassifier(p: string): any {
+function fallbackIntentClassifier(p: string): AiIntent {
   const text = p.toLowerCase().trim();
 
   if (/\b(siapa|nama|halo|hi|helo|hallo|selamat)\b/.test(text)) {
@@ -141,17 +152,16 @@ export async function POST(req: Request) {
 
         // SETTLE_DEBT_EXEC
         if (passedAction === 'SETTLE_DEBT_EXEC') {
-          const cRes = await client.query(`SELECT name, current_debt FROM warung.customers WHERE id = $1`, [productId]);
-          if (!cRes.rows.length) return NextResponse.json({ success: false, message: 'Pelanggan tidak ditemukan.' });
-          const cust = cRes.rows[0];
-          const payment = Math.min(Number(passedQty), Number(cust.current_debt));
-          await client.query(`UPDATE warung.customers SET current_debt = current_debt - $1 WHERE id = $2`, [payment, productId]);
-          const remaining = Number(cust.current_debt) - payment;
-          return NextResponse.json({ success: true, message: `✅ Hutang *${cust.name}* berkurang *${idr(payment)}*.\nSisa hutang: *${idr(remaining)}*${remaining === 0 ? ' — LUNAS! 🎉' : ''}` });
+          await beginTransaction(client);
+          const remaining = await payDebt(client, productId, Number(passedQty), userId, 'Pembayaran hutang melalui Velo');
+          await client.query('COMMIT');
+          return NextResponse.json({ success: true, message: `Pembayaran dicatat. Sisa hutang: ${idr(remaining)}` });
         }
 
         // RESTOCK / REDUCE stock mutation
-        if (passedQty) {
+        if (['RESTOCK', 'REDUCE'].includes(passedAction)) {
+          if (!Number.isFinite(Number(passedQty)) || Number(passedQty) <= 0) throw new Error('Jumlah harus positif.');
+          await beginTransaction(client);
           const prodRes = await client.query(
             `SELECT name, stock_qty, unit FROM warung.products WHERE id = $1 AND is_active = true FOR UPDATE`,
             [productId]
@@ -164,8 +174,7 @@ export async function POST(req: Request) {
           if (passedAction === 'REDUCE') qty = -Math.abs(qty);
           if (cur + qty < 0) return NextResponse.json({ success: false, message: `Stok tidak mencukupi. Saat ini: ${cur} ${prod.unit}.` });
 
-          const mt = passedAction === 'RESTOCK' ? 'restock' : 'adjustment';
-          await client.query('BEGIN');
+          const mt = passedAction === 'RESTOCK' ? 'restock' : (['damaged','expired','stolen'].includes(body.movementType) ? body.movementType : 'adjustment');
           await client.query(`UPDATE warung.products SET stock_qty = stock_qty + $1 WHERE id = $2`, [qty, productId]);
           await client.query(
             `INSERT INTO warung.stock_movements (product_id, movement_type, qty_change, note, created_by) VALUES ($1,$2,$3,$4,$5)`,
@@ -300,7 +309,7 @@ Kembalikan HANYA JSON (tanpa markdown, tanpa komentar):
   "direct_response": "<jawaban langsung untuk GREET/HELP/UNKNOWN>"
 }`;
 
-      let p: any = null;
+      let p: AiIntent | null = null;
       try {
         let rawText = '';
         if (aiBaseUrl && aiApiKey) {
@@ -460,7 +469,7 @@ Kembalikan HANYA JSON (tanpa markdown, tanpa komentar):
       // ── Profit ────────────────────────────────────────────────────────────
       if (action === 'INQUIRY_PROFIT') {
         const r = await client.query(
-          `SELECT COALESCE(SUM(si.subtotal - (si.cost_price_snapshot * si.qty)), 0) - COALESCE((SELECT SUM(discount) FROM warung.sales WHERE status = 'completed' AND created_at >= CURRENT_DATE AND created_at < CURRENT_DATE + INTERVAL '1 day'), 0) as margin
+          `SELECT COALESCE(SUM(si.subtotal - (COALESCE(si.consignment_cost_snapshot, (SELECT cl.cost_share FROM warung.consignment_ledger cl WHERE cl.sale_item_id=si.id LIMIT 1), si.cost_price_snapshot) * si.qty)), 0) - COALESCE((SELECT SUM(discount) FROM warung.sales WHERE status = 'completed' AND created_at >= CURRENT_DATE AND created_at < CURRENT_DATE + INTERVAL '1 day'), 0) as margin
            FROM warung.sales s
            JOIN warung.sale_items si ON si.sale_id = s.id
            WHERE s.status = 'completed'
@@ -636,11 +645,15 @@ Kembalikan HANYA JSON (tanpa markdown, tanpa komentar):
         const barcodeVal = barcode || `MANUAL-${Date.now()}`;
         const existRes = await client.query(`SELECT id FROM warung.products WHERE barcode = $1`, [barcodeVal]);
         if (existRes.rows.length > 0) return NextResponse.json({ success: false, message: `Barcode *${barcodeVal}* sudah terdaftar.` });
-        await client.query(
+        productFields.parse({ barcode: barcodeVal, name: product_query.trim(), category: category || 'Lainnya', unit, cost_price: Number(new_cost_price) || 0, sell_price: Number(new_sell_price), stock_qty: Number(quantity) || 0, reorder_threshold: 5 });
+        await beginTransaction(client);
+        const inserted = await client.query(
           `INSERT INTO warung.products (barcode, name, category, unit, cost_price, sell_price, stock_qty, reorder_threshold)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
           [barcodeVal, product_query.trim(), category || 'Lainnya', unit, Number(new_cost_price) || 0, Number(new_sell_price), Number(quantity) || 0, 5]
         );
+        await logStockChange(client, inserted.rows[0].id, 0, Number(quantity) || 0, userId, 'Stok awal melalui Velo');
+        await client.query('COMMIT');
         return NextResponse.json({ success: true, message: `✅ Produk *${product_query}* berhasil ditambahkan.\n• Satuan: *${unit}* | Harga Jual: *${idr(Number(new_sell_price))}* | Modal: *${idr(Number(new_cost_price) || 0)}*\n• Stok Awal: *${Number(quantity) || 0} ${unit}*` });
       }
 
@@ -650,15 +663,17 @@ Kembalikan HANYA JSON (tanpa markdown, tanpa komentar):
         if (!new_sell_price && !new_cost_price) return NextResponse.json({ success: false, message: 'Sebutkan harga baru. Contoh: "ubah harga jual Aqua jadi 4000"' });
         const r = await client.query(`SELECT id, name, sell_price, cost_price, unit FROM warung.products WHERE name ILIKE $1 AND is_active=true`, [`%${product_query}%`]);
         if (!r.rows.length) return NextResponse.json({ success: false, message: `Produk "${product_query}" tidak ditemukan.` });
-        if (r.rows.length > 1) return NextResponse.json({ success: false, message: `Ditemukan ${r.rows.length} produk: ${r.rows.map((x: any) => x.name).join(', ')}. Sebutkan nama lebih spesifik.` });
+        if (r.rows.length > 1) return NextResponse.json({ success: false, message: `Ditemukan ${r.rows.length} produk: ${r.rows.map((x: { name: string }) => x.name).join(', ')}. Sebutkan nama lebih spesifik.` });
         const prod = r.rows[0];
         const updates: string[] = [];
         const vals: unknown[] = [];
         if (new_sell_price && Number(new_sell_price) > 0) { updates.push(`sell_price = $${vals.length + 1}`); vals.push(Number(new_sell_price)); }
         if (new_cost_price && Number(new_cost_price) > 0) { updates.push(`cost_price = $${vals.length + 1}`); vals.push(Number(new_cost_price)); }
         vals.push(prod.id);
+        await beginTransaction(client);
         await client.query(`SELECT set_config('app.price_change_source', 'ai_command', true)`);
         await client.query(`UPDATE warung.products SET ${updates.join(', ')} WHERE id = $${vals.length}`, vals);
+        await client.query('COMMIT');
         const changes = [];
         if (new_sell_price && Number(new_sell_price) > 0) changes.push(`Harga Jual: *${idr(Number(prod.sell_price))}* → *${idr(Number(new_sell_price))}*`);
         if (new_cost_price && Number(new_cost_price) > 0) changes.push(`Modal: *${idr(Number(prod.cost_price))}* → *${idr(Number(new_cost_price))}*`);
@@ -707,7 +722,7 @@ Kembalikan HANYA JSON (tanpa markdown, tanpa komentar):
       if (action === 'INQUIRY_CUSTOMERS') {
         const r = await client.query(`SELECT name, phone, current_debt, credit_limit FROM warung.customers WHERE is_active=true ORDER BY name ASC LIMIT 30`);
         if (!r.rows.length) return NextResponse.json({ success: true, message: 'Belum ada pelanggan terdaftar.' });
-        const lines = r.rows.map((c: any) => `• *${c.name}*${c.phone ? ` (${c.phone})` : ''} — Hutang: ${idr(Number(c.current_debt))} | Limit: ${idr(Number(c.credit_limit))}`);
+        const lines = r.rows.map((c: { name: string; phone: string; current_debt: string; credit_limit: string }) => `• *${c.name}*${c.phone ? ` (${c.phone})` : ''} — Hutang: ${idr(Number(c.current_debt))} | Limit: ${idr(Number(c.credit_limit))}`);
         return NextResponse.json({ success: true, message: `👥 *Daftar Pelanggan (${r.rows.length})*\n\n${lines.join('\n')}` });
       }
 
@@ -743,7 +758,7 @@ Kembalikan HANYA JSON (tanpa markdown, tanpa komentar):
       if (action === 'INQUIRY_DISCOUNTS') {
         const r = await client.query(`SELECT d.name, d.discount_type, d.value_type, d.discount_value, d.is_active, d.min_purchase_amount, p.name as product_name FROM warung.discounts d LEFT JOIN warung.products p ON p.id = d.product_id ORDER BY d.is_active DESC, d.created_at DESC`);
         if (!r.rows.length) return NextResponse.json({ success: true, message: 'Belum ada diskon/promo yang dibuat.' });
-        const lines = r.rows.map((d: any) => {
+        const lines = r.rows.map((d: { name: string; value_type: string; discount_value: number; discount_type: string; product_name: string; is_active: boolean; min_purchase_amount: number }) => {
           const val = d.value_type === 'percentage' ? `${d.discount_value}%` : idr(Number(d.discount_value));
           const scope = d.discount_type === 'product' ? ` (Produk: ${d.product_name})` : '';
           const status = d.is_active ? '🟢' : '🔴';
@@ -838,6 +853,7 @@ Kembalikan HANYA JSON (tanpa markdown, tanpa komentar):
       });
 
     } finally {
+      await client.query('ROLLBACK'); // Also releases locks on validation early returns.
       client.release();
     }
   } catch (err) {

@@ -1,5 +1,7 @@
 "use client";
 
+import { useDeferredEffect } from '@/lib/useDeferredEffect';
+import type { DebtEntry, CustomerSale, ShrinkageSummary, ConsignmentSummary, ConsignmentLog, PricingTier, SessionHistory, ProcurementItem } from '@/types/api';
 import React, { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { Package, Search, Plus, Edit2, Trash2, X, Save, AlertCircle, Loader2, History, Scale, Wallet, RefreshCw, Users, User, Tag, Truck, Percent, TrendingUp } from 'lucide-react';
@@ -104,8 +106,6 @@ interface AdminWorkspaceProps {
 }
 
 export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspaceProps) {
-  const nowDate = new Date();
-  const sevenDaysLater = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   const [activeTab, setActiveTab] = useState<'products' | 'adjust' | 'convert' | 'customers' | 'sessions' | 'float' | 'consignment' | 'procurement' | 'discounts' | 'accounting' | 'history'>('products');
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -138,8 +138,8 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
 
   // Customer debt and history details
   const [selectedCustomerDetail, setSelectedCustomerDetail] = useState<Customer | null>(null);
-  const [customerLedger, setCustomerLedger] = useState<any[]>([]);
-  const [customerSales, setCustomerSales] = useState<any[]>([]);
+  const [customerLedger, setCustomerLedger] = useState<DebtEntry[]>([]);
+  const [, setCustomerSales] = useState<CustomerSale[]>([]);
   const [loadingCustomerHistory, setLoadingCustomerHistory] = useState(false);
   const [showPayDebtForm, setShowPayDebtForm] = useState(false);
   const [payDebtAmount, setPayDebtAmount] = useState('');
@@ -150,22 +150,22 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
   // Stock Movements State
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [loadingMovements, setLoadingMovements] = useState(false);
-  const [shrinkageSummary, setShrinkageSummary] = useState<any[]>([]);
+  const [shrinkageSummary, setShrinkageSummary] = useState<ShrinkageSummary[]>([]);
   const [loadingShrinkage, setLoadingShrinkage] = useState(false);
 
   // Consignment tab states
-  const [consignmentSummary, setConsignmentSummary] = useState<any[]>([]);
-  const [consignmentLogs, setConsignmentLogs] = useState<any[]>([]);
+  const [consignmentSummary, setConsignmentSummary] = useState<ConsignmentSummary[]>([]);
+  const [consignmentLogs, setConsignmentLogs] = useState<ConsignmentLog[]>([]);
   const [loadingConsignment, setLoadingConsignment] = useState(false);
 
   // Pricing Tiers States
   const [selectedTiersProduct, setSelectedTiersProduct] = useState<Product | null>(null);
-  const [productTiers, setProductTiers] = useState<any[]>([]);
+  const [productTiers, setProductTiers] = useState<PricingTier[]>([]);
   const [loadingTiers, setLoadingTiers] = useState(false);
   const [tiersError, setTiersError] = useState('');
 
   // Cashier Session History States
-  const [sessions, setSessions] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<SessionHistory[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(false);
 
 
@@ -180,7 +180,7 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
   const [loadingLedger, setLoadingLedger] = useState(false);
 
   // Procurement List States
-  const [procurementItems, setProcurementItems] = useState<any[]>([]);
+  const [procurementItems, setProcurementItems] = useState<ProcurementItem[]>([]);
   const [loadingProcurement, setLoadingProcurement] = useState(false);
   const [totalEstimatedCost, setTotalEstimatedCost] = useState(0);
 
@@ -514,7 +514,7 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
   };
 
   // Fetch data on tab change
-  useEffect(() => {
+  useDeferredEffect(() => {
     if (activeTab === 'products') {
       fetchProducts();
     } else if (activeTab === 'history') {
@@ -533,7 +533,7 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
   }, [activeTab, fetchProducts, fetchMovements, fetchShrinkageSummary, fetchFloatBalance, fetchFloatLedger, fetchConsignmentData, fetchProcurementList, fetchDiscounts]);
 
   // Discount product search with 300ms debounce
-  useEffect(() => {
+  useDeferredEffect(() => {
     if (!showDiscountForm || discountType !== 'product') return;
     if (discountProductSearch.trim().length < 2) {
       setDiscountProductSuggestions([]);
@@ -846,7 +846,7 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
   }, [searchCustomerQuery, activeTab, fetchCustomers]);
 
   // Trigger fetching history when selectedCustomerDetail changes
-  useEffect(() => {
+  useDeferredEffect(() => {
     if (selectedCustomerDetail) {
       fetchCustomerHistory(selectedCustomerDetail.id);
     }
@@ -869,7 +869,7 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
     }
   }, [onToast]);
 
-  useEffect(() => {
+  useDeferredEffect(() => {
     if (activeTab === 'sessions') {
       fetchSessions();
     }
@@ -2370,7 +2370,7 @@ export default function AdminWorkspace({ onToast, scannedBarcode }: AdminWorkspa
                   <div className="flex flex-col items-center justify-center py-16 text-on-surface-variant gap-2">
                     <Percent size={32} className="opacity-30" />
                     <p className="font-medium">Belum ada diskon yang dibuat.</p>
-                    <p className="text-sm opacity-60">Klik "Buat Diskon" untuk menambahkan.</p>
+                    <p className="text-sm opacity-60">Klik &quot;Buat Diskon&quot; untuk menambahkan.</p>
                   </div>
                 ) : (
                   <table className="w-full text-left border-collapse font-label-md text-label-md">

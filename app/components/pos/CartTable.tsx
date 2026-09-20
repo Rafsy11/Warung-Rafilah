@@ -1,3 +1,4 @@
+import { useDeferredEffect } from '@/lib/useDeferredEffect';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Zap, X, ScanBarcode, Plus, Minus, Trash2, AlertCircle, Camera } from 'lucide-react';
 import type { CartItem } from '@/types/pos';
@@ -72,7 +73,7 @@ export default function CartTable({
   }, []);
 
   // Fast debounced search for manual product lookup
-  useEffect(() => {
+  useDeferredEffect(() => {
     if (mode !== 'warung' || inputValue.trim().length < 2) {
       const timer = setTimeout(() => {
         setSearchResults([]);
@@ -480,7 +481,7 @@ export default function CartTable({
                   className="w-full text-left p-2.5 bg-primary/10 hover:bg-primary hover:text-white rounded-lg transition-colors flex items-center justify-between cursor-pointer"
                 >
                   <div className="flex flex-col">
-                    <span className="font-bold text-xs">Produk "{inputValue.trim()}" Tidak Ditemukan</span>
+                    <span className="font-bold text-xs">Produk &quot;{inputValue.trim()}&quot; Tidak Ditemukan</span>
                     <span className="text-[10px] opacity-80">Klik untuk tambah sebagai Item Non-Barcode / Manual</span>
                   </div>
                   <Plus size={16} />

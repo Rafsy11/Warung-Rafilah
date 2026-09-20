@@ -240,5 +240,5 @@ ORDER BY 1 DESC;
 -- SEED: single admin owner account
 -- ============================================================
 INSERT INTO core.users (username, pin_hash, full_name, role)
-VALUES ('admin', crypt('1914110127', gen_salt('bf', 12)), 'Store Owner', 'owner')
+VALUES ('admin', crypt(gen_random_uuid()::text, gen_salt('bf', 12)), 'Store Owner', 'owner')
 ON CONFLICT (username) DO NOTHING;

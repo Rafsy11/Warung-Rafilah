@@ -1,5 +1,6 @@
 "use client";
 
+import { useDeferredEffect } from '@/lib/useDeferredEffect';
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Camera, X, RefreshCw, Zap, CheckCircle2, AlertTriangle, ShieldCheck, Image as ImageIcon } from 'lucide-react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
@@ -25,11 +26,11 @@ export default function CameraScannerModal({ onScanSuccess, onClose }: CameraSca
   // Check browser camera permission state on mount
   useEffect(() => {
     if (typeof window !== 'undefined' && navigator.permissions && navigator.permissions.query) {
-      navigator.permissions.query({ name: 'camera' as any })
+      navigator.permissions.query({ name: 'camera' as PermissionName })
         .then((result) => {
-          setPermissionState(result.state as any);
+          setPermissionState(result.state);
           result.onchange = () => {
-            setPermissionState(result.state as any);
+            setPermissionState(result.state);
           };
         })
         .catch(() => setPermissionState('unknown'));
@@ -38,7 +39,7 @@ export default function CameraScannerModal({ onScanSuccess, onClose }: CameraSca
 
   const playBeepSound = useCallback(() => {
     try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const ctx = new window.AudioContext();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
@@ -141,7 +142,8 @@ export default function CameraScannerModal({ onScanSuccess, onClose }: CameraSca
 
       setIsScanning(true);
       setPermissionState('granted');
-    } catch (err: any) {
+    } catch (caught) {
+      const err = caught instanceof Error ? caught : new Error(String(caught));
       console.error('Camera Scanner error:', err);
       const errMsg = String(err?.message || err?.name || err || '');
 
@@ -153,7 +155,7 @@ export default function CameraScannerModal({ onScanSuccess, onClose }: CameraSca
       } else if (errMsg.includes('OverconstrainedError') || errMsg.includes('NotFoundError')) {
         try {
           await html5QrcodeRef.current?.start(
-            { video: true } as any,
+            { facingMode: 'environment' },
             { fps: 15, qrbox: { width: 260, height: 160 } },
             (text) => handleBarcodeDetected(text),
             () => {}
@@ -173,7 +175,7 @@ export default function CameraScannerModal({ onScanSuccess, onClose }: CameraSca
     }
   }, [scannerId, facingMode, handleBarcodeDetected]);
 
-  useEffect(() => {
+  useDeferredEffect(() => {
     startScanner();
     return () => {
       stopScanner();
@@ -216,7 +218,7 @@ export default function CameraScannerModal({ onScanSuccess, onClose }: CameraSca
     try {
       const nextTorch = !torchOn;
       await html5QrcodeRef.current.applyVideoConstraints({
-        advanced: [{ torch: nextTorch } as any]
+        advanced: [{ torch: nextTorch } as MediaTrackConstraintSet & { torch: boolean }]
       });
       setTorchOn(nextTorch);
     } catch {
@@ -300,7 +302,8 @@ export default function CameraScannerModal({ onScanSuccess, onClose }: CameraSca
                   const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } });
                   s.getTracks().forEach(t => t.stop());
                   setPermissionState('granted');
-                } catch (e: any) {
+                } catch (caught) {
+                  const e = caught instanceof Error ? caught : new Error(String(caught));
                   console.warn('Touch prompt result:', e);
                   if (e?.name === 'NotAllowedError') setPermissionState('denied');
                 }
@@ -358,7 +361,8 @@ export default function CameraScannerModal({ onScanSuccess, onClose }: CameraSca
                     const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } });
                     s.getTracks().forEach(t => t.stop());
                     setPermissionState('granted');
-                  } catch (e: any) {
+                  } catch (caught) {
+                  const e = caught instanceof Error ? caught : new Error(String(caught));
                     console.warn('Retry touch prompt result:', e);
                     if (e?.name === 'NotAllowedError') setPermissionState('denied');
                   }

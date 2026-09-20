@@ -25,8 +25,8 @@ export default function ProductManagementTab({
   handleOpenTiersModal,
   scannedBarcode
 }: ProductManagementTabProps) {
-  const nowDate = new Date();
-  const sevenDaysLater = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const [nowDate] = useState(() => new Date());
+  const [sevenDaysLater] = useState(() => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
 
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -69,23 +69,6 @@ export default function ProductManagementTab({
   // Expiry date state
   const [nearestExpiryDate, setNearestExpiryDate] = useState('');
 
-  // Listen to scanner events
-  useEffect(() => {
-    if (!scannedBarcode) return;
-    const existing = products.find(p => p.barcode === scannedBarcode.code);
-    const timer = setTimeout(() => {
-      if (existing) {
-        handleOpenEditForm(existing);
-        onToast(`✓ Menscan produk terdaftar: ${existing.name}`, 'success');
-      } else {
-        handleOpenAddForm();
-        setBarcode(scannedBarcode.code);
-        onToast(`✓ Barcode baru terdeteksi: ${scannedBarcode.code}`, 'success');
-      }
-    }, 150);
-    return () => clearTimeout(timer);
-  }, [scannedBarcode, products]);
-
   const handleOpenAddForm = () => {
     setEditingProduct(null);
     setBarcode('');
@@ -121,6 +104,23 @@ export default function ProductManagementTab({
     setFormError('');
     setShowForm(true);
   };
+
+  // Listen to scanner events
+  useEffect(() => {
+    if (!scannedBarcode) return;
+    const existing = products.find(p => p.barcode === scannedBarcode.code);
+    const timer = setTimeout(() => {
+      if (existing) {
+        handleOpenEditForm(existing);
+        onToast(`✓ Menscan produk terdaftar: ${existing.name}`, 'success');
+      } else {
+        handleOpenAddForm();
+        setBarcode(scannedBarcode.code);
+        onToast(`✓ Barcode baru terdeteksi: ${scannedBarcode.code}`, 'success');
+      }
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [scannedBarcode, products]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -280,7 +280,8 @@ export default function ProductManagementTab({
             : (errData?.error?.message || errData?.message || 'Gagal menyimpan produk.');
         setFormError(errMsg);
       }
-    } catch (err: any) {
+    } catch (caught) {
+      const err = caught instanceof Error ? caught : new Error(String(caught));
       console.error('Save product error:', err);
       setFormError(err?.message || 'Gagal terhubung ke server.');
     } finally {

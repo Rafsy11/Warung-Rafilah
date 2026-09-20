@@ -1,3 +1,5 @@
+import { beginTransaction } from '@/lib/transaction';
+import { productFields, logStockChange } from '@/lib/product-write';
 import { NextResponse } from 'next/server';
 import { db as pool } from '@/lib/db';
 
@@ -29,7 +31,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ error: { code: 'bad_request', message: 'Invalid update payload' } }, { status: 400 });
     }
 
-    const entries = Object.entries(body);
+    const validated = productFields.partial().strict().safeParse(body);
+    if (!validated.success) return NextResponse.json({ error: { message: 'Nilai produk tidak valid.', details: validated.error.issues } }, { status: 400 });
+    const entries = Object.entries(validated.data);
     const invalidColumns = entries
       .map(([key]) => key)
       .filter((key) => !allowedUpdateColumns.has(key));
@@ -56,10 +60,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     values.push(id);
     const query = `UPDATE warung.products SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`;
     
-    const { rows } = await pool.query(query, values);
+    const client = await pool.connect();
+    try {
+    await beginTransaction(client);
+    const before = await client.query('SELECT stock_qty FROM warung.products WHERE id=$1 FOR UPDATE', [id]);
+    const { rows } = await client.query(query, values);
     if (rows.length === 0) return NextResponse.json({ error: { code: 'not_found', message: 'Product not found' } }, { status: 404 });
     
+    await logStockChange(client, id, Number(before.rows[0].stock_qty), Number(rows[0].stock_qty), req.headers.get('x-user-id'), 'Penyesuaian stok melalui editor produk');
+    await client.query('COMMIT');
     return NextResponse.json(rows[0]);
+    } finally { await client.query('ROLLBACK'); client.release(); }
   } catch (err) {
     console.error('Product PUT/PATCH Error:', err);
     return NextResponse.json({ error: { code: 'internal_error', message: 'Database error' } }, { status: 500 });

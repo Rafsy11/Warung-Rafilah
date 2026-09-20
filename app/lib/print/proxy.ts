@@ -1,7 +1,7 @@
 import net from 'net';
 
 let proxyStarted = false;
-let proxyServer: any = null;
+let proxyServer: net.Server | null = null;
 
 export function ensureCupsProxy() {
   if (proxyStarted) return;
@@ -18,7 +18,7 @@ export function ensureCupsProxy() {
       client.on('error', () => {});
     });
 
-    proxyServer.on('error', (err: any) => {
+    proxyServer.on('error', (err: NodeJS.ErrnoException) => {
       // Ignore EADDRINUSE if another import/request already bound the port
       if (err.code === 'EADDRINUSE') {
         proxyStarted = true;
@@ -32,7 +32,8 @@ export function ensureCupsProxy() {
       console.log('CUPS TCP Proxy listening on 127.0.0.1:8631 -> host.docker.internal:631');
       proxyStarted = true;
     });
-  } catch (err: any) {
+  } catch (caught) {
+    const err = caught as NodeJS.ErrnoException;
     if (err.code === 'EADDRINUSE') {
       proxyStarted = true;
     } else {

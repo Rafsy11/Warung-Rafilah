@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
                )
                FROM warung.discounts d
                WHERE d.product_id = warung.products.id AND d.is_active = true
+               ORDER BY d.created_at, d.id
                LIMIT 1
               ) as active_discount
        FROM warung.products 

@@ -1,4 +1,8 @@
 #!/bin/bash
+
+POS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$POS_ROOT/scripts/docker-context.sh"
+bash "$POS_ROOT/scripts/ensure-local-tls.sh" || exit 1
 # Script untuk menjalankan POS di Linux Mint
 
 # Pastikan dijalankan dari folder tempat script berada
@@ -81,7 +85,7 @@ fi
 echo "⏳ Menunggu database & web app siap..."
 READY=false
 for i in {1..20}; do
-    if curl -s --connect-timeout 1 http://localhost:3000/api/health >/dev/null 2>&1; then
+    if curl -fsS --max-time 3 http://localhost:3000/api/health >/dev/null 2>&1; then
         READY=true
         break
     fi

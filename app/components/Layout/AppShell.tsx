@@ -1,3 +1,5 @@
+import { useDeferredEffect } from '@/lib/useDeferredEffect';
+import type { CashSession, Discount } from '@/types/api';
 import React, { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { RefreshCw, Store, Printer, BarChart3, Sun, Moon, LogOut, Sparkles, Keyboard, Calculator, Wifi, WifiOff } from 'lucide-react';
@@ -13,7 +15,7 @@ type AppShellProps = {
   onModeChange: (mode: 'warung' | 'agent' | 'admin') => void;
   userRole?: string;
   onReprint?: () => void;
-  activeSession?: any;
+  activeSession?: CashSession | null;
   onCloseSession?: () => void;
   isAiOpen?: boolean;
   onToggleAi?: () => void;
@@ -47,7 +49,7 @@ export default function AppShell({
   const [showNetworkModal, setShowNetworkModal] = useState<boolean>(false);
   const router = useRouter();
 
-  useEffect(() => {
+  useDeferredEffect(() => {
     if (typeof window !== 'undefined') {
       setIsOnline(navigator.onLine);
       const handleOnline = () => setIsOnline(true);

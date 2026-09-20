@@ -1,3 +1,4 @@
+import { beginTransaction } from '@/lib/transaction';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { z } from 'zod';
@@ -37,7 +38,7 @@ export async function PATCH(
     const client = await db.connect();
     
     try {
-      await client.query('BEGIN');
+      await beginTransaction(client);
 
       // 1. Fetch current transaction (lock for update to prevent concurrent updates)
       const txRes = await client.query(

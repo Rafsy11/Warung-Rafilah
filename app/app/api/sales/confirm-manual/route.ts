@@ -1,3 +1,4 @@
+import { beginTransaction } from '@/lib/transaction';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireRole } from '@/lib/rbac';
@@ -21,11 +22,11 @@ export async function POST(req: NextRequest) {
     const client = await db.connect();
     
     try {
-      await client.query('BEGIN');
+      await beginTransaction(client);
 
       // Lock sale row
       const saleRes = await client.query(
-        "SELECT id, transaction_code, status, total_amount FROM warung.sales WHERE id = $1 FOR UPDATE",
+        "SELECT id, transaction_code, status, total_amount, cashier_id, session_id FROM warung.sales WHERE id = $1 FOR UPDATE",
         [saleId]
       );
 
@@ -35,6 +36,10 @@ export async function POST(req: NextRequest) {
 
       const sale = saleRes.rows[0];
 
+      if (req.headers.get('x-user-role') !== 'owner' && sale.cashier_id !== req.headers.get('x-user-id')) throw new Error('Transaksi bukan milik kasir ini.');
+      if (sale.status === 'completed') { await client.query('COMMIT'); return NextResponse.json({ success: true }); }
+      const session = await client.query("SELECT status FROM warung.cashier_sessions WHERE id=$1 FOR UPDATE", [sale.session_id]);
+      if (session.rows[0]?.status !== 'open') throw new Error('Shift asal sudah ditutup. Transaksi perlu direkonsiliasi pemilik sebelum dikonfirmasi.');
       if (sale.status !== 'pending') {
         throw new Error(`Cannot manually confirm a sale with status '${sale.status}'`);
       }

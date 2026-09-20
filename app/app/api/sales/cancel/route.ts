@@ -1,10 +1,11 @@
+import { beginTransaction } from '@/lib/transaction';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireRole } from '@/lib/rbac';
 import { enforceRateLimit } from '@/lib/rate-limiter';
 
 export async function POST(req: NextRequest) {
-  const forbidden = requireRole(req, ['owner']);
+  const forbidden = requireRole(req, ['owner', 'cashier']);
   if (forbidden) return forbidden;
 
   const rateLimited = enforceRateLimit(req, 'API_WRITE', '/api/sales/cancel');
@@ -21,11 +22,11 @@ export async function POST(req: NextRequest) {
     const client = await db.connect();
     
     try {
-      await client.query('BEGIN');
+      await beginTransaction(client);
 
       // Lock sale row
       const saleRes = await client.query(
-        "SELECT id, transaction_code, status, payment_method FROM warung.sales WHERE id = $1 FOR UPDATE",
+        "SELECT id, transaction_code, status, payment_method, cashier_id FROM warung.sales WHERE id = $1 FOR UPDATE",
         [saleId]
       );
 
@@ -35,6 +36,8 @@ export async function POST(req: NextRequest) {
 
       const sale = saleRes.rows[0];
 
+      if (req.headers.get('x-user-role') !== 'owner' && sale.cashier_id !== req.headers.get('x-user-id')) throw new Error('Transaksi bukan milik kasir ini.');
+      if (sale.status === 'voided') { await client.query('COMMIT'); return NextResponse.json({ success: true }); }
       if (sale.status !== 'pending') {
         throw new Error(`Cannot cancel a sale with status '${sale.status}'`);
       }
@@ -52,6 +55,9 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      for (const item of itemsRes.rows) {
+        await client.query("INSERT INTO warung.stock_movements(product_id,movement_type,qty_change,reference_id,note,created_by) VALUES ($1,'void_return',$2,$3,$4,$5)", [item.product_id,Number(item.qty),saleId,'Pembatalan ' + sale.transaction_code,req.headers.get('x-user-id')]);
+      }
       // 2. Cancel and refund any agent transactions associated with this sale
       const agentTxRes = await client.query(
         "SELECT id, amount, status FROM agent.transactions WHERE provider_ref_id = $1 AND status = 'pending' FOR UPDATE",

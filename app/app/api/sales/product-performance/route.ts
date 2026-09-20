@@ -18,7 +18,7 @@ export async function GET(req: Request) {
       `SELECT p.name, p.barcode, p.category, p.unit,
               SUM(si.qty) as total_qty,
               SUM(si.subtotal) as total_revenue,
-              SUM(si.subtotal - (si.cost_price_snapshot * si.qty)) as total_margin
+              SUM(si.subtotal - (COALESCE(si.consignment_cost_snapshot, (SELECT cl.cost_share FROM warung.consignment_ledger cl WHERE cl.sale_item_id=si.id LIMIT 1), si.cost_price_snapshot) * si.qty)) as total_margin
        FROM warung.sales s
        JOIN warung.sale_items si ON si.sale_id = s.id
        JOIN warung.products p ON si.product_id = p.id

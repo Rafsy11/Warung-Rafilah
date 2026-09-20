@@ -1,3 +1,4 @@
+import { beginTransaction } from '@/lib/transaction';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireAuth } from '@/lib/rbac';
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
 
     const client = await db.connect();
     try {
-      await client.query('BEGIN');
+      await beginTransaction(client);
 
       // 1. Fetch active session
       const activeRes = await client.query(
@@ -33,7 +34,10 @@ export async function POST(req: NextRequest) {
       const session = activeRes.rows[0];
       const sessionId = session.id;
       const startingCash = Number(session.starting_cash);
-      const openedAt = session.opened_at;
+
+
+      const pending = await client.query("SELECT id FROM warung.sales WHERE session_id=$1 AND status='pending' LIMIT 1", [sessionId]);
+      if (pending.rows.length) throw new Error('Selesaikan atau batalkan pembayaran QRIS tertunda sebelum menutup shift.');
 
       // 2. Fetch sales summary grouped by payment method
       const salesRes = await client.query(
@@ -80,8 +84,8 @@ export async function POST(req: NextRequest) {
       const debtPaidRes = await client.query(
         `SELECT COALESCE(SUM(amount), 0) as total 
          FROM warung.debt_ledger 
-         WHERE entry_type = 'debt_paid' AND created_at >= $1`,
-        [openedAt]
+         WHERE entry_type = 'debt_paid' AND payment_method = 'cash' AND session_id = $1`,
+        [sessionId]
       );
       const totalDebtPaid = Number(debtPaidRes.rows[0].total);
 

@@ -91,11 +91,15 @@ export function generateEscPosCommands(data: ReceiptData, charWidth = 32): Uint8
   return encoder.encode(text);
 }
 
-let cachedBluetoothDevice: any = null;
-let cachedCharacteristic: any = null;
+interface PrintCharacteristic { properties: { write: boolean; writeWithoutResponse: boolean }; writeValue(value: Uint8Array): Promise<void>; }
+interface PrintDevice { gatt: { connected: boolean; connect(): Promise<{ getPrimaryServices(): Promise<Array<{ getCharacteristics(): Promise<PrintCharacteristic[]> }>> }> }; }
+type BluetoothNavigator = Navigator & { bluetooth?: { requestDevice(options: { filters: { services: string[] }[]; optionalServices: string[] }): Promise<PrintDevice> } };
+let cachedBluetoothDevice: PrintDevice | null = null;
+let cachedCharacteristic: PrintCharacteristic | null = null;
 
 export async function printViaBluetooth(data: ReceiptData): Promise<boolean> {
-  if (typeof window === 'undefined' || !(navigator as any).bluetooth) {
+  const bluetooth = typeof navigator !== 'undefined' ? (navigator as BluetoothNavigator).bluetooth : undefined;
+  if (typeof window === 'undefined' || !bluetooth) {
     throw new Error('Web Bluetooth tidak didukung pada browser ini. Gunakan Chrome di Android.');
   }
 
@@ -103,7 +107,7 @@ export async function printViaBluetooth(data: ReceiptData): Promise<boolean> {
     let characteristic = cachedCharacteristic;
 
     if (!characteristic || !cachedBluetoothDevice?.gatt?.connected) {
-      const device = await (navigator as any).bluetooth.requestDevice({
+      const device = await bluetooth.requestDevice({
         filters: [{ services: ['000018f0-0000-1000-8000-00805f9b34fb'] }],
         optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb', '49535343-fe7d-4ae5-8fa9-9fafd205e455', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2']
       });

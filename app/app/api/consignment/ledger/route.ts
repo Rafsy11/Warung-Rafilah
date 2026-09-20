@@ -14,7 +14,8 @@ export async function GET(req: NextRequest) {
            SUM(qty_sold)::float as total_sold_qty,
            SUM(CASE WHEN status = 'unpaid' THEN total_owed ELSE 0 END)::float as total_unpaid_owed,
            SUM(CASE WHEN status = 'paid' THEN total_owed ELSE 0 END)::float as total_paid_owed
-         FROM warung.consignment_ledger
+         FROM warung.consignment_ledger cl
+         WHERE EXISTS (SELECT 1 FROM warung.sale_items si JOIN warung.sales s ON s.id=si.sale_id WHERE si.id=cl.sale_item_id AND s.status='completed')
          GROUP BY supplier_name
          ORDER BY supplier_name ASC`
       );
@@ -35,6 +36,7 @@ export async function GET(req: NextRequest) {
            p.unit as product_unit
          FROM warung.consignment_ledger cl 
          JOIN warung.products p ON cl.product_id = p.id 
+         WHERE EXISTS (SELECT 1 FROM warung.sale_items si JOIN warung.sales s ON s.id=si.sale_id WHERE si.id=cl.sale_item_id AND s.status='completed')
          ORDER BY cl.created_at DESC 
          LIMIT 200`
       );
@@ -64,7 +66,7 @@ export async function POST(req: NextRequest) {
     const { rowCount } = await db.query(
       `UPDATE warung.consignment_ledger 
        SET status = 'paid', paid_at = now() 
-       WHERE supplier_name = $1 AND status = 'unpaid'`,
+       WHERE supplier_name = $1 AND status = 'unpaid' AND EXISTS (SELECT 1 FROM warung.sale_items si JOIN warung.sales s ON s.id=si.sale_id WHERE si.id=warung.consignment_ledger.sale_item_id AND s.status='completed')`,
       [supplier_name.trim()]
     );
 

@@ -1,3 +1,4 @@
+import { beginTransaction } from '@/lib/transaction';
 import { NextResponse } from 'next/server';
 import { db as pool } from '@/lib/db';
 
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
 
     const client = await pool.connect();
     try {
-      await client.query('BEGIN');
+      await beginTransaction(client);
 
       // 1. Fetch and verify source product stock
       const sourceRes = await client.query(

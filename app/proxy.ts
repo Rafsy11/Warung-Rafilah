@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 import { getJwtSecret } from '@/lib/runtime-env';
 
@@ -59,11 +61,11 @@ function applySecurityHeaders(res: NextResponse): NextResponse {
   return res;
 }
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (
-    PUBLIC_PATHS.some(p => pathname.startsWith(p)) ||
+    PUBLIC_PATHS.some(p => pathname === p) ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon')
   ) {
@@ -74,6 +76,14 @@ export async function middleware(req: NextRequest) {
   let decoded = null;
   if (token) {
     decoded = await verifyToken(token);
+    if (decoded) {
+      try {
+        const session = await db.query(`SELECT u.role FROM core.sessions s JOIN core.users u ON u.id=s.user_id
+          WHERE s.token_hash=$1 AND s.user_id=$2 AND s.expires_at>now() AND u.is_active=true`,
+          [createHash('sha256').update(token).digest('hex'),decoded.sub]);
+        if (!session.rows.length || session.rows[0].role !== decoded.role) decoded = null;
+      } catch { return NextResponse.json({ error: 'Database belum siap. Coba kembali.' }, { status: 503 }); }
+    }
   }
 
   const requestHeaders = new Headers(req.headers);
@@ -98,7 +108,7 @@ export async function middleware(req: NextRequest) {
           );
         }
       } catch {
-        // Invalid URL origin format
+        return NextResponse.json({ error: 'Origin tidak valid.' }, { status: 403 });
       }
     }
   }
@@ -132,5 +142,5 @@ export async function middleware(req: NextRequest) {
 
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.png|.*\\.svg|.*\\.jpg|.*\\.jpeg).*)'],
+  matcher: ['/api/:path*', '/((?!_next/static|_next/image|favicon.ico|.*\\.png|.*\\.svg|.*\\.jpg|.*\\.jpeg).*)'],
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Loader2, XCircle, CheckCircle, Smartphone } from 'lucide-react';
 
 type QrisPaymentModalProps = {
@@ -25,7 +25,6 @@ export default function QrisPaymentModal({
   onCancel,
   showToast,
 }: QrisPaymentModalProps) {
-  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
   const [cancelling, setCancelling] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
@@ -52,21 +51,8 @@ export default function QrisPaymentModal({
     }
   }, [confirming, cancelling, sale.id, onSuccess, showToast]);
 
-  const handleAutoCancel = useCallback(async () => {
-    try {
-      await fetch('/api/sales/cancel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ saleId: sale.id }),
-      });
-    } catch (e) {
-      console.error('Auto cancel failed:', e);
-    }
-    onCancel('Waktu pembayaran QRIS habis. Transaksi dibatalkan secara otomatis.');
-  }, [sale.id, onCancel]);
-
   const handleCancel = useCallback(async () => {
-    if (cancelling) return;
+    if (cancelling || confirming) return;
     setCancelling(true);
     try {
       const res = await fetch('/api/sales/cancel', {
@@ -86,27 +72,11 @@ export default function QrisPaymentModal({
       showToast('Koneksi terputus. Gagal membatalkan transaksi.', 'error');
       setCancelling(false);
     }
-  }, [cancelling, sale.id, onCancel, showToast]);
-
-  // Countdown timer
-  useEffect(() => {
-    if (timeLeft <= 0) {
-      handleAutoCancel();
-      return;
-    }
-    const timer = setTimeout(() => {
-      setTimeLeft(prev => prev - 1);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [timeLeft, handleAutoCancel]);
-
-  const minutes = Math.floor(timeLeft / 60);
-  const seconds = timeLeft % 60;
-  const formattedTime = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  }, [cancelling, confirming, sale.id, onCancel, showToast]);
 
   return (
     <dialog id="qris-payment-dialog" open aria-modal="true" aria-labelledby="qris-dialog-title" className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 w-full h-full border-none">
-      <section id="qris-payment-card" className="bg-surface-container-lowest rounded-2xl border border-outline-variant max-w-md w-full p-6 shadow-2xl flex flex-col items-center gap-4 animate-in fade-in zoom-in-95 duration-200">
+      <section id="qris-payment-card" className="bg-surface-container-lowest rounded-2xl border border-outline-variant max-w-md w-full max-h-[90dvh] overflow-y-auto p-6 shadow-2xl flex flex-col items-center gap-4 animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header */}
         <header id="qris-modal-header" className="w-full text-center">
@@ -136,34 +106,7 @@ export default function QrisPaymentModal({
             Jl. Mawar No.2335, RT 08, RW 02, Sukajaya
           </address>
 
-          {/* SVG Stylized QR Code Pattern (No Spinner) */}
-          <figure id="qris-qr-code-figure" className="relative w-48 h-48 bg-white border border-gray-200 rounded-lg p-2 flex items-center justify-center m-0">
-            <svg width="100%" height="100%" viewBox="0 0 100 100" className="text-gray-900" aria-label="Kode QRIS Warung Rafilah">
-              {/* Corner anchors */}
-              <rect x="5" y="5" width="20" height="20" fill="currentColor" />
-              <rect x="9" y="9" width="12" height="12" fill="white" />
-              <rect x="12" y="12" width="6" height="6" fill="currentColor" />
-
-              <rect x="75" y="5" width="20" height="20" fill="currentColor" />
-              <rect x="79" y="9" width="12" height="12" fill="white" />
-              <rect x="82" y="12" width="6" height="6" fill="currentColor" />
-
-              <rect x="5" y="75" width="20" height="20" fill="currentColor" />
-              <rect x="9" y="79" width="12" height="12" fill="white" />
-              <rect x="12" y="82" width="6" height="6" fill="currentColor" />
-
-              {/* QR noise matrix lines */}
-              <path d="M 30,5 h 5 v 5 h -5 z M 40,5 h 10 v 5 h -10 z M 55,5 h 5 v 5 h -5 z M 65,5 h 5 v 5 h -5 z" fill="currentColor" />
-              <path d="M 30,15 h 15 v 5 h -15 z M 50,15 h 5 v 10 h -5 z M 60,15 h 10 v 5 h -10 z" fill="currentColor" />
-              <path d="M 5,30 h 5 v 15 h -5 z M 15,30 h 10 v 5 h -10 z M 30,30 h 5 v 5 h -5 z M 45,30 h 15 v 5 h -15 z M 65,30 h 10 v 10 h -10 z" fill="currentColor" />
-              <path d="M 10,40 h 10 v 5 h -10 z M 25,40 h 15 v 10 h -15 z M 45,45 h 10 v 5 h -10 z M 60,40 h 5 v 5 h -5 z M 70,40 h 5 v 10 h -5 z" fill="currentColor" />
-              <path d="M 5,50 h 20 v 5 h -20 z M 30,50 h 5 v 10 h -5 z M 40,50 h 10 v 5 h -10 z M 55,50 h 15 v 5 h -15 z M 75,50 h 20 v 5 h -20 z" fill="currentColor" />
-              <path d="M 10,60 h 5 v 10 h -5 z M 20,60 h 15 v 5 h -15 z M 45,60 h 10 v 5 h -10 z M 60,60 h 10 v 15 h -10 z" fill="currentColor" />
-              <path d="M 30,70 h 20 v 5 h -20 z M 55,70 h 5 v 5 h -5 z M 65,70 h 5 v 15 h -5 z M 75,70 h 10 v 5 h -10 z" fill="currentColor" />
-              <path d="M 30,80 h 5 v 15 h -5 z M 40,80 h 15 v 5 h -15 z M 60,85 h 5 v 5 h -5 z M 75,80 h 5 v 10 h -5 z" fill="currentColor" />
-              <path d="M 35,90 h 15 v 5 h -15 z M 55,90 h 15 v 5 h -15 z M 80,90 h 15 v 5 h -15 z" fill="currentColor" />
-            </svg>
-          </figure>
+          <p className="text-sm text-center text-gray-700 py-4">Gunakan QRIS fisik yang terpasang di kasir.</p>
 
           {/* Amount to pay */}
           <section id="qris-amount-summary-section" className="w-full text-center mt-4 border-t border-dashed border-gray-200 pt-3">
@@ -224,9 +167,7 @@ export default function QrisPaymentModal({
             <Smartphone size={16} className="text-secondary animate-pulse" />
             <span>Periksa mutasi di HP Anda, kemudian klik konfirmasi:</span>
           </div>
-          <time id="qris-countdown-timer" className="text-display-price text-3xl font-bold text-error tracking-tight font-mono block">
-            {formattedTime}
-          </time>
+          <p className="text-body-sm text-on-surface-variant">Transaksi tetap tertunda sampai pembayaran dikonfirmasi atau dibatalkan. Periksa mutasi sebelum membatalkan.</p>
         </section>
 
         {/* Modal Action Buttons Footer */}

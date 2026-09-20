@@ -1,3 +1,4 @@
+import { beginTransaction } from '@/lib/transaction';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
@@ -59,7 +60,7 @@ export async function POST(
       }
     }
 
-    await client.query('BEGIN');
+    await beginTransaction(client);
 
     // Remove existing tiers
     await client.query(

@@ -1,3 +1,4 @@
+import { beginTransaction } from '@/lib/transaction';
 import { NextResponse } from 'next/server';
 import { db as pool } from '@/lib/db';
 
@@ -23,14 +24,14 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { amount, note } = body;
 
-    const amountNum = parseFloat(amount);
-    if (amountNum === 0 || isNaN(amountNum)) {
+    const amountNum = typeof amount === 'number' || typeof amount === 'string' ? Number(amount) : NaN;
+    if (amountNum === 0 || !Number.isFinite(amountNum)) {
       return NextResponse.json({ error: { code: 'bad_request', message: 'Jumlah nominal penyesuaian harus valid dan bukan nol' } }, { status: 400 });
     }
 
     const client = await pool.connect();
     try {
-      await client.query('BEGIN');
+      await beginTransaction(client);
 
       const ledgerResult = await client.query(
         'SELECT balance_after FROM agent.float_ledger ORDER BY id DESC LIMIT 1 FOR UPDATE'

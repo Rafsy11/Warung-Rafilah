@@ -221,7 +221,8 @@ export default function AIAssistant({ userRole, userId, isOpen = false, onClose 
           { role: 'model' as const, text: aiText },
         ].slice(-6));
       }
-    } catch (err: any) {
+    } catch (caught) {
+      const err = caught instanceof Error ? caught : new Error(String(caught));
       setMessages(prev => [
         ...prev,
         { id: Math.random().toString(), sender: 'ai', text: `⚠️ ${err.message}`, timestamp: new Date() },
@@ -262,7 +263,8 @@ export default function AIAssistant({ userRole, userId, isOpen = false, onClose 
         text: data.message || 'Stok berhasil diperbarui.',
         timestamp: new Date(),
       }]);
-    } catch (err: any) {
+    } catch (caught) {
+      const err = caught instanceof Error ? caught : new Error(String(caught));
       setMessages(prev => [...prev, {
         id: Math.random().toString(),
         sender: 'ai',
@@ -304,7 +306,8 @@ export default function AIAssistant({ userRole, userId, isOpen = false, onClose 
           timestamp: new Date(),
         }]);
       }
-    } catch (err: any) {
+    } catch (caught) {
+      const err = caught instanceof Error ? caught : new Error(String(caught));
       setMessages(prev => [...prev, {
         id: Math.random().toString(),
         sender: 'ai',

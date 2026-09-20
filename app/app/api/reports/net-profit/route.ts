@@ -14,9 +14,9 @@ export async function GET(req: NextRequest) {
   try {
     // 1. Gross Revenue & COGS for completed sales within date range
     const marginRes = await db.query(
-      `SELECT COALESCE(SUM(si.subtotal - (si.cost_price_snapshot * si.qty)), 0)::float as gross_margin,
+      `SELECT COALESCE(SUM(si.subtotal - (COALESCE(si.consignment_cost_snapshot, (SELECT cl.cost_share FROM warung.consignment_ledger cl WHERE cl.sale_item_id=si.id LIMIT 1), si.cost_price_snapshot) * si.qty)), 0)::float as gross_margin,
               COALESCE(SUM(si.subtotal), 0)::float as gross_revenue,
-              COALESCE(SUM(si.cost_price_snapshot * si.qty), 0)::float as total_cogs,
+              COALESCE(SUM(COALESCE(si.consignment_cost_snapshot, (SELECT cl.cost_share FROM warung.consignment_ledger cl WHERE cl.sale_item_id=si.id LIMIT 1), si.cost_price_snapshot) * si.qty), 0)::float as total_cogs,
               COALESCE(COUNT(DISTINCT s.id), 0)::int as total_transactions
        FROM warung.sale_items si
        JOIN warung.sales s ON si.sale_id = s.id
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
     );
 
     const totalDiscounts = discountRes.rows[0].total_discounts;
-    const grossMargin = Math.max(0, marginRes.rows[0].gross_margin - totalDiscounts);
+    const grossMargin = (marginRes.rows[0].gross_margin - totalDiscounts);
     const grossRevenue = Math.max(0, marginRes.rows[0].gross_revenue - totalDiscounts);
     const totalCogs = marginRes.rows[0].total_cogs;
     const totalTransactions = marginRes.rows[0].total_transactions;
@@ -71,12 +71,12 @@ export async function GET(req: NextRequest) {
 
     // 4. Shrinkage Loss (damaged, expired, stolen)
     const shrinkRes = await db.query(
-      `SELECT COALESCE(SUM(ABS(sm.qty_change) * p.cost_price), 0)::float as shrinkage_loss,
+      `SELECT COALESCE(SUM(ABS(sm.qty_change) * sm.cost_price_snapshot), 0)::float as shrinkage_loss, COUNT(*) FILTER (WHERE sm.cost_price_snapshot IS NULL)::int as unknown_cost_count,
               json_agg(json_build_object(
                 'type', sm.movement_type,
                 'product_name', p.name,
                 'qty', ABS(sm.qty_change),
-                'loss', ABS(sm.qty_change) * p.cost_price,
+                'loss', ABS(sm.qty_change) * sm.cost_price_snapshot,
                 'created_at', sm.created_at
               )) FILTER (WHERE sm.id IS NOT NULL) as shrinkage_details
        FROM warung.stock_movements sm
@@ -101,7 +101,7 @@ export async function GET(req: NextRequest) {
     const consignmentCost = consignRes.rows[0].consignment_cost;
 
     // 6. Net Profit Calculation
-    const netProfit = grossMargin + agentCommission - shrinkageLoss - consignmentCost;
+    const netProfit = grossMargin + agentCommission - shrinkageLoss;
 
     // 7. Balance Sheet / Asset Valuation Snapshot
     const floatRes = await db.query(
@@ -140,6 +140,9 @@ export async function GET(req: NextRequest) {
       shrinkage_details: shrinkageDetails,
       consignment_cost: consignmentCost,
       net_profit: netProfit,
+      report_notes: ['Laba operasional tercatat; belum termasuk biaya umum seperti listrik/sewa.', 'Setoran konsinyasi adalah pembayaran kewajiban, bukan biaya kedua.'],
+      unknown_shrinkage_cost_count: shrinkRes.rows[0].unknown_cost_count,
+
       payment_methods: paymentMethodRes.rows,
       balance_sheet: {
         current_float: currentFloat,

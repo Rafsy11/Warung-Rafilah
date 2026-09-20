@@ -20,6 +20,7 @@ class RateLimiter {
     this.cleanupInterval = setInterval(() => {
       this.cleanup();
     }, 10 * 60 * 1000);
+    this.cleanupInterval.unref?.();
   }
 
   /**
@@ -83,6 +84,7 @@ class RateLimiter {
   private cleanup(): void {
     const now = Date.now();
     for (const [key, entry] of this.store.entries()) {
+      entry.attempts = entry.attempts.filter(t => t > now - 5 * 60 * 1000);
       if (entry.resetAt < now && entry.attempts.length === 0) {
         this.store.delete(key);
       }

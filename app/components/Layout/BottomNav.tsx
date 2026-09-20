@@ -1,5 +1,6 @@
 "use client";
 
+import type { CashSession, Discount } from '@/types/api';
 import React, { useState } from 'react';
 import { Store, Wallet, Shield, Sparkles, Menu, X, Printer, Calculator, Keyboard, BarChart3, Sun, Moon, LogOut, RefreshCw } from 'lucide-react';
 
@@ -12,7 +13,7 @@ interface BottomNavProps {
   onToggleShortcuts?: () => void;
   onToggleCalculator?: () => void;
   onCloseSession?: () => void;
-  activeSession?: any;
+  activeSession?: CashSession | null;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   onLogout: () => void;

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useDeferredEffect } from '@/lib/useDeferredEffect';
+import React, { useState, useCallback } from 'react';
 import { Wifi, WifiOff, Server, Database, Zap, CheckCircle2, AlertTriangle, RefreshCw, X, ShieldCheck } from 'lucide-react';
 
 interface NetworkStatusModalProps {
@@ -11,16 +12,14 @@ interface ServerHealth {
   status: 'ok' | 'degraded' | 'error';
   latencyMs: number;
   dbConnected: boolean;
-  masterCount: number;
   lastChecked: Date | null;
 }
 
 export default function NetworkStatusModal({ isOpen, onClose, isOnline }: NetworkStatusModalProps) {
   const [health, setHealth] = useState<ServerHealth>({
-    status: 'ok',
+    status: 'degraded',
     latencyMs: 0,
-    dbConnected: true,
-    masterCount: 50000,
+    dbConnected: false,
     lastChecked: null,
   });
   const [isChecking, setIsChecking] = useState(false);
@@ -37,13 +36,13 @@ export default function NetworkStatusModal({ isOpen, onClose, isOnline }: Networ
           status: 'ok',
           latencyMs: latency,
           dbConnected: true,
-          masterCount: 50000,
           lastChecked: new Date(),
         });
       } else {
         setHealth(prev => ({
           ...prev,
           status: 'degraded',
+          dbConnected: false,
           latencyMs: latency,
           lastChecked: new Date(),
         }));
@@ -54,7 +53,6 @@ export default function NetworkStatusModal({ isOpen, onClose, isOnline }: Networ
         status: 'error',
         latencyMs: latency,
         dbConnected: false,
-        masterCount: 50000,
         lastChecked: new Date(),
       });
     } finally {
@@ -62,7 +60,7 @@ export default function NetworkStatusModal({ isOpen, onClose, isOnline }: Networ
     }
   }, []);
 
-  useEffect(() => {
+  useDeferredEffect(() => {
     if (isOpen) {
       runDiagnostic();
     }
@@ -124,17 +122,17 @@ export default function NetworkStatusModal({ isOpen, onClose, isOnline }: Networ
             <div className="flex-1 text-xs">
               <h3 className="font-bold text-sm leading-snug">
                 {isOnline && health.status === 'ok'
-                  ? 'Sistem POS 100% Online & Terhubung Sempurna'
+                  ? 'Server POS siap digunakan'
                   : !isOnline
-                    ? 'Mode Offline Aktif (Local Engine Running)'
-                    : 'Koneksi Server Lokal Mengalami Kendala'}
+                    ? 'Perangkat melaporkan tidak ada internet'
+                    : 'Server POS belum siap / belum diperiksa'}
               </h3>
               <p className="mt-1 leading-relaxed opacity-90">
                 {isOnline && health.status === 'ok'
-                  ? 'Koneksi internet dan server lokal PostgreSQL beroperasi dengan kueri ultra-cepat. Transaksi tersinkronisasi instan.'
+                  ? 'Server POS dan skema database merespons pemeriksaan kesiapan.'
                   : !isOnline
-                    ? 'Internet terputus, namun POS tetap dapat bertransaksi 100% tanpa hambatan menggunakan Kamus Master Lokal 50.000 produk.'
-                    : 'Terjadi keterlambatan respon server lokal. Sistem akan menggunakan mode fallback otomatis.'}
+                    ? 'Transaksi hanya dapat disimpan jika server lokal masih dapat dijangkau. Akses melalui domain Cloudflare memerlukan internet.'
+                    : 'Periksa server dan database. Draft keranjang bukan bukti pembayaran berhasil; transaksi memerlukan konfirmasi server.'}
               </p>
             </div>
           </div>
@@ -152,7 +150,7 @@ export default function NetworkStatusModal({ isOpen, onClose, isOnline }: Networ
                 </span>
               </div>
               <p className="text-base font-bold text-on-surface">
-                {health.latencyMs < 10 ? 'Ultra Cepat (<10ms)' : `${health.latencyMs} ms`}
+                {health.lastChecked ? `${health.latencyMs} ms` : 'Belum diperiksa'}
               </p>
             </div>
 
@@ -163,11 +161,11 @@ export default function NetworkStatusModal({ isOpen, onClose, isOnline }: Networ
                   <Database size={14} className="text-primary" /> Kamus Produk Lokal
                 </span>
                 <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 font-bold">
-                  Siap
+                  {health.dbConnected ? 'Terhubung' : 'Belum siap'}
                 </span>
               </div>
               <p className="text-base font-bold text-on-surface">
-                50.000 Barcode Master
+                Database di PC lokal
               </p>
             </div>
           </div>
@@ -185,7 +183,7 @@ export default function NetworkStatusModal({ isOpen, onClose, isOnline }: Networ
                 Server Lokal (Next.js 16 Container)
               </span>
               <span className="flex items-center gap-1 text-emerald-500 font-bold text-[11px]">
-                <CheckCircle2 size={14} /> Aktif (Port 3000)
+                {health.dbConnected ? 'Siap' : 'Belum siap'}
               </span>
             </div>
 
@@ -196,7 +194,7 @@ export default function NetworkStatusModal({ isOpen, onClose, isOnline }: Networ
                 Database PostgreSQL (pos_production)
               </span>
               <span className="flex items-center gap-1 text-emerald-500 font-bold text-[11px]">
-                <CheckCircle2 size={14} /> Terhubung (Port 5432)
+                {health.dbConnected ? 'Terhubung' : 'Belum siap'}
               </span>
             </div>
 
@@ -204,10 +202,10 @@ export default function NetworkStatusModal({ isOpen, onClose, isOnline }: Networ
             <div className="flex items-center justify-between text-xs py-1 border-b border-outline-variant/30">
               <span className="flex items-center gap-2 text-on-surface font-medium">
                 <Zap size={15} className="text-amber-500" />
-                Kamus Lokal 50k FMCG Barcode
+                Kamus produk lokal
               </span>
               <span className="flex items-center gap-1 text-emerald-500 font-bold text-[11px]">
-                <CheckCircle2 size={14} /> Ready (Index B-Tree)
+                Jumlah produk tidak diperiksa
               </span>
             </div>
 
@@ -221,9 +219,9 @@ export default function NetworkStatusModal({ isOpen, onClose, isOnline }: Networ
                 isOnline ? 'text-emerald-500' : 'text-amber-500'
               }`}>
                 {isOnline ? (
-                  <><CheckCircle2 size={14} /> Terhubung</>
+                  <>Terdeteksi oleh browser</>
                 ) : (
-                  <><AlertTriangle size={14} /> Offline (Local Engine Active)</>
+                  <>Tidak terdeteksi</>
                 )}
               </span>
             </div>

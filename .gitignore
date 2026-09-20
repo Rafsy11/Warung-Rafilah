@@ -34,4 +34,7 @@ backups/
 # Log files
 logs/
 *.log
+ssl/*.pem
+app/lint-results.json
+app/test-results/
 

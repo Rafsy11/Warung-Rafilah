@@ -1,4 +1,8 @@
 #!/bin/bash
+
+POS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$POS_ROOT/scripts/docker-context.sh"
+bash "$POS_ROOT/scripts/ensure-local-tls.sh" || exit 1
 # Script FIXED untuk menjalankan POS di Linux Mint
 # Mengatasi masalah credential dan USB device
 

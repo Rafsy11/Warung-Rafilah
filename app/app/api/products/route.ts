@@ -1,3 +1,5 @@
+import { beginTransaction } from '@/lib/transaction';
+import { logStockChange, productFields } from '@/lib/product-write';
 import { NextResponse } from 'next/server';
 import { db as pool } from '@/lib/db';
 
@@ -45,6 +47,7 @@ export async function GET(req: Request) {
               )
               FROM warung.discounts d
               WHERE d.product_id = warung.products.id AND d.is_active = true
+               ORDER BY d.created_at, d.id
               LIMIT 1
              ) as active_discount
       FROM warung.products 
@@ -79,17 +82,20 @@ export async function POST(req: Request) {
     const { 
       barcode, name, category, unit, cost_price, sell_price, stock_qty, reorder_threshold,
       is_consignment, consignment_supplier_name, consignment_cost_share, nearest_expiry_date
-    } = body;
+    } = productFields.parse(body);
 
-    const { rows: existing } = await pool.query('SELECT id, is_active FROM warung.products WHERE barcode = $1', [barcode]);
+    const client = await pool.connect();
+    try {
+    await beginTransaction(client);
+    const { rows: existing } = await client.query('SELECT id, is_active, stock_qty FROM warung.products WHERE barcode = $1 FOR UPDATE', [barcode]);
     if (existing.length > 0) {
       const prod = existing[0];
       if (prod.is_active) {
         return NextResponse.json({ error: { code: 'barcode_exists', message: 'A product with this barcode already exists.' } }, { status: 409 });
       } else {
         // Reactivate and update the soft-deleted product
-        await pool.query(`SELECT set_config('app.price_change_source', 'reactivation', true)`);
-        const { rows } = await pool.query(
+        await client.query(`SELECT set_config('app.price_change_source', 'reactivation', true)`);
+        const { rows } = await client.query(
           `UPDATE warung.products 
            SET name = $1, category = $2, unit = $3, cost_price = $4, sell_price = $5, stock_qty = $6, reorder_threshold = $7,
                is_consignment = $8, consignment_supplier_name = $9, consignment_cost_share = $10, nearest_expiry_date = $11,
@@ -101,11 +107,13 @@ export async function POST(req: Request) {
             nearest_expiry_date || null, prod.id
           ]
         );
+        await logStockChange(client, rows[0].id, existing.length ? Number(existing[0].stock_qty) : 0, Number(rows[0].stock_qty), req.headers.get('x-user-id'), 'Stok awal / reaktivasi');
+        await client.query('COMMIT');
         return NextResponse.json(rows[0], { status: 201 });
       }
     }
 
-    const { rows } = await pool.query(
+    const { rows } = await client.query(
       `INSERT INTO warung.products 
        (barcode, name, category, unit, cost_price, sell_price, stock_qty, reorder_threshold, is_consignment, consignment_supplier_name, consignment_cost_share, nearest_expiry_date)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
@@ -116,7 +124,10 @@ export async function POST(req: Request) {
       ]
     );
 
-    return NextResponse.json(rows[0], { status: 201 });
+    await logStockChange(client, rows[0].id, existing.length ? Number(existing[0].stock_qty) : 0, Number(rows[0].stock_qty), req.headers.get('x-user-id'), 'Stok awal / reaktivasi');
+        await client.query('COMMIT');
+        return NextResponse.json(rows[0], { status: 201 });
+    } finally { await client.query('ROLLBACK'); client.release(); }
   } catch (err) {
     console.error("Product Create Error:", err);
     return NextResponse.json({ error: { code: 'internal_error', message: 'Database error' } }, { status: 500 });

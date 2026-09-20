@@ -1,5 +1,7 @@
 "use client";
 
+import { useDeferredEffect } from '@/lib/useDeferredEffect';
+import type { CashSession, Discount } from '@/types/api';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import AppShell from '@/components/Layout/AppShell';
 import { Banknote } from 'lucide-react';
@@ -38,7 +40,7 @@ export default function PosDashboard() {
   const [mode, setMode]     = useState<'warung' | 'agent' | 'admin'>('warung');
   const [cart, setCart]     = useState<CartItem[]>([]);
   const [discount, setDiscount] = useState<number>(0);
-  const [activeDiscounts, setActiveDiscounts] = useState<any[]>([]);
+  const [activeDiscounts, setActiveDiscounts] = useState<Discount[]>([]);
 
   const fetchActiveDiscounts = useCallback(async () => {
     try {
@@ -52,14 +54,14 @@ export default function PosDashboard() {
     }
   }, []);
 
-  useEffect(() => {
+  useDeferredEffect(() => {
     if (mode === 'warung') {
       fetchActiveDiscounts();
     }
   }, [mode, fetchActiveDiscounts]);
 
   // Reset discount when cart is empty
-  useEffect(() => {
+  useDeferredEffect(() => {
     if (cart.length === 0) {
       setDiscount(0);
     }
@@ -68,9 +70,13 @@ export default function PosDashboard() {
   const [toast, setToast]   = useState<{ msg: string; type: 'error' | 'success' } | null>(null);
   const [paying, setPaying] = useState(false);
   const [userRole, setUserRole] = useState<string>('');
+  const [userId, setUserId] = useState('');
+  const draftReady = useRef(false);
+  const checkoutBusy = useRef(false);
   const [scannedBarcode, setScannedBarcode] = useState<{ code: string; timestamp: number } | null>(null);
   const [quickAddBarcode, setQuickAddBarcode] = useState<string | null>(null);
   const [pendingQrisSale, setPendingQrisSale] = useState<{
+    receipt?: WarungReceiptData;
     id: string;
     transaction_code: string;
     total_amount: number;
@@ -85,7 +91,7 @@ export default function PosDashboard() {
   const lastReceiptRef = useRef<WarungReceiptData | null>(null);
   const userNameRef    = useRef<string>('Kasir');
 
-  const [activeSession, setActiveSession] = useState<any>(null);
+  const [activeSession, setActiveSession] = useState<CashSession | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
   const [showCloseSessionModal, setShowCloseSessionModal] = useState(false);
 
@@ -148,7 +154,7 @@ export default function PosDashboard() {
       .then(res => res.json())
       .then(data => {
         if (data.role) {
-          setUserRole(data.role);
+          setUserRole(data.role); setUserId(data.id);
           try {
             const savedMode = localStorage.getItem('pos_preferred_mode') as 'warung' | 'agent' | 'admin' | null;
             if (savedMode && (data.role === 'owner' || savedMode !== 'admin')) {
@@ -345,6 +351,50 @@ export default function PosDashboard() {
     setScannedBarcode({ code: barcode, timestamp: Date.now() });
   }, []);
 
+  useDeferredEffect(() => {
+    if (!userId) return;
+    let active = true;
+    const draftKey = 'pos-draft:' + userId;
+    try {
+      const draft = JSON.parse(localStorage.getItem(draftKey) || 'null');
+      if (draft) { setCart(draft.cart || []); setDiscount(draft.discount || 0); }
+      const receipt = JSON.parse(localStorage.getItem('pos-receipt:' + userId) || 'null');
+      if (receipt) lastReceiptRef.current = { ...receipt, timestamp: new Date(receipt.timestamp) };
+    } catch { /* Corrupt local draft never affects server transactions. */ }
+    draftReady.current = true;
+    async function recover() {
+      const journal = JSON.parse(localStorage.getItem('pos-checkout:' + userId) || 'null');
+      const res = await fetch('/api/sales/recover' + (journal ? '?key=' + journal.checkout_key : ''));
+      if (!res.ok || !active) return;
+      const { sale } = await res.json();
+      if (!sale) return;
+      const receipt = { ...sale.receipt, timestamp: new Date(sale.receipt.timestamp) };
+      if (sale.status === 'pending') {
+        setPendingQrisSale({ id: sale.saleId, transaction_code: sale.transaction_code, total_amount: receipt.total,
+          original_amount: receipt.total + (receipt.discount || 0), discount: receipt.discount, items: receipt.items,
+          payment_received: receipt.payment_received, change_given: receipt.change, split_cash_amount: receipt.split_cash_amount,
+          split_qris_amount: receipt.split_qris_amount, receipt });
+      } else {
+        try { localStorage.removeItem('pos-checkout:' + userId); } catch { /* Existing journal safely replays the same sale. */ }
+        if (journal) setCart([]);
+        if (sale.status === 'completed') {
+          lastReceiptRef.current = receipt;
+          try { localStorage.setItem('pos-receipt:' + userId, JSON.stringify(receipt)); } catch { /* Receipt remains available in memory and on the server. */ }
+          showToast('Transaksi sebelumnya sudah tersimpan. Struk dapat dicetak ulang.', 'success');
+        }
+      }
+    }
+    recover().catch(() => showToast('Pemulihan transaksi belum berhasil. Periksa koneksi lalu muat ulang.', 'error'));
+    return () => { active = false; };
+  }, [userId, showToast]);
+
+  useEffect(() => {
+    if (userId && draftReady.current) {
+      try { localStorage.setItem('pos-draft:' + userId, JSON.stringify({ cart, discount })); }
+      catch { /* Checkout separately requires a durable journal before sending. */ }
+    }
+  }, [userId, cart, discount]);
+
   // ── Warung checkout ──────────────────────────────────────────────────────────
   const handleCheckout = useCallback(async (
     method: 'CASH' | 'QRIS' | 'SPLIT' | 'DEBT',
@@ -353,13 +403,15 @@ export default function PosDashboard() {
     splitQris?: number,
     customerId?: string
   ) => {
-    if (cart.length === 0 || paying) return;
+    if (cart.length === 0 || paying || checkoutBusy.current || pendingQrisSale) return;
+    checkoutBusy.current = true;
     setPaying(true);
     try {
       const total       = cart.reduce((s, i) => s + i.subtotal, 0);
       const finalTotal  = Math.max(0, total - discount);
       const change_given = (method === 'CASH' || method === 'QRIS') ? Math.max(0, received - finalTotal) : 0;
-      const payload = {
+      let payload = {
+        checkout_key: crypto.randomUUID(),
         total_amount:     total,
         discount:         discount,
         payment_method:   method,
@@ -379,6 +431,10 @@ export default function PosDashboard() {
           digital_details: i.digitalDetails || undefined,
         })),
       };
+      const journalKey = 'pos-checkout:' + userId;
+      const previousAttempt = localStorage.getItem(journalKey);
+      if (previousAttempt) payload = JSON.parse(previousAttempt);
+      localStorage.setItem(journalKey, JSON.stringify(payload));
       const res = await fetch('/api/sales', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -386,54 +442,34 @@ export default function PosDashboard() {
       });
       if (!res.ok) {
         const err = await res.json();
-        showToast(err.details || err.error || 'Transaksi gagal.', 'error');
+        if (res.status === 400 || res.status === 409) try { localStorage.removeItem(journalKey); } catch { /* Existing journal safely replays the same sale. */ }
+        if (Array.isArray(err.items)) setCart(prev => prev.map(item => {
+          const index = payload.items.findIndex(row => row.product_id === item.id && !row.is_agent);
+          const corrected = err.items[index];
+          return corrected ? { ...item, price: corrected.unit_price, subtotal: Math.round(corrected.unit_price * item.qty * 100) / 100 } : item;
+        }));
+        showToast(typeof err.error === 'string' ? err.error : 'Data pembayaran tidak valid. Periksa nominal dan produk.', 'error');
         return;
       }
       const data = await res.json();
+      const serverReceipt: WarungReceiptData = { ...data.receipt, timestamp: new Date(data.receipt.timestamp) };
+      if (data.status === 'voided') { try { localStorage.removeItem(journalKey); } catch { /* Existing journal safely replays the same sale. */ } showToast('Transaksi ini sudah dibatalkan. Mulai pembayaran kembali.', 'error'); return; }
 
       if (data.status === 'pending') {
-        setPendingQrisSale({
-          id: data.saleId,
-          transaction_code: data.transaction_code,
-          total_amount: data.total_amount,
-          original_amount: total,
-          discount: discount,
-          payment_received: received > 0 ? received : data.total_amount,
-          change_given: change_given,
-          split_cash_amount: data.split_cash_amount,
-          split_qris_amount: data.split_qris_amount,
-          items: cart.map(i => ({
-            name:       i.name,
-            qty:        i.qty,
-            unit_price: i.price,
-            subtotal:   i.subtotal,
-          })),
-        });
+        setPendingQrisSale({ id: data.saleId, transaction_code: data.transaction_code,
+          total_amount: serverReceipt.total, original_amount: serverReceipt.total + (serverReceipt.discount || 0),
+          discount: serverReceipt.discount, payment_received: serverReceipt.payment_received,
+          change_given: serverReceipt.change, split_cash_amount: serverReceipt.split_cash_amount,
+          split_qris_amount: serverReceipt.split_qris_amount, items: serverReceipt.items, receipt: serverReceipt });
         return;
       }
 
       showToast(`✓ Sukses! Kode: ${data.transaction_code}`, 'success');
 
       // Build receipt data and print
-      const receiptData: WarungReceiptData = {
-        type:             'warung',
-        transaction_code: data.transaction_code,
-        cashier:          userNameRef.current,
-        items:            cart.map(i => ({
-          name:       i.name,
-          qty:        i.qty,
-          unit_price: i.price,
-          subtotal:   i.subtotal,
-        })),
-        total:            data.total_amount || finalTotal,
-        discount:         discount,
-        payment_method:   method,
-        payment_received: method === 'SPLIT' ? (splitCash || 0) : (method === 'DEBT' ? 0 : (received || data.total_amount || finalTotal)),
-        split_cash_amount: method === 'SPLIT' ? splitCash : undefined,
-        split_qris_amount: method === 'SPLIT' ? splitQris : undefined,
-        change:           change_given,
-        timestamp:        new Date(),
-      };
+      const receiptData = serverReceipt;
+      try { localStorage.removeItem(journalKey); } catch { /* Existing journal safely replays the same sale. */ }
+      try { localStorage.setItem('pos-receipt:' + userId, JSON.stringify(receiptData)); } catch { /* Receipt remains available in memory and on the server. */ }
       lastReceiptRef.current = receiptData;
       
       const shouldPrint = window.confirm('Cetak struk belanja?');
@@ -451,9 +487,10 @@ export default function PosDashboard() {
     } catch {
       showToast('Koneksi bermasalah. Periksa server.', 'error');
     } finally {
+      checkoutBusy.current = false;
       setPaying(false);
     }
-  }, [cart, paying, showToast, discount]);
+  }, [cart, paying, showToast, discount, pendingQrisSale, userId]);
 
   const handleReprint = useCallback(() => {
     if (lastReceiptRef.current) {
@@ -768,13 +805,15 @@ export default function PosDashboard() {
               total:            pendingQrisSale.total_amount,
               discount:         pendingQrisSale.discount,
               payment_method:   isSplit ? 'SPLIT' : 'QRIS',
-              payment_received: pendingQrisSale.total_amount,
+              payment_received: pendingQrisSale.payment_received ?? pendingQrisSale.total_amount,
               split_cash_amount: pendingQrisSale.split_cash_amount,
               split_qris_amount: pendingQrisSale.split_qris_amount,
-              change:           0,
+              change:           pendingQrisSale.change_given || 0,
               timestamp:        new Date(),
             };
             lastReceiptRef.current = receiptData;
+            try { localStorage.removeItem('pos-checkout:' + userId); } catch { /* Existing journal safely replays the same sale. */ }
+            try { localStorage.setItem('pos-receipt:' + userId, JSON.stringify(receiptData)); } catch { /* Receipt remains available in memory and on the server. */ }
             if (window.confirm('Cetak struk belanja?')) {
               printReceipt(receiptData);
             }
@@ -784,6 +823,7 @@ export default function PosDashboard() {
             fetchRebalanceStatus();
           }}
           onCancel={(msg) => {
+            try { localStorage.removeItem('pos-checkout:' + userId); } catch { /* Existing journal safely replays the same sale. */ }
             if (msg) showToast(msg, 'error');
             setPendingQrisSale(null);
           }}

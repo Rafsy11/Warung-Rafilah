@@ -1,5 +1,7 @@
 "use client";
 
+import { useDeferredEffect } from '@/lib/useDeferredEffect';
+import type { ConversionMap } from '@/types/api';
 import React, { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, Scale, X, Plus, AlertCircle, Loader2, Trash2 } from 'lucide-react';
 import { Product } from '../AdminWorkspace';
@@ -11,7 +13,6 @@ interface ProductConversionTabProps {
 }
 
 export default function ProductConversionTab({
-  products,
   fetchProducts,
   onToast
 }: ProductConversionTabProps) {
@@ -32,7 +33,7 @@ export default function ProductConversionTab({
   const [convertError, setConvertError] = useState('');
 
   // Auto-Conversion Maps state
-  const [conversionMaps, setConversionMaps] = useState<any[]>([]);
+  const [conversionMaps, setConversionMaps] = useState<ConversionMap[]>([]);
   const [loadingConversionMaps, setLoadingConversionMaps] = useState(false);
   const [mapError, setMapError] = useState('');
 
@@ -69,12 +70,12 @@ export default function ProductConversionTab({
   }, [onToast]);
 
   // Load maps on mount
-  useEffect(() => {
+  useDeferredEffect(() => {
     fetchConversionMaps();
   }, [fetchConversionMaps]);
 
   // Lookups for manual conversion source
-  useEffect(() => {
+  useDeferredEffect(() => {
     if (sourceSearch.trim().length < 2) {
       setSourceSuggestions([]);
       return;
@@ -94,7 +95,7 @@ export default function ProductConversionTab({
   }, [sourceSearch]);
 
   // Lookups for manual conversion destination
-  useEffect(() => {
+  useDeferredEffect(() => {
     if (destSearch.trim().length < 2) {
       setDestSuggestions([]);
       return;
@@ -114,7 +115,7 @@ export default function ProductConversionTab({
   }, [destSearch]);
 
   // Lookups for mapping creation source
-  useEffect(() => {
+  useDeferredEffect(() => {
     if (mapSourceSearch.trim().length < 2) {
       setMapSourceSuggestions([]);
       return;
@@ -134,7 +135,7 @@ export default function ProductConversionTab({
   }, [mapSourceSearch]);
 
   // Lookups for mapping creation destination
-  useEffect(() => {
+  useDeferredEffect(() => {
     if (mapDestSearch.trim().length < 2) {
       setMapDestSuggestions([]);
       return;
@@ -154,7 +155,7 @@ export default function ProductConversionTab({
   }, [mapDestSearch]);
 
   // Auto-fill destination product and ratio if source product is already mapped
-  useEffect(() => {
+  useDeferredEffect(() => {
     if (selectedSourceProduct && conversionMaps.length > 0) {
       const match = conversionMaps.find(m => m.source_product_id === selectedSourceProduct.id);
       if (match) {
@@ -164,7 +165,8 @@ export default function ProductConversionTab({
           barcode: match.dest_barcode,
           unit: match.dest_unit,
           stock_qty: match.dest_stock,
-        } as any);
+          category: '', cost_price: '0', sell_price: '0', reorder_threshold: '0',
+        });
         setConvertRatio(match.conversion_ratio.toString());
       }
     }
@@ -271,7 +273,7 @@ export default function ProductConversionTab({
     }
   };
 
-  const handleQuickConvert = async (map: any) => {
+  const handleQuickConvert = async (map: ConversionMap) => {
     const qtyStr = quickConvertQtys[map.id] || '1';
     const sourceQtyNum = Number(qtyStr);
     const ratioNum = Number(map.conversion_ratio);

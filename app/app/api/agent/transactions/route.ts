@@ -1,3 +1,4 @@
+import { beginTransaction } from '@/lib/transaction';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { z } from 'zod';
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
     const client = await db.connect();
     
     try {
-      await client.query('BEGIN');
+      await beginTransaction(client);
 
       // 1. Catat master transaksi AmarthaFin dengan status pending
       const txResult = await client.query(

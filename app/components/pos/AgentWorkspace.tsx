@@ -1,5 +1,6 @@
 "use client";
 
+import { useDeferredEffect } from '@/lib/useDeferredEffect';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Phone, DollarSign, CheckCircle2, XCircle, Clock, ChevronRight,
@@ -187,7 +188,7 @@ export default function AgentWorkspace({ onToast }: AgentWorkspaceProps) {
   }, []);
 
   // ── Fetch digital product catalog ─────────────────────────────────────────
-  useEffect(() => {
+  useDeferredEffect(() => {
     setLoadingCatalog(true);
     fetch('/api/agent/products?grouped=true')
       .then(r => r.json())
