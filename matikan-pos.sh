@@ -3,6 +3,7 @@
 
 # Pastikan dijalankan dari folder tempat script berada
 cd "$(dirname "$0")"
+source "./scripts/docker-context.sh"
 
 # Cek jika dijalankan dengan sudo (tidak perlu & bisa gagal di Docker Desktop)
 if [ "$EUID" -eq 0 ]; then

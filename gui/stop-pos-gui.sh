@@ -3,6 +3,7 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+source "$APP_DIR/scripts/docker-context.sh"
 LOG_DIR="$APP_DIR/logs"
 LOG_FILE="$LOG_DIR/pos-stop.log"
 
