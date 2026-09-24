@@ -79,10 +79,18 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
+    const parsed = productFields.safeParse(body);
+    if (!parsed.success) {
+      const issues = parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ');
+      return NextResponse.json(
+        { error: { code: 'validation_error', message: `Data produk tidak valid: ${issues}`, details: parsed.error.issues } },
+        { status: 400 }
+      );
+    }
     const { 
       barcode, name, category, unit, cost_price, sell_price, stock_qty, reorder_threshold,
       is_consignment, consignment_supplier_name, consignment_cost_share, nearest_expiry_date
-    } = productFields.parse(body);
+    } = parsed.data;
 
     const client = await pool.connect();
     try {
@@ -128,8 +136,8 @@ export async function POST(req: Request) {
         await client.query('COMMIT');
         return NextResponse.json(rows[0], { status: 201 });
     } finally { await client.query('ROLLBACK'); client.release(); }
-  } catch (err) {
+  } catch (err: any) {
     console.error("Product Create Error:", err);
-    return NextResponse.json({ error: { code: 'internal_error', message: 'Database error' } }, { status: 500 });
+    return NextResponse.json({ error: { code: 'internal_error', message: err?.message || 'Database error' } }, { status: 500 });
   }
 }

@@ -263,7 +263,7 @@ export default function ProductManagementTab({
           is_consignment: isConsignment,
           consignment_supplier_name: isConsignment ? consignmentSupplierName : null,
           consignment_cost_share: isConsignment ? supplierCostShareNum : null,
-          nearest_expiry_date: nearestExpiryDate ? new Date(nearestExpiryDate).toISOString() : null,
+          nearest_expiry_date: nearestExpiryDate ? nearestExpiryDate.substring(0, 10) : null,
         }),
       });
 
